@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+
+# Python build
+*.egg-info/
+build
+
+# Python virtual env
+venv
+
+# Testing
+.tox/
