@@ -4,6 +4,7 @@ __pycache__/
 # Python build
 *.egg-info/
 build
+dist
 
 # Python virtual env
 venv

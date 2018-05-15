@@ -22,7 +22,7 @@ setup(
     packages=['pycloudlib'],
     install_requires=REQUIREMENTS,
     zip_safe=True,
-    classifiers=(
+    classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -32,5 +32,5 @@ setup(
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Utilities',
-    )
+    ]
 )
