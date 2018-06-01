@@ -1,13 +1,16 @@
-# Python
+# Python build and distribute items
 __pycache__/
-
-# Python build
+.eggs
 *.egg-info/
 build
 dist
-
-# Python virtual env
 venv
 
-# Testing
+# Testing items
 .tox/
+.coverage
+.noseids
+cover
+
+# Docs
+docs/_build

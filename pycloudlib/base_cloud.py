@@ -1,0 +1,125 @@
+# This file is part of pycloudlib. See LICENSE file for license information.
+"""Base class for all other clouds to provide consistent set of functions."""
+
+import logging
+
+
+class BaseCloud(object):
+    """Base Cloud Class."""
+
+    def __init__(self):
+        """Initialize base cloud class."""
+        self._log = logging.getLogger(__name__)
+
+        self.key_pair = None
+
+    def delete_image(self, image_id):
+        """Delete an image.
+
+        Args:
+            image_id: string, id of the image to delete
+        """
+        raise NotImplementedError
+
+    def delete_instance(self, instance, wait=False):
+        """Delete an instance.
+
+        Args:
+            instance: specific instance to delete
+            wait: boolean, to wait for deletion to complete (default: false)
+        """
+        raise NotImplementedError
+
+    def delete_key(self, name):
+        """Delete an uploaded key.
+
+        Args:
+            name: The key name to delete.
+        """
+        raise NotImplementedError
+
+    def image_list(self, release):
+        """List of images for a particular release.
+
+        Args:
+            release: The release to look for
+
+        Returns:
+            A list of strings with image IDs
+
+        """
+        raise NotImplementedError
+
+    def latest_image_id(self, release):
+        """ID of the latest image for a particular release.
+
+        Args:
+            release: The release to look for
+
+        Returns:
+            A single string with the latest image ID for the specified release
+
+        """
+        raise NotImplementedError
+
+    def launch(self, instance_type, image_id, wait=False, **kwargs):
+        """Launch an instance.
+
+        Args:
+            instance_type: string, type of instance to create
+            image_id: string, image ID to use for the instance
+            wait: wait for instance to be live
+            **kwargs: dictionary of other arguments to pass to launch
+
+        Returns:
+            An instance object to use to manipulate the instance further.
+
+        """
+        raise NotImplementedError
+
+    def snapshot(self, instance_id, clean=True, wait=True):
+        """Snapshot an instance and generate an image from it.
+
+        Args:
+            instance_id: Instance ID to snapshot
+            clean: run instance clean method before taking snapshot
+            wait: wait for instance to get created
+
+        Returns:
+            An image object
+
+        """
+        raise NotImplementedError
+
+    def upload_key(self, public_key_path=None):
+        """Upload a public key.
+
+        Args:
+            public_key_path: path to the public key to upload
+        """
+        raise NotImplementedError
+
+    def use_key(self, name, public_key_path):
+        """Use a particular key.
+
+        Args:
+            name: name to reference key by on cloud
+            public_key_path: path to the public key to upload
+        """
+        raise NotImplementedError
+
+    def wait_for_delete(self, instance_id):
+        """Wait for instance delete.
+
+        Args:
+            instance_id: instance ID to watch for delete
+        """
+        raise NotImplementedError
+
+    def wait_for_snapshot(self, snapshot_id):
+        """Wait for snapshot image to be created.
+
+        Args:
+            snapshot_id: snapshot ID to wait to be available
+        """
+        raise NotImplementedError
