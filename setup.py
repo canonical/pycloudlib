@@ -9,12 +9,18 @@ REQUIREMENTS = []
 with open(REQUIREMENTS_FILE, 'r') as req_file:
     REQUIREMENTS = req_file.read().splitlines()
 
+README_FILE = os.path.join(PWD, 'README.md')
+with open(README_FILE, 'r') as readme:
+    README_TEXT = readme.read()
+
 setup(
     name='pycloudlib',
-    version='18.1',
+    version='18.1.2',
     description=(
         'Python library to launch cloud instances and customize cloud images'
     ),
+    long_description=README_TEXT,
+    long_description_content_type='text/markdown',
     author='pycloudlib-devs',
     author_email='pycloudlib-devs@lists.launchpad.net',
     url='https://launchpad.net/pycloudlib',
@@ -27,7 +33,6 @@ setup(
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 3 :: Only',

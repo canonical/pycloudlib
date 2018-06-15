@@ -21,7 +21,9 @@ install:
 	$(SETUP) install
 
 publish:
-	$(SETUP) sdist upload
+	rm -rf dist/
+	$(SETUP) sdist
+	twine upload dist/*
 
 source:
 	$(SETUP) sdist
