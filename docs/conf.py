@@ -164,7 +164,24 @@ napoleon_numpy_docstring = False
 
 autodoc_default_flags = [
     'members',
+    'inherited-members',
     'undoc-members',
-    'special-members',
     'show-inheritance'
 ]
+
+
+def skip(app, what, name, obj, skip, options):
+    """Include the __init__ function.
+
+    I want to include special members, but only want __init__, so per
+    the following this can be achieved by the following two methods:
+    https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method
+    """
+    if name == "__init__":
+        return False
+    return skip
+
+
+def setup(app):
+    """Add exception to autodoc's skip-member function."""
+    app.connect("autodoc-skip-member", skip)
