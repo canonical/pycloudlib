@@ -8,11 +8,18 @@ SPHINXPROJ    = pycloudlib
 SOURCEDIR     = .
 BUILDDIR      = _build
 
-# Put it first so that "make" without argument is like "make help".
+.PHONY: help build deps Makefile
+
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile
+build:
+	rm -rf source _build
+	sphinx-apidoc --module-first --separate --output-dir source/ ../pycloudlib
+	$(MAKE) html
+
+deps:
+	pip install -rrequirements.txt
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

@@ -38,19 +38,7 @@ class BaseCloud(object):
         """
         raise NotImplementedError
 
-    def image_list(self, release):
-        """List of images for a particular release.
-
-        Args:
-            release: The release to look for
-
-        Returns:
-            A list of strings with image IDs
-
-        """
-        raise NotImplementedError
-
-    def latest_image_id(self, release):
+    def daily_image(self, release):
         """ID of the latest image for a particular release.
 
         Args:
@@ -92,18 +80,19 @@ class BaseCloud(object):
         raise NotImplementedError
 
     def upload_key(self, public_key_path=None):
-        """Upload a public key.
+        """Upload and use a specific public key.
 
         Args:
+            name: name to reference key by
             public_key_path: path to the public key to upload
         """
         raise NotImplementedError
 
     def use_key(self, name, public_key_path):
-        """Use a particular key.
+        """Use an existing already uploaded key.
 
         Args:
-            name: name to reference key by on cloud
+            name: name to reference key by
             public_key_path: path to the public key to upload
         """
         raise NotImplementedError

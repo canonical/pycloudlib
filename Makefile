@@ -1,7 +1,7 @@
 PYTHON = python3
 SETUP  := $(PYTHON) setup.py
 
-.PHONY: build clean docs install publish source test venv
+.PHONY: build clean install publish source test venv
 
 build:
 	$(SETUP) build
@@ -11,11 +11,6 @@ clean:
 	$(SETUP) clean
 	rm -rf .tox .eggs *.egg-info build dist venv
 	@find . -regex '.*\(__pycache__\|\.py[co]\)' -delete
-
-docs:
-	rm -rf docs/source docs/_build
-	cd docs/; sphinx-apidoc --module-first --separate --output-dir source/ ../pycloudlib
-	$(MAKE) -C docs html
 
 install:
 	$(SETUP) install

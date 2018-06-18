@@ -67,6 +67,21 @@ class EC2(BaseCloud):
         """
         return VPC(self.resource, name, ipv4_cidr)
 
+    def daily_image(self, release, arch='amd64', root_store='ssd'):
+        """Find the id of the latest image for a particular release.
+
+        Args:
+            release: string, Ubuntu release to look for
+            arch: string, architecture to use
+            root_store: string, root store to use
+
+        Returns:
+            string, id of latest image
+
+        """
+        images = self._image_list(release, arch, root_store)
+        return images[0]['id']
+
     def delete_image(self, image_id):
         """Delete an image.
 
@@ -111,50 +126,6 @@ class EC2(BaseCloud):
             vpc: VPC object
         """
         vpc.delete()
-
-    def image_list(self, release, arch='amd64', root_store='ssd',
-                   latest=False):
-        """Find list of images with a filter.
-
-        Args:
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-            root_store: string, root store to use
-            latest: default false, boolean to only return latest image
-
-        Returns:
-            list of dictionaries of images
-
-        """
-        filters = [
-            'arch=%s' % arch,
-            'endpoint=%s' % 'https://ec2.%s.amazonaws.com' % self.region,
-            'region=%s' % self.region,
-            'release=%s' % release,
-            'root_store=%s' % root_store,
-            'virt=hvm',
-        ]
-
-        stream = Streams(
-            'https://cloud-images.ubuntu.com/daily',
-            '/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
-        )
-        return stream.query(filters, latest)
-
-    def latest_image_id(self, release, arch='amd64', root_store='ssd'):
-        """Find the id of the latest image for a particular release.
-
-        Args:
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-            root_store: string, root store to use
-
-        Returns:
-            string, id of latest image
-
-        """
-        image = self.image_list(release, arch, root_store, latest=True)
-        return image[0]['id']
 
     def launch(self, image_id, instance_type='t2.micro', vpc=None,
                wait=True, **kwargs):
@@ -238,30 +209,32 @@ class EC2(BaseCloud):
         if wait:
             self.wait_for_snapshot(image)
 
+        instance.start(wait=True)
+
         return image.id
 
-    def upload_key(self, name=None, public_key_path=None):
-        """Upload a public key.
+    def upload_key(self, name, public_key_path):
+        """Upload and use a specific public key.
 
         Args:
+            name: name to reference key by
             public_key_path: path to the public key to upload
         """
-        self.key_pair = KeyPair(name, public_key_path)
-
         self._log.debug('uploading SSH key %s', name)
         self.client.import_key_pair(
             KeyName=name, PublicKeyMaterial=self.key_pair.public_key_content
         )
+        self.use_key(name, public_key_path)
 
     def use_key(self, name, public_key_path):
-        """Use a particular key.
+        """Use an existing already uploaded key.
 
         Args:
-            name: name to reference key by on cloud
+            name: name to reference key by
             public_key_path: path to the public key to upload
         """
+        self._log.debug('using SSH key %s', name)
         self.key_pair = KeyPair(name, public_key_path)
-        self._log.debug('using existing SSH key %s', name)
 
     def wait_for_delete(self, instance):
         """Wait for instance delete.
@@ -281,3 +254,31 @@ class EC2(BaseCloud):
         waiter = self.client.get_waiter('image_available')
         waiter.wait(ImageIds=[image.id])
         image.reload()
+
+    def _image_list(self, release, arch='amd64', root_store='ssd'):
+        """Find list of images with a filter.
+
+        Args:
+            release: string, Ubuntu release to look for
+            arch: string, architecture to use
+            root_store: string, root store to use
+            latest: default false, boolean to only return latest image
+
+        Returns:
+            list of dictionaries of images
+
+        """
+        filters = [
+            'arch=%s' % arch,
+            'endpoint=%s' % 'https://ec2.%s.amazonaws.com' % self.region,
+            'region=%s' % self.region,
+            'release=%s' % release,
+            'root_store=%s' % root_store,
+            'virt=hvm',
+        ]
+
+        stream = Streams(
+            'https://cloud-images.ubuntu.com/daily',
+            '/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
+        )
+        return stream.query(filters)

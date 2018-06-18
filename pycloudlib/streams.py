@@ -15,12 +15,11 @@ class Streams(object):
         self.mirror_url = mirror_url
         self.keyring_path = keyring_path
 
-    def query(self, img_filter, max_results=None):
+    def query(self, img_filter):
         """Query streams for latest image given a specific filter.
 
         Args:
-            img_conf: configuration for image
-            filters: array of filters as strings format 'key=value'
+            img_filter: array of filters as strings format 'key=value'
 
         Returns:
             dictionary with latest image information or empty
@@ -34,8 +33,6 @@ class Streams(object):
         s_mirror = mirrors.UrlMirrorReader(url, policy=policy)
 
         config = {'filters': filters.get_filters(img_filter)}
-        if max_results:
-            config['max_items'] = max_results
 
         self._log.debug('streams using following config %s', config)
         t_mirror = FilterMirror(config)

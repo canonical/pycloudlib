@@ -17,7 +17,7 @@ setup(
     name='pycloudlib',
     version='18.1.2',
     description=(
-        'Python library to launch cloud instances and customize cloud images'
+        'Python library to launch, interact, and snapshot cloud instances'
     ),
     long_description=README_TEXT,
     long_description_content_type='text/markdown',
