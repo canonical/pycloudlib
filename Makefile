@@ -17,6 +17,7 @@ install:
 publish:
 	rm -rf dist/
 	$(SETUP) sdist
+	pip install twine
 	twine upload dist/*
 
 source:
