@@ -61,9 +61,14 @@ use the pycloudlib-devs@lists.launchpad.net list.
 
 .. toctree::
    :hidden:
-   :maxdepth: 1
-   :caption: Table of Contents
+   :glob:
+   :caption: Clouds
 
-   clouds/ec2
+   clouds/*
+
+.. toctree::
+   :hidden:
+   :caption: Developers
+
    api
    contributing
