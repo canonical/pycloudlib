@@ -7,7 +7,6 @@ build:
 	$(SETUP) build
 
 clean:
-	-deactivate
 	$(SETUP) clean
 	rm -rf .tox .eggs *.egg-info build dist venv
 	@find . -regex '.*\(__pycache__\|\.py[co]\)' -delete

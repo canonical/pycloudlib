@@ -8,7 +8,7 @@ SPHINXPROJ    = pycloudlib
 SOURCEDIR     = .
 BUILDDIR      = _build
 
-.PHONY: help build deps Makefile
+.PHONY: help build clean deps Makefile
 
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -17,6 +17,9 @@ build:
 	rm -rf source _build
 	sphinx-apidoc --module-first --separate --output-dir source/ ../pycloudlib
 	$(MAKE) html
+
+clean:
+	rm -rf source _build
 
 deps:
 	pip install -rrequirements.txt
