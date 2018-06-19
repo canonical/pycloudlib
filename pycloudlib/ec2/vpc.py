@@ -107,7 +107,7 @@ class VPC(object):
         ipv6_cidr = self.vpc.ipv6_cidr_block_association_set[0][
             'Ipv6CidrBlock'][:-2] + '64'
 
-        self._log.debug('creating subnet with following ranges:')
+        self._log.debug('creating subnets with following ranges:')
         self._log.debug('ipv4: %s', self.ipv4_cidr)
         self._log.debug('ipv6: %s', ipv6_cidr)
         subnet = self.vpc.create_subnet(
@@ -131,7 +131,7 @@ class VPC(object):
             Create VPN object
 
         """
-        self._log.debug('creating new vpc')
+        self._log.debug('creating new vpc named %s', self.name)
         try:
             vpc = self._resource.create_vpc(
                 CidrBlock=self.ipv4_cidr,

@@ -60,10 +60,12 @@ class EC2Instance(BaseInstance):
 
         Creates an ENI device and attaches it to the running instance. This
         is effectively a hot-add of a network device.
+
+        See the AWS documentation for more info:
+        https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
+        https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
         """
-        # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
-        # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
-        self._log.info('Adding network interface to instance')
+        self._log.info('Adding network interface to %s', self.id)
         interface_id = self._create_network_interface()
         self._attach_network_interface(interface_id)
 
@@ -73,13 +75,15 @@ class EC2Instance(BaseInstance):
         Creates an EBS volume and attaches it to the running instance. This
         is effectively a hot-add of a storage device.
 
+        See AWS documentation for more info:
+        https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_volume
+        https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_volume
+
         Args:
             size: Size in GB of the drive to add
             drive_type: Type of EBS volume to add
         """
-        # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_volume
-        # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_volume
-        self._log.info('Adding storage volume to instance')
+        self._log.info('Adding storage volume to %s', self.id)
         volume = self._create_ebs_volume(size, drive_type)
         self._attach_ebs_volume(volume)
 

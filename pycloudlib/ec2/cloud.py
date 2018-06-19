@@ -32,6 +32,7 @@ class EC2(BaseCloud):
             secret_access_key: user's secret access key
             region: region to login to
         """
+        self._log.debug('Logging into EC2')
         super(EC2, self).__init__()
 
         try:
@@ -79,6 +80,7 @@ class EC2(BaseCloud):
             string, id of latest image
 
         """
+        self._log.debug('finding daily image for %s', release)
         images = self._image_list(release, arch, root_store)
         return images[0]['id']
 
