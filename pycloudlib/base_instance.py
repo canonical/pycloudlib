@@ -26,6 +26,8 @@ class BaseInstance(object):
         """Set up instance."""
         self._log = logging.getLogger(__name__)
         self._ssh_client = None
+        self._ssh_logger = paramiko.util.logging.getLogger()
+        self._ssh_logger.setLevel(logging.WARN)
         self._tmp_count = 0
 
         self.boot_timeout = 120

@@ -63,6 +63,7 @@ class EC2Instance(BaseInstance):
         """
         # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
         # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
+        self._log.info('Adding network interface to instance')
         interface_id = self._create_network_interface()
         self._attach_network_interface(interface_id)
 
@@ -78,6 +79,7 @@ class EC2Instance(BaseInstance):
         """
         # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_volume
         # https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_volume
+        self._log.info('Adding storage volume to instance')
         volume = self._create_ebs_volume(size, drive_type)
         self._attach_ebs_volume(volume)
 

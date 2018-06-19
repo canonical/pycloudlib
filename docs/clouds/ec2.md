@@ -83,7 +83,8 @@ Launching an instance requires at a minimum an AMI ID. Optionally, a user can sp
 ```python
 inst_0 = ec2.launch('ami-537e9a30')
 inst_1 = ec2.launch('ami-537e9a30', instance_type='i3.metal')
-inst_2 = ec2.launch('ami-537e9a30', vpc='id-34321')
+vpc = ec2.create_vpc('private_vpc')
+inst_2 = ec2.launch('ami-537e9a30', vpc=vpc)
 ```
 
 If no VPC is specified the region's default VPC, including security group is used. See the Virtual Private Cloud (VPC) section below for more details on creating a custom VPC.
@@ -134,7 +135,7 @@ A snapshot of an instance is used to generate a new backing AMI image. The gener
 inst = ec2.launch('ami-537e9a30')
 inst.update()
 inst.execute('touch /etc/foobar')
-snapshot = inst.snapshot()
+snapshot = ec2.snapshot(instance.id)
 inst_prime = ec2.launch(snapshot)
 ```
 
@@ -157,7 +158,7 @@ and then later used during instance creation.
 
 ```python
 vpc = ec2.create_vpc(name, ipv4_cidr='192.168.1.0/20')
-ec2.launch('ami-537e9a30', vpc=vpc.id)
+ec2.launch('ami-537e9a30', vpc=vpc)
 ```
 
 If the VPC is destroyed, all instances will be deleted as well.

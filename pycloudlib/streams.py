@@ -1,9 +1,18 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Wrapper class around Simplestreams."""
+
+import importlib
 import logging
 
 from simplestreams import filters, mirrors
 from simplestreams import util as s_util
+
+# Simplestreams import's above grab the root logger and set the
+# log level up how it thinks they should be. This is bad and breaks
+# end-user logging. This reloads the logging module to ignore the
+# settings set by simplestreams.
+logging.shutdown()
+importlib.reload(logging)
 
 
 class Streams(object):

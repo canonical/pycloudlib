@@ -182,7 +182,7 @@ class EC2(BaseCloud):
         """Snapshot an instance and generate an image from it.
 
         Args:
-            instance_id: Instance ID to snapshot
+            instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
             wait: wait for instance to get created
 
