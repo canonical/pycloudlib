@@ -12,6 +12,7 @@ Subpackages
 .. toctree::
 
     pycloudlib.ec2
+    pycloudlib.lxd
 
 Submodules
 ----------
