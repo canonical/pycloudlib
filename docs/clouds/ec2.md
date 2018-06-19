@@ -82,7 +82,7 @@ Launching an instance requires at a minimum an AMI ID. Optionally, a user can sp
 
 ```python
 inst_0 = ec2.launch('ami-537e9a30')
-inst_1 = ec2.launch('ami-537e9a30', instance_type='i3.metal')
+inst_1 = ec2.launch('ami-537e9a30', instance_type='i3.metal', user_data=data)
 vpc = ec2.create_vpc('private_vpc')
 inst_2 = ec2.launch('ami-537e9a30', vpc=vpc)
 ```
@@ -94,6 +94,7 @@ If further customization of an instance is required, a user can pass additional 
 ```python
 inst = ec2.launch(
     'ami-537e9a30',
+    UserData='#cloud-config\nfinal_message: "system up!"',
     Placement={
         'AvailabilityZone': 'us-west-2a'
     },

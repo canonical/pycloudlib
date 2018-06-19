@@ -127,13 +127,14 @@ class EC2(BaseCloud):
         """
         vpc.delete()
 
-    def launch(self, image_id, instance_type='t2.micro', vpc=None,
-               wait=True, **kwargs):
+    def launch(self, image_id, instance_type='t2.micro', user_data=None,
+               vpc=None, wait=True, **kwargs):
         """Launch instance on EC2.
 
         Args:
             image_id: string, AMI ID for instance to use
             instance_type: string, instance type to launch
+            user_data: string, user-data to pass to instance
             vpc: optional vpc object to create instance under
             wait: boolean, wait for instance to come up
             kwargs: other named arguments to add to instance JSON
@@ -156,6 +157,9 @@ class EC2(BaseCloud):
                 'Tags': [{'Key': 'Name', 'Value': self.tag}]
             }],
         }
+
+        if user_data:
+            args['UserData'] = user_data
 
         for key, value in kwargs.items():
             args[key] = value
