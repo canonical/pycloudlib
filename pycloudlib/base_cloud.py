@@ -21,11 +21,11 @@ class BaseCloud(object):
         """
         raise NotImplementedError
 
-    def delete_instance(self, instance, wait=False):
+    def delete_instance(self, instance_id, wait=False):
         """Delete an instance.
 
         Args:
-            instance: specific instance to delete
+            instance_id: specific instance_id to delete
             wait: boolean, to wait for deletion to complete (default: false)
         """
         raise NotImplementedError
@@ -46,6 +46,18 @@ class BaseCloud(object):
 
         Returns:
             A single string with the latest image ID for the specified release
+
+        """
+        raise NotImplementedError
+
+    def get_instance(self, instance_id):
+        """Get an instance by id.
+
+        Args:
+            instance_id:
+
+        Returns:
+            An instance object to use to manipulate the instance further.
 
         """
         raise NotImplementedError

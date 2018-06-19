@@ -97,15 +97,17 @@ class EC2(BaseCloud):
         self._log.debug('removing custom snapshot %s', snapshot_id)
         self.client.delete_snapshot(SnapshotId=snapshot_id)
 
-    def delete_instance(self, instance, wait=True):
+    def delete_instance(self, instance_id, wait=True):
         """Delete an instance.
 
         Args:
-            instance: specific instance to delete
+            instance_id: specific instance to delete
             wait: boolean, to wait for deletion to complete (default: false)
         """
-        self._log.debug('destroying instance %s', instance.id)
+        self._log.debug('destroying instance %s', instance_id)
+        instance = self.get_instance(instance_id)
         instance.delete()
+
         if wait:
             self.wait_for_delete(instance)
 
@@ -126,6 +128,19 @@ class EC2(BaseCloud):
             vpc: VPC object
         """
         vpc.delete()
+
+    def get_instance(self, instance_id):
+        """Get an instance by id.
+
+        Args:
+            instance_id:
+
+        Returns:
+            An instance object to use to manipulate the instance further.
+
+        """
+        instance = self.resource.Instance(instance_id)
+        return EC2Instance(self.client, self.key_pair, instance)
 
     def launch(self, image_id, instance_type='t2.micro', user_data=None,
                vpc=None, wait=True, **kwargs):

@@ -128,6 +128,12 @@ for instance in instances:
     instance.wait_for_delete()
 ```
 
+An existing instance can get used by providing an instance-id.
+
+```python
+instance = ec2.get_instance('i-025795d8e55b055da')
+```
+
 ## Snapshots
 
 A snapshot of an instance is used to generate a new backing AMI image. The generated image can in turn get used to launch new instances. This allows for customization of an image and then re-use of that image.
