@@ -43,7 +43,9 @@ class Streams(object):
 
         config = {'filters': filters.get_filters(img_filter)}
 
-        self._log.debug('streams using following config %s', config)
+        self._log.debug('searching with config')
+        self._log.debug(config)
+
         t_mirror = FilterMirror(config)
         t_mirror.sync(s_mirror, path)
 

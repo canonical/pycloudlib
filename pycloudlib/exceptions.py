@@ -46,6 +46,9 @@ class ProcessExecutionError(IOError):
             IOError
 
         """
+        if isinstance(cmd, list):
+            cmd = ' '.join(cmd)
+
         self.cmd = cmd
         self.stdout = self._indent_text(stdout)
         self.stderr = self._indent_text(stderr)

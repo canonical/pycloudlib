@@ -26,8 +26,6 @@ class BaseInstance(object):
         """Set up instance."""
         self._log = logging.getLogger(__name__)
         self._ssh_client = None
-        self._ssh_logger = paramiko.util.logging.getLogger()
-        self._ssh_logger.setLevel(logging.WARN)
         self._tmp_count = 0
 
         self.boot_timeout = 120
@@ -106,9 +104,9 @@ class BaseInstance(object):
             rcs = (0,)
 
         if description:
-            self._log.debug('executing "%s"', description)
+            self._log.debug(description)
         else:
-            self._log.debug("executing command: %s", shell_quote(command))
+            self._log.debug("executing: %s", shell_quote(command))
 
         out, err, return_code = self._ssh(list(command), stdin=stdin)
 
@@ -192,19 +190,19 @@ class BaseInstance(object):
             ['sh', '-c', shblob, 'runscript', self._tmpfile()],
             stdin=script, description=description, rcs=rcs)
 
-    def shutdown(self, wait=True):
-        """Shutdown the instance.
-
-        Args:
-            wait: wait for the instance to shutdown
-        """
-        raise NotImplementedError
-
     def start(self, wait=True):
         """Start the instance.
 
         Args:
             wait: wait for the instance to start.
+        """
+        raise NotImplementedError
+
+    def stop(self, wait=True):
+        """Stop the instance.
+
+        Args:
+            wait: wait for the instance to stop
         """
         raise NotImplementedError
 
@@ -221,8 +219,8 @@ class BaseInstance(object):
         """Wait for instance to be deleted."""
         raise NotImplementedError
 
-    def wait_for_shutdown(self):
-        """Wait for instance shutdown."""
+    def wait_for_stop(self):
+        """Wait for instance stop."""
         raise NotImplementedError
 
     def _ssh(self, command, stdin=None):
@@ -256,6 +254,7 @@ class BaseInstance(object):
         if self._ssh_client and self._ssh_client.get_transport().isAlive():
             return self._ssh_client
 
+        logging.getLogger("paramiko").setLevel(logging.WARNING)
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -321,7 +320,8 @@ class BaseInstance(object):
             'sleep 1; done; exit 1' % (self.boot_timeout, formatted_tests)
         )
 
-        if self.execute(cmd, rcs=(0, 1))[-1] != 0:
+        result = self.execute(cmd, rcs=(0, 1), description='waiting for start')
+        if result[-1] != 0:
             raise OSError(
                 'timeout: after %ss system not started' % self.boot_timeout
             )

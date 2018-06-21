@@ -65,7 +65,7 @@ class EC2Instance(BaseInstance):
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
         """
-        self._log.info('Adding network interface to %s', self.id)
+        self._log.info('adding network interface to %s', self.id)
         interface_id = self._create_network_interface()
         self._attach_network_interface(interface_id)
 
@@ -83,7 +83,7 @@ class EC2Instance(BaseInstance):
             size: Size in GB of the drive to add
             drive_type: Type of EBS volume to add
         """
-        self._log.info('Adding storage volume to %s', self.id)
+        self._log.info('adding storage volume to %s', self.id)
         volume = self._create_ebs_volume(size, drive_type)
         self._attach_ebs_volume(volume)
 
@@ -116,19 +116,6 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def shutdown(self, wait=True):
-        """Shutdown the instance.
-
-        Args:
-            wait: wait for the instance to shutdown
-        """
-        self._log.debug('stopping instance %s', self._instance.id)
-        self._instance.stop()
-
-        if wait:
-            self._instance.wait_until_stopped()
-            self._instance.reload()
-
     def start(self, wait=True):
         """Start the instance.
 
@@ -146,6 +133,18 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait()
 
+    def stop(self, wait=True):
+        """Stop the instance.
+
+        Args:
+            wait: wait for the instance to stop
+        """
+        self._log.debug('stopping instance %s', self._instance.id)
+        self._instance.stop()
+
+        if wait:
+            self.wait_for_stop()
+
     def wait(self):
         """Wait for instance to be up and cloud-init to be complete."""
         self._instance.wait_until_running()
@@ -157,8 +156,8 @@ class EC2Instance(BaseInstance):
         self._instance.wait_until_terminated()
         self._instance.reload()
 
-    def wait_for_shutdown(self):
-        """Wait for instance shutdown."""
+    def wait_for_stop(self):
+        """Wait for instance stop."""
         self._instance.wait_until_stopped()
         self._instance.reload()
 
