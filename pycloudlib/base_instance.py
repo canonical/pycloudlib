@@ -106,7 +106,7 @@ class BaseInstance(object):
         if description:
             self._log.debug(description)
         else:
-            self._log.debug("executing: %s", shell_quote(command))
+            self._log.debug('executing: %s', shell_quote(command))
 
         out, err, return_code = self._ssh(list(command), stdin=stdin)
 

@@ -68,7 +68,22 @@ use the pycloudlib-devs@lists.launchpad.net list.
 
 .. toctree::
    :hidden:
+   :glob:
+   :caption: Code Examples
+
+   examples/*
+
+.. toctree::
+   :hidden:
+   :caption: External
+
+   File a bug <https://bugs.launchpad.net/pycloudlib/+filebug>
+   PyPI <https://pypi.org/project/pycloudlib/>
+
+.. toctree::
+   :hidden:
    :caption: Developers
 
-   api
    contributing
+   design
+   api

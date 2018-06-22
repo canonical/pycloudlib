@@ -33,7 +33,7 @@ class EC2(BaseCloud):
             region: region to login to
         """
         super(EC2, self).__init__()
-        self._log.debug('Logging into EC2')
+        self._log.debug('logging into EC2')
 
         try:
             session = _get_session(access_key_id, secret_access_key, region)
