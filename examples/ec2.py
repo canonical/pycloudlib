@@ -13,7 +13,7 @@ def hot_add(ec2, daily):
     Give an example of hot adding a pair of network interfaces and a
     couple storage volumes of various sizes.
     """
-    instance = ec2.launch(daily, instance_type='c5d.2xlarge')
+    instance = ec2.launch(daily, instance_type='m4.xlarge')
 
     instance.add_network_interface()
     instance.add_network_interface()
