@@ -85,5 +85,7 @@ use the pycloudlib-devs@lists.launchpad.net list.
    :caption: Developers
 
    contributing
+   history
+   maintainer
    design
    api
