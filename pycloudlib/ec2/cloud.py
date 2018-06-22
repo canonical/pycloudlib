@@ -214,7 +214,7 @@ class EC2(BaseCloud):
         if clean:
             instance.clean()
 
-        instance.shutdown(wait=True)
+        instance.stop(wait=True)
 
         self._log.debug(
             'creating custom ami from instance %s', instance.id
