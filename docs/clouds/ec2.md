@@ -110,7 +110,7 @@ By default, the launch method will wait for cloud-init to finish initializing be
 ```python
 instances = []
 for inst in range(num_instances):
-    instances.add(ec2.launch('ami-537e9a30', wait=False))
+    instances.append(ec2.launch('ami-537e9a30', wait=False))
 
 for instance in instances:
     instance.wait()

@@ -21,15 +21,6 @@ class BaseCloud(object):
         """
         raise NotImplementedError
 
-    def delete_instance(self, instance_id, wait=False):
-        """Delete an instance.
-
-        Args:
-            instance_id: specific instance_id to delete
-            wait: boolean, to wait for deletion to complete (default: false)
-        """
-        raise NotImplementedError
-
     def delete_key(self, name):
         """Delete an uploaded key.
 
@@ -106,21 +97,5 @@ class BaseCloud(object):
         Args:
             name: name to reference key by
             public_key_path: path to the public key to upload
-        """
-        raise NotImplementedError
-
-    def wait_for_delete(self, instance_id):
-        """Wait for instance delete.
-
-        Args:
-            instance_id: instance ID to watch for delete
-        """
-        raise NotImplementedError
-
-    def wait_for_snapshot(self, snapshot_id):
-        """Wait for snapshot image to be created.
-
-        Args:
-            snapshot_id: snapshot ID to wait to be available
         """
         raise NotImplementedError

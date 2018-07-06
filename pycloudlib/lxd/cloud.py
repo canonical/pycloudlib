@@ -135,23 +135,3 @@ class LXD(BaseCloud):  # pylint: disable=W0223
         )
         instance.start(wait)
         return instance
-
-    def wait_for_delete(self, instance_name):
-        """Wait for instance delete.
-
-        Not used for LXD.
-
-        Args:
-            instance_name: instance name to watch for delete
-        """
-        pass
-
-    def wait_for_snapshot(self, snapshot_name):
-        """Wait for snapshot image to be created.
-
-        Not used for LXD.
-
-        Args:
-            snapshot_name: snapshot name to wait to be available
-        """
-        pass

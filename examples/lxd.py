@@ -23,18 +23,15 @@ def snapshot_instance():
     """
     lxd = pycloudlib.LXD()
     inst = lxd.launch('pycloudlib-snapshot-base', RELEASE)
-    inst.clean()
-    inst.stop()
 
     snapshot_name = 'snapshot'
     inst.snapshot(snapshot_name)
     inst.restore(snapshot_name)
 
-    child_name = 'pycloudlib-snapshot-child'
-    child = lxd.clone('%s/%s' % (inst.name, snapshot_name), child_name)
-    child.start()
+    child = lxd.clone('%s/%s' % (inst.name, snapshot_name),
+                      'pycloudlib-snapshot-child')
 
-    lxd.delete_instance(child_name)
+    child.delete()
     inst.delete_snapshot(snapshot_name)
     inst.delete(wait=False)
 
@@ -137,6 +134,10 @@ def basic_lifecycle():
     inst.stop()
     inst.start()
     inst.restart()
+
+    # Custom attributes
+    print(inst.ephemeral)
+    print(inst.state)
 
     inst = lxd.get_instance(name)
     inst.delete()

@@ -202,6 +202,9 @@ class LXDInstance(BaseInstance):
             snapshot_name: name to call snapshot
             stateful: boolean, stateful snapshot or not
         """
+        self.clean()
+        self.stop()
+
         cmd = ['lxc', 'snapshot', self.name, snapshot_name]
         if stateful:
             cmd.append('--stateful')

@@ -99,20 +99,6 @@ class EC2(BaseCloud):
         self._log.debug('removing custom snapshot %s', snapshot_id)
         self.client.delete_snapshot(SnapshotId=snapshot_id)
 
-    def delete_instance(self, instance_id, wait=True):
-        """Delete an instance.
-
-        Args:
-            instance_id: specific instance to delete
-            wait: boolean, to wait for deletion to complete (default: false)
-        """
-        self._log.debug('destroying instance %s', instance_id)
-        instance = self.get_instance(instance_id)
-        instance.delete()
-
-        if wait:
-            self.wait_for_delete(instance)
-
     def delete_key(self, name):
         """Delete an uploaded key.
 
@@ -121,15 +107,6 @@ class EC2(BaseCloud):
         """
         self._log.debug('deleting SSH key %s', name)
         self.client.delete_key_pair(KeyName=name)
-
-    @staticmethod
-    def delete_vpc(vpc):
-        """Delete given VPC.
-
-        Args:
-            vpc: VPC object
-        """
-        vpc.delete()
 
     def get_instance(self, instance_id):
         """Get an instance by id.
@@ -199,7 +176,7 @@ class EC2(BaseCloud):
 
         return instance
 
-    def snapshot(self, instance, clean=True, wait=True):
+    def snapshot(self, instance, clean=True):
         """Snapshot an instance and generate an image from it.
 
         Args:
@@ -227,8 +204,7 @@ class EC2(BaseCloud):
         image_ami_edited = response['ImageId']
         image = self.resource.Image(image_ami_edited)
 
-        if wait:
-            self.wait_for_snapshot(image)
+        self._wait_for_snapshot(image)
 
         instance.start(wait=True)
 
@@ -257,25 +233,6 @@ class EC2(BaseCloud):
         self._log.debug('using SSH key %s', name)
         self.key_pair = KeyPair(name, public_key_path)
 
-    def wait_for_delete(self, instance):
-        """Wait for instance delete.
-
-        Args:
-            instance_id: instance ID to watch for delete
-        """
-        instance.wait_until_terminated()
-
-    def wait_for_snapshot(self, image):
-        """Wait for snapshot image to be created.
-
-        Args:
-            snapshot_id: snapshot ID to wait to be available
-        """
-        image.wait_until_exists()
-        waiter = self.client.get_waiter('image_available')
-        waiter.wait(ImageIds=[image.id])
-        image.reload()
-
     def _image_list(self, release, arch='amd64', root_store='ssd'):
         """Find list of images with a filter.
 
@@ -303,3 +260,14 @@ class EC2(BaseCloud):
             '/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
         )
         return stream.query(filters)
+
+    def _wait_for_snapshot(self, image):
+        """Wait for snapshot image to be created.
+
+        Args:
+            snapshot_id: snapshot ID to wait to be available
+        """
+        image.wait_until_exists()
+        waiter = self.client.get_waiter('image_available')
+        waiter.wait(ImageIds=[image.id])
+        image.reload()
