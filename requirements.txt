@@ -1,5 +1,6 @@
 boto3
 botocore
+google-api-python-client
 paramiko
 python-simplestreams
 pyyaml
