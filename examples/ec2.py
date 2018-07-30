@@ -3,6 +3,7 @@
 """Basic examples of various lifecycle with an EC2 instance."""
 
 import logging
+import os
 
 import pycloudlib
 
@@ -76,8 +77,9 @@ def launch_basic(ec2, daily):
     instance.console_log()
     instance.execute('ip a')
 
-    instance.stop()
+    instance.shutdown()
     instance.start()
+    instance.restart()
 
     # Various Attributes
     print(instance.ip)
@@ -94,7 +96,8 @@ def connect_ec2(access_key_id=None, secret_access_key=None, region=None):
     Can customize the key IDs and region if required.
     """
     ec2 = pycloudlib.EC2(access_key_id, secret_access_key, region)
-    ec2.use_key('powersj', '/home/powersj/.ssh/id_rsa.pub')
+    user = os.getlogin()
+    ec2.use_key(user, '/home/%s/.ssh/id_rsa.pub' % user)
 
     # can also upload a key instead of using a pre-existing one
     # ec2.upload_key('powersj_new', 'home/powersj/.ssh/id_rsa.pub')

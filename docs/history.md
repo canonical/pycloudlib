@@ -1,5 +1,9 @@
 # Release History
 
+## 18.3
+
+- 785cd1f cleanup: clean up API and examples
+
 ## 18.2
 
 - 991897b ec2 example: choose more common instance type

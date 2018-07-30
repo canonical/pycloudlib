@@ -75,7 +75,7 @@ class BaseInstance(object):
         """
         raise NotImplementedError
 
-    def execute(self, command, stdin=None, rcs=None, description=None):
+    def execute(self, command, stdin=None, description=None):
         """Execute command in instance, recording output, error and exit code.
 
         Assumes functional networking and execution with the target filesystem
@@ -86,11 +86,6 @@ class BaseInstance(object):
                      command is a string, then it will be executed as:
                      `['sh', '-c', command]`
             stdin: bytes content for standard in
-            rcs: return codes can be one of:
-
-                    * None (default): non-zero exit code will raise exception.
-                    * False: any is allowed (No execption raised).
-                    * list of int: any rc not in the list will raise exception.
             description: purpose of command
 
         Returns:
@@ -100,9 +95,6 @@ class BaseInstance(object):
         if isinstance(command, str):
             command = ['sh', '-c', command]
 
-        if rcs is None:
-            rcs = (0,)
-
         if description:
             self._log.debug(description)
         else:
@@ -110,11 +102,10 @@ class BaseInstance(object):
 
         out, err, return_code = self._ssh(list(command), stdin=stdin)
 
-        # False means accept anything.
-        if (rcs is False or return_code in rcs):
-            return out, err, return_code
+        out = '' if not out else out.rstrip().decode("utf-8")
+        err = '' if not err else err.rstrip().decode("utf-8")
 
-        raise InTargetExecuteError(command, out, err, return_code, description)
+        return out, err, return_code
 
     def install(self, packages):
         """Install specific packages.
@@ -165,12 +156,15 @@ class BaseInstance(object):
             if return_code != 0:
                 raise RuntimeError("Failed to write to '%s'" % remote_path)
 
-    def run_script(self, script, rcs=None, description=None):
+    def restart(self):
+        """Restart an instance."""
+        raise NotImplementedError
+
+    def run_script(self, script, description=None):
         """Run script in target and return stdout.
 
         Args:
             script: script contents
-            rcs: allowed return codes from script
             description: purpose of script
 
         Returns:
@@ -188,21 +182,21 @@ class BaseInstance(object):
             '"$s" "$@"'))
         return self.execute(
             ['sh', '-c', shblob, 'runscript', self._tmpfile()],
-            stdin=script, description=description, rcs=rcs)
+            stdin=script, description=description)
+
+    def shutdown(self, wait=True):
+        """Shutdown the instance.
+
+        Args:
+            wait: wait for the instance to shutdown
+        """
+        raise NotImplementedError
 
     def start(self, wait=True):
         """Start the instance.
 
         Args:
             wait: wait for the instance to start.
-        """
-        raise NotImplementedError
-
-    def stop(self, wait=True):
-        """Stop the instance.
-
-        Args:
-            wait: wait for the instance to stop
         """
         raise NotImplementedError
 
@@ -320,7 +314,7 @@ class BaseInstance(object):
             'sleep 1; done; exit 1' % (self.boot_timeout, formatted_tests)
         )
 
-        result = self.execute(cmd, rcs=(0, 1), description='waiting for start')
+        result = self.execute(cmd, description='waiting for start')
         if result[-1] != 0:
             raise OSError(
                 'timeout: after %ss system not started' % self.boot_timeout

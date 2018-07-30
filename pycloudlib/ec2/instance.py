@@ -116,6 +116,24 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
+    def restart(self):
+        """Restart the instance."""
+        self._log.debug('restarting instance %s', self._instance.id)
+        self._instance.reboot()
+        self.wait()
+
+    def shutdown(self, wait=True):
+        """Shutdown the instance.
+
+        Args:
+            wait: wait for the instance shutdown
+        """
+        self._log.debug('shutting down instance %s', self._instance.id)
+        self._instance.stop()
+
+        if wait:
+            self.wait_for_stop()
+
     def start(self, wait=True):
         """Start the instance.
 
@@ -132,18 +150,6 @@ class EC2Instance(BaseInstance):
 
         if wait:
             self.wait()
-
-    def stop(self, wait=True):
-        """Stop the instance.
-
-        Args:
-            wait: wait for the instance to stop
-        """
-        self._log.debug('stopping instance %s', self._instance.id)
-        self._instance.stop()
-
-        if wait:
-            self.wait_for_stop()
 
     def wait(self):
         """Wait for instance to be up and cloud-init to be complete."""

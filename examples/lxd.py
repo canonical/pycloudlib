@@ -131,7 +131,7 @@ def basic_lifecycle():
     inst.console_log()
 
     inst.execute('uptime')
-    inst.stop()
+    inst.shutdown()
     inst.start()
     inst.restart()
 

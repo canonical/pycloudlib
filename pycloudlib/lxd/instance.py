@@ -182,7 +182,7 @@ class LXDInstance(BaseInstance):
         For LXD this means stopping the instance, and then starting it.
         """
         self._log.debug('restarting %s', self.name)
-        self.stop(wait=True)
+        self.shutdown(wait=True)
         self.start(wait=True)
 
     def restore(self, snapshot_name):
@@ -195,6 +195,21 @@ class LXDInstance(BaseInstance):
                         self.name, snapshot_name)
         subp(['lxc', 'restore', self.name, snapshot_name])
 
+    def shutdown(self, wait=True):
+        """Shutdown instance.
+
+        Args:
+            wait: boolean, wait for instance to shutdown
+        """
+        if self.state == 'Stopped':
+            return
+
+        self._log.debug('shutting down %s', self.name)
+        subp(['lxc', 'stop', self.name, '--force'])
+
+        if wait:
+            self.wait_for_stop()
+
     def snapshot(self, snapshot_name, stateful=False):
         """Create a snapshot from the instance.
 
@@ -203,7 +218,7 @@ class LXDInstance(BaseInstance):
             stateful: boolean, stateful snapshot or not
         """
         self.clean()
-        self.stop()
+        self.shutdown()
 
         cmd = ['lxc', 'snapshot', self.name, snapshot_name]
         if stateful:
@@ -226,21 +241,6 @@ class LXDInstance(BaseInstance):
 
         if wait:
             self.wait()
-
-    def stop(self, wait=True):
-        """Stop instance.
-
-        Args:
-            wait: boolean, wait for instance to fully stop
-        """
-        if self.state == 'Stopped':
-            return
-
-        self._log.debug('stopping %s', self.name)
-        subp(['lxc', 'stop', self.name, '--force'])
-
-        if wait:
-            self.wait_for_stop()
 
     def wait(self):
         """Wait for instance to be up and cloud-init to be complete."""
