@@ -2,6 +2,7 @@
 """EC2 instance."""
 
 import string
+import time
 
 from pycloudlib.base_instance import BaseInstance
 from pycloudlib.exceptions import (
@@ -120,6 +121,11 @@ class EC2Instance(BaseInstance):
         """Restart the instance."""
         self._log.debug('restarting instance %s', self._instance.id)
         self._instance.reboot()
+
+        # This is a terrible hack, however it is not obviously clear
+        # how to wait for a system to start to restart.
+        time.sleep(30)
+
         self.wait()
 
     def shutdown(self, wait=True):
