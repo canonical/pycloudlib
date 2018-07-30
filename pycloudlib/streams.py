@@ -15,7 +15,7 @@ logging.shutdown()
 importlib.reload(logging)
 
 
-class Streams(object):
+class Streams:
     """Streams Class."""
 
     def __init__(self, mirror_url, keyring_path):

@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from pycloudlib.ec2.util import _tag_resource
 
 
-class VPC(object):
+class VPC:
     """Virtual Private Cloud Class."""
 
     def __init__(self, resource, name, ipv4_cidr='192.168.1.0/20'):

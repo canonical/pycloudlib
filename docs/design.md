@@ -16,7 +16,7 @@ Instances shall use consistent operation schema across the clouds. For example:
 
 * launch
 * start
-* stop
+* shutdown
 * restart
 
 In addition interactions with the instance are covered by a standard set of commands:

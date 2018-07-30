@@ -4,6 +4,7 @@
 import datetime
 
 import botocore
+import distro_info
 
 from pycloudlib.base_cloud import BaseCloud
 from pycloudlib.ec2.instance import EC2Instance
@@ -47,7 +48,6 @@ class EC2(BaseCloud):
             raise RuntimeError(
                 'Please configure ec2 credentials in $HOME/.aws/credentials')
 
-        self.key_pair = None
         self.tag = tag
         if not tag:
             self.tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -121,12 +121,12 @@ class EC2(BaseCloud):
         instance = self.resource.Instance(instance_id)
         return EC2Instance(self.client, self.key_pair, instance)
 
-    def launch(self, image_id, instance_type='t2.micro', user_data=None,
+    def launch(self, image_id=None, instance_type='t2.micro', user_data=None,
                vpc=None, wait=True, **kwargs):
         """Launch instance on EC2.
 
         Args:
-            image_id: string, AMI ID for instance to use
+            image_id: string, AMI ID to use default: latest Ubuntu LTS
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
             vpc: optional vpc object to create instance under
@@ -139,6 +139,9 @@ class EC2(BaseCloud):
         """
         if not self.key_pair:
             raise NoKeyPairConfiguredError
+
+        if not image_id:
+            image_id = self.daily_image(distro_info.UbuntuDistroInfo().lts())
 
         args = {
             'ImageId': image_id,

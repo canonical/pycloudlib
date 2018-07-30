@@ -2,16 +2,22 @@
 """Base class for all other clouds to provide consistent set of functions."""
 
 import logging
+import os
+
+from pycloudlib.key import KeyPair
 
 
-class BaseCloud(object):
+class BaseCloud:
     """Base Cloud Class."""
 
     def __init__(self):
         """Initialize base cloud class."""
         self._log = logging.getLogger(__name__)
 
-        self.key_pair = None
+        _username = os.getlogin()
+        self.key_pair = KeyPair(
+            _username, '/home/%s/.ssh/id_rsa.pub' % _username
+        )
 
     def delete_image(self, image_id):
         """Delete an image.

@@ -19,7 +19,7 @@ from pycloudlib.exceptions import (
 from pycloudlib.util import shell_quote, shell_pack
 
 
-class BaseInstance(object):
+class BaseInstance:
     """Base instance object."""
 
     def __init__(self, key_pair):
@@ -41,7 +41,7 @@ class BaseInstance(object):
             IP address assigned to instance.
 
         """
-        return None
+        return ''
 
     def __del__(self):
         """Cleanup of instance."""

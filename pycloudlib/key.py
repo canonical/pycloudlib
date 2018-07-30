@@ -8,7 +8,7 @@ from pycloudlib.exceptions import SSHKeyExistsError
 from pycloudlib.util import subp
 
 
-class KeyPair(object):
+class KeyPair:
     """Key Class."""
 
     def __init__(self, name, public_key_path=None):
