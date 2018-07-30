@@ -1,5 +1,13 @@
 # Release History
 
+## 18.4
+
+- d7fa81b defaults: SSH Key and Image Release
+
+## 18.3.1
+
+- ebd88cb ec2: fix reboot
+
 ## 18.3
 
 - 785cd1f cleanup: clean up API and examples
