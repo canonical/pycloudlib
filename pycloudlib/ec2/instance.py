@@ -66,7 +66,7 @@ class EC2Instance(BaseInstance):
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
         """
-        self._log.info('adding network interface to %s', self.id)
+        self._log.debug('adding network interface to %s', self.id)
         interface_id = self._create_network_interface()
         self._attach_network_interface(interface_id)
 
@@ -84,7 +84,7 @@ class EC2Instance(BaseInstance):
             size: Size in GB of the drive to add
             drive_type: Type of EBS volume to add
         """
-        self._log.info('adding storage volume to %s', self.id)
+        self._log.debug('adding storage volume to %s', self.id)
         volume = self._create_ebs_volume(size, drive_type)
         self._attach_ebs_volume(volume)
 
