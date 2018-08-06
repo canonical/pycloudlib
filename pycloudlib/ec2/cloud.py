@@ -1,8 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """AWS EC2 Cloud type."""
 
-import datetime
-
 import botocore
 import distro_info
 
@@ -17,19 +15,20 @@ from pycloudlib.streams import Streams
 class EC2(BaseCloud):
     """EC2 Cloud Class."""
 
-    def __init__(self, access_key_id=None, secret_access_key=None,
-                 region=None, tag=None):
+    def __init__(self, tag=None, access_key_id=None, secret_access_key=None,
+                 region=None):
         """Initialize the connection to EC2.
 
         boto3 will read a users /home/$USER/.aws/* files if no
         arguments are provided here to find values.
 
         Args:
+            tag: string used to name and tag resources with
             access_key_id: user's access key ID
             secret_access_key: user's secret access key
             region: region to login to
         """
-        super(EC2, self).__init__()
+        super(EC2, self).__init__(tag)
         self._log.debug('logging into EC2')
 
         try:
@@ -43,10 +42,6 @@ class EC2(BaseCloud):
         except botocore.exceptions.NoCredentialsError:
             raise RuntimeError(
                 'Please configure ec2 credentials in $HOME/.aws/credentials')
-
-        self.tag = tag
-        if not tag:
-            self.tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def create_vpc(self, name, ipv4_cidr='192.168.1.0/20'):
         """Create a custom VPC.

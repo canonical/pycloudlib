@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+import datetime
 import logging
 import os
 
@@ -10,14 +11,22 @@ from pycloudlib.key import KeyPair
 class BaseCloud:
     """Base Cloud Class."""
 
-    def __init__(self):
-        """Initialize base cloud class."""
+    def __init__(self, tag=None):
+        """Initialize base cloud class.
+
+        Args:
+            tag: string used to name and tag resources with
+        """
         self._log = logging.getLogger(__name__)
 
         _username = os.getlogin()
         self.key_pair = KeyPair(
             _username, '/home/%s/.ssh/id_rsa.pub' % _username
         )
+
+        self.tag = tag
+        if not tag:
+            self.tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def delete_image(self, image_id):
         """Delete an image.
