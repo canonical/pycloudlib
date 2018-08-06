@@ -3,7 +3,6 @@
 import re
 
 from pycloudlib.base_instance import BaseInstance
-from pycloudlib.exceptions import InTargetExecuteError
 from pycloudlib.util import shell_quote, subp
 
 
@@ -105,7 +104,7 @@ class LXDInstance(BaseInstance):
         self._log.debug('editing %s with %s=%s', self.name, key, value)
         subp(['lxc', 'config', 'set', self.name, key, value])
 
-    def execute(self, command, rcs=None, description=None):
+    def execute(self, command, description=None):
         """Execute command in instance, recording output, error and exit code.
 
         Assumes functional networking and execution with the target filesystem
@@ -129,9 +128,6 @@ class LXDInstance(BaseInstance):
         if isinstance(command, str):
             command = ['sh', '-c', command]
 
-        if rcs is None:
-            rcs = (0,)
-
         if description:
             self._log.debug(description)
         else:
@@ -140,11 +136,10 @@ class LXDInstance(BaseInstance):
         base_cmd = ['lxc', 'exec', self.name, '--']
         out, err, return_code = subp(base_cmd + list(command))
 
-        # False means accept anything.
-        if (rcs is False or return_code in rcs):
-            return out, err, return_code
+        out = '' if not out else out.rstrip().decode("utf-8")
+        err = '' if not err else err.rstrip().decode("utf-8")
 
-        raise InTargetExecuteError(command, out, err, return_code)
+        return out, err, return_code
 
     def pull_file(self, remote_path, local_path):
         """Pull file from an instance.

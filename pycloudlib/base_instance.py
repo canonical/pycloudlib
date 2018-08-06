@@ -12,10 +12,6 @@ from paramiko.ssh_exception import (
     SSHException
 )
 
-from pycloudlib.exceptions import (
-    InTargetExecuteError,
-    SSHEncryptedPrivateKeyError
-)
 from pycloudlib.util import shell_quote, shell_pack
 
 
@@ -257,7 +253,8 @@ class BaseInstance:
                 self.key_pair.private_key_path
             )
         except PasswordRequiredException:
-            raise SSHEncryptedPrivateKeyError
+            self._log.error('RSA Key requires password!')
+            raise
 
         retries = 30
         while retries:
@@ -272,10 +269,10 @@ class BaseInstance:
                 retries -= 1
                 time.sleep(10)
 
-        ssh_cmd = 'Failed ssh connection to %s@%s:%s after 300 seconds' % (
+        self._log.error(
+            'Failed ssh connection to %s@%s:%s after 300 seconds',
             self.username, self.ip, self.port
         )
-        raise InTargetExecuteError(ssh_cmd, b'', b'', 1)
 
     def _tmpfile(self):
         """Get a tmp file in the target.

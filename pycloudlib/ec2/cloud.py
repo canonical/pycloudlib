@@ -10,10 +10,6 @@ from pycloudlib.base_cloud import BaseCloud
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session
 from pycloudlib.ec2.vpc import VPC
-from pycloudlib.exceptions import (
-    NoKeyPairConfiguredError,
-    PlatformError
-)
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
 
@@ -137,9 +133,6 @@ class EC2(BaseCloud):
             EC2 Instance object
 
         """
-        if not self.key_pair:
-            raise NoKeyPairConfiguredError
-
         if not image_id:
             image_id = self.daily_image(distro_info.UbuntuDistroInfo().lts())
 
@@ -166,12 +159,7 @@ class EC2(BaseCloud):
             args['SubnetId'] = vpc.subnet.id
 
         self._log.debug('launching instance')
-        try:
-            instances = self.resource.create_instances(**args)
-        except botocore.exceptions.ClientError as error:
-            error_msg = error.response['Error']['Message']
-            raise PlatformError('start', error_msg)
-
+        instances = self.resource.create_instances(**args)
         instance = EC2Instance(self.client, self.key_pair, instances[0])
 
         if wait:

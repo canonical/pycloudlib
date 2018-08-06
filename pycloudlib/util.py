@@ -8,8 +8,6 @@ import shlex
 import subprocess
 import tempfile
 
-from pycloudlib.exceptions import ProcessExecutionError
-
 
 def chmod(path, mode):
     """Run chmod on a file or directory.
@@ -133,7 +131,7 @@ def shell_safe(cmd):
     return out.decode()[4:-1]
 
 
-def subp(args, data=None, rcs=None, env=None, shell=False):
+def subp(args, data=None, env=None, shell=False):
     """Subprocess wrapper.
 
     Args:
@@ -147,9 +145,8 @@ def subp(args, data=None, rcs=None, env=None, shell=False):
         Tuple of out, err, return_code
 
     """
-    rcs = [0] if not rcs else rcs
-
     devnull_fp = None
+
     # using devnull assures any reads get null, rather
     # than possibly waiting on input.
     if data is None:
@@ -168,11 +165,6 @@ def subp(args, data=None, rcs=None, env=None, shell=False):
             stdin=stdin, env=env, shell=shell
         )
         (out, err) = process.communicate(data)
-    except OSError as error:
-        raise ProcessExecutionError(
-            cmd=args, description=error, exit_code=error.errno,
-            stdout="-", stderr="-"
-        )
     finally:
         if devnull_fp:
             devnull_fp.close()
@@ -183,13 +175,7 @@ def subp(args, data=None, rcs=None, env=None, shell=False):
     if not err:
         err = b''
 
-    return_code = process.returncode
-    if return_code not in rcs:
-        raise ProcessExecutionError(
-            cmd=args, stdout=out, stderr=err, exit_code=return_code
-        )
-
-    return out, err, return_code
+    return out, err, process.returncode
 
 
 def touch(path, mode=None):

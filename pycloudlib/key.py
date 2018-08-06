@@ -4,7 +4,6 @@
 import logging
 import os
 
-from pycloudlib.exceptions import SSHKeyExistsError
 from pycloudlib.util import subp
 
 
@@ -57,8 +56,6 @@ class KeyPair:
 
         """
         filename = os.path.join(key_path, '%s_id_rsa' % self.name)
-        if os.path.exists(filename):
-            raise SSHKeyExistsError
 
         subp(['ssh-keygen', '-t', algorithm, '-b', bits,
               '-f', filename, '-P', '', '-C', self.name])

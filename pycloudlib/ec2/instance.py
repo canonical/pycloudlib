@@ -5,10 +5,6 @@ import string
 import time
 
 from pycloudlib.base_instance import BaseInstance
-from pycloudlib.exceptions import (
-    NullInstanceError,
-    PlatformError
-)
 
 
 class EC2Instance(BaseInstance):
@@ -103,11 +99,7 @@ class EC2Instance(BaseInstance):
             response = self._instance.console_output()
             return response['OutputBytes']
         except KeyError:
-            if 'Output' in response:
-                msg = ("'OutputBytes' did not exist in console_output() but "
-                       "'Output' did: %s..." % response['Output'][0:128])
-                raise PlatformError('console_log', msg)
-            return ('No Console Output [%s]' % self._instance).encode()
+            return 'No Console Output [%s]' % self._instance
 
     def delete(self, wait=True):
         """Delete instance."""
@@ -146,8 +138,6 @@ class EC2Instance(BaseInstance):
         Args:
             wait: wait for the instance to start.
         """
-        if not self._instance:
-            raise NullInstanceError
         if self._instance.state['Name'] == 'running':
             return
 
