@@ -31,10 +31,10 @@ class LXDInstance(BaseInstance):
             boolean if ephemeral
 
         """
-        out, _, _ = subp(['lxc', 'info', self.name])
+        result = subp(['lxc', 'info', self.name])
 
         try:
-            info_type = re.findall(r'Type: (.*)', out.decode())[0]
+            info_type = re.findall(r'Type: (.*)', result)[0]
         except IndexError:
             return False
 
@@ -50,9 +50,9 @@ class LXDInstance(BaseInstance):
             Reported status from lxc info
 
         """
-        out, _, _ = subp(['lxc', 'info', self.name])
+        result = subp(['lxc', 'info', self.name])
         try:
-            return re.findall(r'Status: (.*)', out.decode())[0]
+            return re.findall(r'Status: (.*)', result)[0]
         except IndexError:
             return 'Unknown'
 
@@ -67,8 +67,8 @@ class LXDInstance(BaseInstance):
 
         """
         self._log.debug('getting console log for %s', self.name)
-        out, _, _ = subp(['lxc', 'console', self.name, '--show-log'])
-        return out
+        result = subp(['lxc', 'console', self.name, '--show-log'])
+        return result
 
     def delete(self, wait=True):
         """Delete the current instance.

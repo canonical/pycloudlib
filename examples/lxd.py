@@ -130,7 +130,12 @@ def basic_lifecycle():
     inst = lxd.launch(name, RELEASE)
     inst.console_log()
 
-    inst.execute('uptime')
+    result = inst.execute('uptime')
+    print(result)
+    print(result.return_code)
+    print(result.succeeded)
+    print(result.failed)
+
     inst.shutdown()
     inst.start()
     inst.restart()

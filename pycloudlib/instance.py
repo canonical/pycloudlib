@@ -12,6 +12,7 @@ from paramiko.ssh_exception import (
     SSHException
 )
 
+from pycloudlib.result import Result
 from pycloudlib.util import shell_quote, shell_pack, subp
 
 
@@ -88,7 +89,7 @@ class BaseInstance:
             description: purpose of command
 
         Returns:
-            tuple containing stdout data, stderr data, exit code
+            Result object
 
         """
         if isinstance(command, str):
@@ -101,14 +102,9 @@ class BaseInstance:
 
         if self._type == 'lxd':
             base_cmd = ['lxc', 'exec', self.name, '--']
-            out, err, return_code = subp(base_cmd + list(command))
-        else:
-            out, err, return_code = self._ssh(list(command), stdin=stdin)
+            return subp(base_cmd + list(command))
 
-        out = '' if not out else out.rstrip().decode("utf-8")
-        err = '' if not err else err.rstrip().decode("utf-8")
-
-        return out, err, return_code
+        return self._ssh(list(command), stdin=stdin)
 
     def install(self, packages):
         """Install specific packages.
@@ -120,7 +116,7 @@ class BaseInstance:
         self.execute('DEBIAN_FRONTEND=noninteractive sudo apt-get '
                      'install -y %s' % packages)
 
-    def pull_file(self, remote_path, local_path, decode=False):
+    def pull_file(self, remote_path, local_path):
         """Copy file at 'remote_path', from instance to 'local_path'.
 
         Args:
@@ -134,9 +130,6 @@ class BaseInstance:
             ["sh", "-c", 'exec cat "$1"', 'read_data', remote_path])
         if return_code != 0:
             raise RuntimeError("Failed to read file '%s'" % remote_path)
-
-        if decode:
-            stdout = stdout.decode()
 
         with open(local_path, 'wb') as file:
             file.write(stdout)
@@ -242,9 +235,15 @@ class BaseInstance:
             fp_in.close()
 
         channel.shutdown_write()
+
+        out = fp_out.read()
+        err = fp_err.read()
         return_code = channel.recv_exit_status()
 
-        return (fp_out.read(), fp_err.read(), return_code)
+        out = '' if not out else out.rstrip().decode("utf-8")
+        err = '' if not err else err.rstrip().decode("utf-8")
+
+        return Result(out, err, return_code)
 
     def _ssh_connect(self):
         """Connect to instance via SSH."""

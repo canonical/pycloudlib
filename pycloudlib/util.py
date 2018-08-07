@@ -8,6 +8,8 @@ import shlex
 import subprocess
 import tempfile
 
+from pycloudlib.result import Result
+
 
 def chmod(path, mode):
     """Run chmod on a file or directory.
@@ -169,13 +171,10 @@ def subp(args, data=None, env=None, shell=False):
         if devnull_fp:
             devnull_fp.close()
 
-    # ensure blank instead of none.
-    if not out:
-        out = b''
-    if not err:
-        err = b''
+    out = '' if not out else out.rstrip().decode("utf-8")
+    err = '' if not err else err.rstrip().decode("utf-8")
 
-    return out, err, process.returncode
+    return Result(out, err, process.returncode)
 
 
 def touch(path, mode=None):
