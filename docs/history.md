@@ -1,5 +1,9 @@
 # Release History
 
+## 18.5.3
+
+- 37bb7d6 result: switch from UserString to str
+
 ## 18.5.2
 
 - 17f1b36 result: add boolean and optional params
