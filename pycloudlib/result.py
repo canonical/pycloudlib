@@ -9,7 +9,7 @@ class Result(UserString):  # pylint: disable=too-many-ancestors
 
     def __init__(self, stdout, stderr, return_code):
         """Initialize class."""
-        super().__init__(self, stdout)
+        super().__init__(stdout)
 
         self.stderr = stderr
         self.return_code = return_code

@@ -318,7 +318,7 @@ class BaseInstance:
         )
 
         result = self.execute(cmd, description='waiting for start')
-        if result[-1] != 0:
+        if result.failed:
             raise OSError(
                 'timeout: after %ss system not started' % self.boot_timeout
             )
