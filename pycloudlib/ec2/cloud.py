@@ -4,7 +4,7 @@
 import botocore
 import distro_info
 
-from pycloudlib.base_cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session
 from pycloudlib.ec2.vpc import VPC

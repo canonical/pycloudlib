@@ -1,7 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
 
-from pycloudlib.base_cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
 from pycloudlib.util import subp
 

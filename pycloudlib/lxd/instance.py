@@ -2,7 +2,7 @@
 """LXD instance."""
 import re
 
-from pycloudlib.base_instance import BaseInstance
+from pycloudlib.instance import BaseInstance
 from pycloudlib.util import shell_quote, subp
 
 

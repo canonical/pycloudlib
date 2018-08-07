@@ -4,7 +4,7 @@
 import string
 import time
 
-from pycloudlib.base_instance import BaseInstance
+from pycloudlib.instance import BaseInstance
 
 
 class EC2Instance(BaseInstance):
