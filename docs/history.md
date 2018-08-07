@@ -1,5 +1,10 @@
 # Release History
 
+## 18.5.1
+
+- b6b14d0 result: add __repr__
+- 2618925 docs: add result and renamed files
+
 ## 18.5
 
 - c753e27 result: bug fixes of new usage
