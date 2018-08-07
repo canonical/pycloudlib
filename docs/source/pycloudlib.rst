@@ -19,10 +19,10 @@ Submodules
 
 .. toctree::
 
-   pycloudlib.base_cloud
-   pycloudlib.base_instance
-   pycloudlib.exceptions
+   pycloudlib.cloud
+   pycloudlib.instance
    pycloudlib.key
+   pycloudlib.result
    pycloudlib.streams
    pycloudlib.util
 

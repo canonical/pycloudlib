@@ -1,5 +1,16 @@
 # Release History
 
+## 18.5
+
+- c753e27 result: bug fixes of new usage
+- 9de5a25 result: add execution result object
+- 2a60386 cloud and instance: give each a type
+- 59b68c5 base: rename base_cloud and base_instance
+- 8a099d5 logging: set NullHandler by default
+- 00fb428 tag: move tagging to base cloud
+- 4de207a exceptions: removes custom exceptions from codebase
+- b958f75 ec2: lower log evel of hot-add EBS & ENI
+
 ## 18.4
 
 - d7fa81b defaults: SSH Key and Image Release
