@@ -1,22 +1,24 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base Result Class."""
 
-from collections import UserString
 
-
-class Result(UserString):  # pylint: disable=too-many-ancestors
+class Result(str):  # pylint: disable=too-many-ancestors
     """Result Class."""
 
-    def __init__(self, stdout, stderr='', return_code=''):
+    def __init__(self, stdout, stderr='', return_code=0):
         """Initialize class."""
-        super().__init__(stdout)
+        super().__init__()
 
+        self.stdout = stdout
         self.stderr = stderr
         self.return_code = return_code
 
-    def __repr__(self):
-        """Return stdout."""
-        return self.data
+    def __new__(cls, stdout, stderr, return_code):
+        """Create new class."""
+        obj = str.__new__(cls, stdout)
+        obj.stderr = stderr
+        obj.return_code = return_code
+        return obj
 
     def __bool__(self):
         """Boolean behavior."""
