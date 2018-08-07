@@ -34,7 +34,7 @@ class LXDInstance(BaseInstance):
         result = subp(['lxc', 'info', self.name])
 
         try:
-            info_type = re.findall(r'Type: (.*)', result.data)[0]
+            info_type = re.findall(r'Type: (.*)', result)[0]
         except IndexError:
             return False
 
@@ -52,7 +52,7 @@ class LXDInstance(BaseInstance):
         """
         result = subp(['lxc', 'info', self.name])
         try:
-            return re.findall(r'Status: (.*)', result.data)[0]
+            return re.findall(r'Status: (.*)', result)[0]
         except IndexError:
             return 'Unknown'
 

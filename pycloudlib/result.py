@@ -14,6 +14,10 @@ class Result(UserString):  # pylint: disable=too-many-ancestors
         self.stderr = stderr
         self.return_code = return_code
 
+    def __repr__(self):
+        """Return stdout."""
+        return self.data
+
     @property
     def failed(self):
         """Return boolean if result was failure."""
