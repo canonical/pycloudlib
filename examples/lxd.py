@@ -133,8 +133,9 @@ def basic_lifecycle():
     result = inst.execute('uptime')
     print(result)
     print(result.return_code)
-    print(result.succeeded)
+    print(result.ok)
     print(result.failed)
+    print(bool(result))
 
     inst.shutdown()
     inst.start()

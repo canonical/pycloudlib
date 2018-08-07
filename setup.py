@@ -15,7 +15,7 @@ with open(README_FILE, 'r') as readme:
 
 setup(
     name='pycloudlib',
-    version='18.5.1',
+    version='18.5.2',
     description=(
         'Python library to launch, interact, and snapshot cloud instances'
     ),

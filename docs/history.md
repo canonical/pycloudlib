@@ -1,5 +1,9 @@
 # Release History
 
+## 18.5.2
+
+- 17f1b36 result: add boolean and optional params
+
 ## 18.5.1
 
 - b6b14d0 result: add __repr__
