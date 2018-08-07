@@ -7,7 +7,7 @@ from collections import UserString
 class Result(UserString):  # pylint: disable=too-many-ancestors
     """Result Class."""
 
-    def __init__(self, stdout, stderr, return_code):
+    def __init__(self, stdout, stderr='', return_code=''):
         """Initialize class."""
         super().__init__(stdout)
 
@@ -18,6 +18,10 @@ class Result(UserString):  # pylint: disable=too-many-ancestors
         """Return stdout."""
         return self.data
 
+    def __bool__(self):
+        """Boolean behavior."""
+        return self.ok
+
     @property
     def failed(self):
         """Return boolean if result was failure."""
@@ -26,7 +30,7 @@ class Result(UserString):  # pylint: disable=too-many-ancestors
         return True
 
     @property
-    def succeeded(self):
+    def ok(self):
         """Return boolean if result was failure."""
         if self.return_code == 0:
             return True
