@@ -12,11 +12,13 @@ from paramiko.ssh_exception import (
     SSHException
 )
 
-from pycloudlib.util import shell_quote, shell_pack
+from pycloudlib.util import shell_quote, shell_pack, subp
 
 
 class BaseInstance:
     """Base instance object."""
+
+    _type = 'base'
 
     def __init__(self, key_pair):
         """Set up instance."""
@@ -24,6 +26,7 @@ class BaseInstance:
         self._ssh_client = None
         self._tmp_count = 0
 
+        self.name = ''
         self.boot_timeout = 120
         self.key_pair = key_pair
         self.port = '22'
@@ -96,7 +99,11 @@ class BaseInstance:
         else:
             self._log.debug('executing: %s', shell_quote(command))
 
-        out, err, return_code = self._ssh(list(command), stdin=stdin)
+        if self._type == 'lxd':
+            base_cmd = ['lxc', 'exec', self.name, '--']
+            out, err, return_code = subp(base_cmd + list(command))
+        else:
+            out, err, return_code = self._ssh(list(command), stdin=stdin)
 
         out = '' if not out else out.rstrip().decode("utf-8")
         err = '' if not err else err.rstrip().decode("utf-8")

@@ -3,11 +3,13 @@
 import re
 
 from pycloudlib.instance import BaseInstance
-from pycloudlib.util import shell_quote, subp
+from pycloudlib.util import subp
 
 
 class LXDInstance(BaseInstance):
     """LXD backed instance."""
+
+    _type = 'lxd'
 
     def __init__(self, name):
         """Set up instance.
@@ -103,43 +105,6 @@ class LXDInstance(BaseInstance):
         """
         self._log.debug('editing %s with %s=%s', self.name, key, value)
         subp(['lxc', 'config', 'set', self.name, key, value])
-
-    def execute(self, command, description=None):
-        """Execute command in instance, recording output, error and exit code.
-
-        Assumes functional networking and execution with the target filesystem
-        being available at /.
-
-        Args:
-            command: the command to execute as root inside the image. If
-                     command is a string, then it will be executed as:
-                     `['sh', '-c', command]`
-            rcs: return codes can be one of:
-
-                    * None (default): non-zero exit code will raise exception.
-                    * False: any is allowed (No execption raised).
-                    * list of int: any rc not in the list will raise exception.
-            description: purpose of command
-
-        Returns:
-            tuple containing stdout data, stderr data, exit code
-
-        """
-        if isinstance(command, str):
-            command = ['sh', '-c', command]
-
-        if description:
-            self._log.debug(description)
-        else:
-            self._log.debug('executing: %s', shell_quote(command))
-
-        base_cmd = ['lxc', 'exec', self.name, '--']
-        out, err, return_code = subp(base_cmd + list(command))
-
-        out = '' if not out else out.rstrip().decode("utf-8")
-        err = '' if not err else err.rstrip().decode("utf-8")
-
-        return out, err, return_code
 
     def pull_file(self, remote_path, local_path):
         """Pull file from an instance.

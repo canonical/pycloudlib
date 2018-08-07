@@ -11,6 +11,8 @@ from pycloudlib.key import KeyPair
 class BaseCloud:
     """Base Cloud Class."""
 
+    _type = 'base'
+
     def __init__(self, tag=None):
         """Initialize base cloud class.
 

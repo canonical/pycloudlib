@@ -9,6 +9,8 @@ from pycloudlib.util import subp
 class LXD(BaseCloud):  # pylint: disable=W0223
     """LXD Cloud Class."""
 
+    _type = 'lxd'
+
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
 

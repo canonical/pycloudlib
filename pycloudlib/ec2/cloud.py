@@ -15,6 +15,8 @@ from pycloudlib.streams import Streams
 class EC2(BaseCloud):
     """EC2 Cloud Class."""
 
+    _type = 'ec2'
+
     def __init__(self, tag=None, access_key_id=None, secret_access_key=None,
                  region=None):
         """Initialize the connection to EC2.

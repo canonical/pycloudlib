@@ -10,10 +10,7 @@ from pycloudlib.instance import BaseInstance
 class EC2Instance(BaseInstance):
     """EC2 backed instance."""
 
-    boot_timeout = 120
-    platform_name = "ec2"
-    _ssh_client = None
-    _tmp_count = 0
+    _type = 'ec2'
 
     def __init__(self, client, key_pair, instance):
         """Set up instance.
