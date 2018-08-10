@@ -1,5 +1,9 @@
 # Release History
 
+## 18.6
+
+- enable Python 3.4 and Python 4.5 support
+
 ## 18.5.3
 
 - 37bb7d6 result: switch from UserString to str

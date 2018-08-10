@@ -15,7 +15,7 @@ with open(README_FILE, 'r') as readme:
 
 setup(
     name='pycloudlib',
-    version='18.5.3',
+    version='18.6',
     description=(
         'Python library to launch, interact, and snapshot cloud instances'
     ),
@@ -26,7 +26,7 @@ setup(
     url='https://launchpad.net/pycloudlib',
     license='GNU General Public License v3 (GPLv3)',
     packages=find_packages(),
-    python_requires='>=3.6',
+    python_requires='>=3.4',
     install_requires=REQUIREMENTS,
     zip_safe=True,
     classifiers=[
