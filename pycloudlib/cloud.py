@@ -2,8 +2,8 @@
 """Base class for all other clouds to provide consistent set of functions."""
 
 import datetime
+import getpass
 import logging
-import os
 
 from pycloudlib.key import KeyPair
 
@@ -21,7 +21,7 @@ class BaseCloud:
         """
         self._log = logging.getLogger(__name__)
 
-        _username = os.getlogin()
+        _username = getpass.getuser()
         self.key_pair = KeyPair(
             _username, '/home/%s/.ssh/id_rsa.pub' % _username
         )
