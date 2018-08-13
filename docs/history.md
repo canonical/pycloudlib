@@ -1,8 +1,12 @@
 # Release History
 
+## 18.6.1
+
+- ee92e97: username: use getpass instead of getlogin
+
 ## 18.6
 
-- enable Python 3.4 and Python 4.5 support
+- ce22ab4: enable Python 3.4 and Python 3.5 support
 
 ## 18.5.3
 
