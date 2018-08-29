@@ -27,13 +27,11 @@ class Result(str):  # pylint: disable=too-many-ancestors
     @property
     def failed(self):
         """Return boolean if result was failure."""
-        if self.return_code == 0:
-            return False
-        return True
+        return not self.ok
 
     @property
     def ok(self):
-        """Return boolean if result was failure."""
+        """Return boolean if result was success."""
         if self.return_code == 0:
             return True
         return False

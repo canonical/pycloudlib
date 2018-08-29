@@ -291,34 +291,12 @@ class BaseInstance:
         self._tmp_count += 1
         return path
 
-    def _wait_for_system(self, wait_for_cloud_init=True):
-        """Wait until system is fully booted and cloud-init has finished.
-
-        Args:
-            wait_for_cloud_init: boolean, wait for cloud-init to complete
-
-        Returns:
-            none, may raise OSError if wait_time exceeded
-
-        """
-        def clean_test(test):
-            """Clean formatting for system ready test testcase."""
-            return ' '.join(l for l in test.strip().splitlines()
-                            if not l.lstrip().startswith('#'))
-
-        tests = [("[ $(systemctl is-system-running) = 'running' -o "
-                  "$(systemctl is-system-running) = 'degraded' ]")]
-        if wait_for_cloud_init:
-            tests.append("[ -f '/run/cloud-init/result.json' ]")
-
-        formatted_tests = ' && '.join(clean_test(t) for t in tests)
-        cmd = (
-            'i=0; while [ $i -lt %s ] && i=$(($i+1)); do %s && exit 0;'
-            'sleep 1; done; exit 1' % (self.boot_timeout, formatted_tests)
+    def _wait_for_system(self):
+        """Wait until system is fully booted and cloud-init has finished."""
+        result = self.execute(
+            ['cloud-init', 'status', '--wait'],
+            description='waiting for start'
         )
 
-        result = self.execute(cmd, description='waiting for start')
         if result.failed:
-            raise OSError(
-                'timeout: after %ss system not started' % self.boot_timeout
-            )
+            raise OSError('cloud-init failed to start: %s' % result.stdout)
