@@ -75,6 +75,14 @@ use the pycloudlib-devs@lists.launchpad.net list.
 
 .. toctree::
    :hidden:
+   :glob:
+   :caption: Other
+
+   ssh_keys
+   images
+
+.. toctree::
+   :hidden:
    :caption: External
 
    File a bug <https://bugs.launchpad.net/pycloudlib/+filebug>

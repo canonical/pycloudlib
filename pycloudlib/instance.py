@@ -57,11 +57,8 @@ class BaseInstance:
 
         This will clean out specifically the cloud-init files and system logs.
         """
-        self.execute(
-            'sudo rm -rf /var/log/cloud-init.log '
-            '/var/log/cloud-init-output.log /var/lib/cloud/ '
-            '/run/cloud-init/ /var/log/syslog'
-        )
+        self.execute('sudo cloud-init clean --logs')
+        self.execute('sudo rm -rf /var/log/syslog')
 
     def console_log(self):
         """Return the instance console log."""
@@ -111,6 +108,10 @@ class BaseInstance:
 
         Args:
             packages: string or list of package(s) to install
+
+        Returns:
+            result from install
+
         """
         if isinstance(packages, str):
             packages = packages.split(' ')
@@ -171,7 +172,7 @@ class BaseInstance:
             description: purpose of script
 
         Returns:
-            stdout from script
+            result from script execution
 
         """
         # Just write to a file, add execute, run it, then remove it.
@@ -204,7 +205,12 @@ class BaseInstance:
         raise NotImplementedError
 
     def update(self):
-        """Run apt-get update/upgrade on instance."""
+        """Run apt-get update/upgrade on instance.
+
+        Returns:
+            result from upgrade
+
+        """
         self.execute(['sudo', 'apt-get', 'update'])
         return self.execute([
             'DEBIAN_FRONTEND=noninteractive',

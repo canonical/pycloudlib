@@ -17,7 +17,7 @@ class EC2(BaseCloud):
 
     _type = 'ec2'
 
-    def __init__(self, tag=None, access_key_id=None, secret_access_key=None,
+    def __init__(self, tag, access_key_id=None, secret_access_key=None,
                  region=None):
         """Initialize the connection to EC2.
 
@@ -30,7 +30,7 @@ class EC2(BaseCloud):
             secret_access_key: user's secret access key
             region: region to login to
         """
-        super(EC2, self).__init__(tag)
+        super().__init__(tag)
         self._log.debug('logging into EC2')
 
         try:
@@ -73,7 +73,7 @@ class EC2(BaseCloud):
             string, id of latest image
 
         """
-        self._log.debug('finding daily image for %s', release)
+        self._log.debug('finding daily Ubuntu image for %s', release)
         images = self._image_list(release, arch, root_store)
         return images[0]['id']
 
@@ -170,10 +170,9 @@ class EC2(BaseCloud):
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
-            wait: wait for instance to get created
 
         Returns:
-            An image object
+            An image id
 
         """
         if clean:
@@ -198,28 +197,33 @@ class EC2(BaseCloud):
 
         return image.id
 
-    def upload_key(self, name, public_key_path):
-        """Upload and use a specific public key.
+    def upload_key(self, public_key_path, private_key_path=None, name=None):
+        """Use an existing already uploaded key.
 
         Args:
-            name: name to reference key by
             public_key_path: path to the public key to upload
+            private_key_path: path to the private key to upload
+            name: name to reference key by
         """
         self._log.debug('uploading SSH key %s', name)
         self.client.import_key_pair(
             KeyName=name, PublicKeyMaterial=self.key_pair.public_key_content
         )
-        self.use_key(name, public_key_path)
+        self.use_key(public_key_path, private_key_path, name)
 
-    def use_key(self, name, public_key_path):
+    def use_key(self, public_key_path, private_key_path=None, name=None):
         """Use an existing already uploaded key.
 
         Args:
-            name: name to reference key by
             public_key_path: path to the public key to upload
+            private_key_path: path to the private key to upload
+            name: name to reference key by
         """
+        if not name:
+            name = self.tag
+
         self._log.debug('using SSH key %s', name)
-        self.key_pair = KeyPair(name, public_key_path)
+        self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
     def _image_list(self, release, arch='amd64', root_store='ssd'):
         """Find list of images with a filter.
@@ -228,7 +232,6 @@ class EC2(BaseCloud):
             release: string, Ubuntu release to look for
             arch: string, architecture to use
             root_store: string, root store to use
-            latest: default false, boolean to only return latest image
 
         Returns:
             list of dictionaries of images
@@ -244,8 +247,8 @@ class EC2(BaseCloud):
         ]
 
         stream = Streams(
-            'https://cloud-images.ubuntu.com/daily',
-            '/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
+            mirror_url='https://cloud-images.ubuntu.com/daily',
+            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
         )
         return stream.query(filters)
 
@@ -253,7 +256,7 @@ class EC2(BaseCloud):
         """Wait for snapshot image to be created.
 
         Args:
-            snapshot_id: snapshot ID to wait to be available
+            image: image boto3 object to wait to be available
         """
         image.wait_until_exists()
         waiter = self.client.get_waiter('image_available')

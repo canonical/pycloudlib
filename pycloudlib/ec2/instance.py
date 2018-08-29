@@ -287,6 +287,10 @@ class EC2Instance(BaseInstance):
 
         Per the following doc the maximum number of NICs is 16:
         https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html
+
+        Returns:
+            integer to use as index for NIC
+
         """
         all_index = {index for index in range(0, 16)}
 
@@ -309,6 +313,10 @@ class EC2Instance(BaseInstance):
 
         Using /dev/sd* per the following doc:
         https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
+
+        Returns:
+            string of latest name available
+
         """
         all_device_names = []
         for name in string.ascii_lowercase:

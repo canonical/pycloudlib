@@ -13,7 +13,7 @@ class BaseCloud:
 
     _type = 'base'
 
-    def __init__(self, tag=None):
+    def __init__(self, tag):
         """Initialize base cloud class.
 
         Args:
@@ -23,26 +23,17 @@ class BaseCloud:
 
         _username = getpass.getuser()
         self.key_pair = KeyPair(
-            _username, '/home/%s/.ssh/id_rsa.pub' % _username
+            '/home/%s/.ssh/id_rsa.pub' % _username, name=_username
         )
-
-        self.tag = tag
-        if not tag:
-            self.tag = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.tag = '%s-%s' % (
+            tag, datetime.datetime.now().strftime("%m%d-%H%M%S")
+        )
 
     def delete_image(self, image_id):
         """Delete an image.
 
         Args:
             image_id: string, id of the image to delete
-        """
-        raise NotImplementedError
-
-    def delete_key(self, name):
-        """Delete an uploaded key.
-
-        Args:
-            name: The key name to delete.
         """
         raise NotImplementedError
 
@@ -99,20 +90,10 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def upload_key(self, public_key_path=None):
-        """Upload and use a specific public key.
+    def use_key(self, public_key_path, private_key_path=None, name=None):
+        """Use an existing key.
 
         Args:
-            name: name to reference key by
-            public_key_path: path to the public key to upload
-        """
-        raise NotImplementedError
-
-    def use_key(self, name, public_key_path):
-        """Use an existing already uploaded key.
-
-        Args:
-            name: name to reference key by
             public_key_path: path to the public key to upload
         """
         raise NotImplementedError

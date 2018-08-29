@@ -4,10 +4,12 @@
 import logging
 
 from pycloudlib.ec2.cloud import EC2
+from pycloudlib.gce.cloud import GCE
 from pycloudlib.lxd.cloud import LXD
 
 __all__ = [
     'EC2',
+    'GCE',
     'LXD',
 ]
 

@@ -3,7 +3,6 @@
 """Basic examples of various lifecycle with an EC2 instance."""
 
 import logging
-import os
 
 import pycloudlib
 
@@ -90,32 +89,14 @@ def launch_basic(ec2, daily):
     instance.delete()
 
 
-def connect_ec2(access_key_id=None, secret_access_key=None, region=None):
-    """Connect to EC2 and setup the SSH key.
-
-    Can customize the key IDs and region if required.
-    """
-    ec2 = pycloudlib.EC2(access_key_id, secret_access_key, region)
-    user = os.getlogin()
-    ec2.use_key(user, '/home/%s/.ssh/id_rsa.pub' % user)
-
-    # can also upload a key instead of using a pre-existing one
-    # ec2.upload_key('powersj_new', 'home/powersj/.ssh/id_rsa.pub')
-
-    # can delete an existing key
-    # ec2.delete_key('powersj')
-
-    return ec2
-
-
 def demo():
     """Show example of using the EC2 library.
 
     Connects to EC2 and finds the latest daily image. Then runs
     through a number of examples.
     """
-    ec2 = connect_ec2()
-    daily = ec2.daily_image('bionic')
+    ec2 = pycloudlib.EC2(tag='examples')
+    daily = ec2.daily_image(release='bionic')
 
     launch_basic(ec2, daily)
     custom_vpc(ec2, daily)

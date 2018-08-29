@@ -37,40 +37,16 @@ ec2 = pycloudlib.EC2(
 
 This way different credentials or regions can be used by different objects allowing for interactions with multiple regions at the same time.
 
-## SSH Key Management
+## SSH Keys
 
-Key-based SSH is used for all communication with clients.
-
-If a key has not already been uploaded previously then this is done by passing a name to reference the key by and the path to the public key.
-
-```python
->>> ec2.upload_key('powersj', '/home/powersj/.ssh/id_rsa.pub')
-'uploading SSH key powersj'
-'using SSH key powersj'
-```
-
-The above both uploads and tells the client which key to use in one command.
-
-Once a key is uploaded, there is no need to re-upload each time it needs to be used. Future execution can point at the key without uploading:
-
-```python
->>> ec2.use_key('powersj', '/home/powersj/.ssh/id_rsa.pub')
-'using SSH key powersj'
-```
-
-Finally, to delete a key if it was only required temporarily:
-
-```python
->>> ec2.delete_key('powersj')
-'deleting SSH key powersj'
-```
+EC2 requires an SSH key to be uploaded before using it. See the SSH Key page for more details.
 
 ## Image Lookup
 
 To find latest daily AMI ID for a release of Ubuntu:
 
 ```python
->>> ec2.daily_image('xenial')
+ec2.daily_image('xenial')
 'ami-537e9a30'
 ```
 
