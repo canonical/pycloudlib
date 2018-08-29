@@ -110,11 +110,18 @@ class BaseInstance:
         """Install specific packages.
 
         Args:
-            packages: string of package(s) to install
+            packages: string or list of package(s) to install
         """
-        self.execute('sudo apt-get update')
-        self.execute('DEBIAN_FRONTEND=noninteractive sudo apt-get '
-                     'install -y %s' % packages)
+        if isinstance(packages, str):
+            packages = packages.split(' ')
+
+        self.execute(['sudo', 'apt-get', 'update'])
+        return self.execute(
+            [
+                'DEBIAN_FRONTEND=noninteractive',
+                'sudo', 'apt-get', 'install', '--yes'
+            ] + packages
+        )
 
     def pull_file(self, remote_path, local_path):
         """Copy file at 'remote_path', from instance to 'local_path'.
@@ -198,8 +205,11 @@ class BaseInstance:
 
     def update(self):
         """Run apt-get update/upgrade on instance."""
-        self.execute('sudo apt-get update')
-        self.execute('DEBIAN_FRONTEND=noninteractive sudo apt-get -y upgrade')
+        self.execute(['sudo', 'apt-get', 'update'])
+        return self.execute([
+            'DEBIAN_FRONTEND=noninteractive',
+            'sudo', 'apt-get', '--yes', 'upgrade'
+        ])
 
     def wait(self):
         """Wait for instance to be up and cloud-init to be complete."""
