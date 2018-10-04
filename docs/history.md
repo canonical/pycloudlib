@@ -1,12 +1,18 @@
 # Release History
 
+## 18.7
+
+- 80485ef Initial Google Compute Engine Support
+- a90eaf1 instance: install and update methods
+- 8d353a7 wait for instance: use cloud-init status
+
 ## 18.6.1
 
-- ee92e97: username: use getpass instead of getlogin
+- ee92e97 username: use getpass instead of getlogin
 
 ## 18.6
 
-- ce22ab4: enable Python 3.4 and Python 3.5 support
+- ce22ab4 enable Python 3.4 and Python 3.5 support
 
 ## 18.5.3
 
