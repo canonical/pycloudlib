@@ -2,7 +2,6 @@
 """AWS EC2 Cloud type."""
 
 import botocore
-import distro_info
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.ec2.instance import EC2Instance
@@ -114,7 +113,7 @@ class EC2(BaseCloud):
         instance = self.resource.Instance(instance_id)
         return EC2Instance(self.client, self.key_pair, instance)
 
-    def launch(self, image_id=None, instance_type='t2.micro', user_data=None,
+    def launch(self, image_id, instance_type='t2.micro', user_data=None,
                vpc=None, wait=True, **kwargs):
         """Launch instance on EC2.
 
@@ -130,9 +129,6 @@ class EC2(BaseCloud):
             EC2 Instance object
 
         """
-        if not image_id:
-            image_id = self.daily_image(distro_info.UbuntuDistroInfo().lts())
-
         args = {
             'ImageId': image_id,
             'InstanceType': instance_type,
