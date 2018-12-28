@@ -1,6 +1,8 @@
-boto3
-botocore
-google-api-python-client
-paramiko
-python-simplestreams
-pyyaml
+boto3==1.9.71
+botocore==1.12.71
+google-api-python-client==1.7.7
+paramiko==2.4.2
+pyyaml==3.13
+
+# Simplestreams is not found on PyPi so pull from repo directly
+git+https://git.launchpad.net/simplestreams@21c5bba2a5413c51e6b9131fc450e96f6b46090d
