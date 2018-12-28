@@ -38,7 +38,7 @@ class LXDInstance(BaseInstance):
         except IndexError:
             return False
 
-        return True if info_type == 'ephemeral' else False
+        return bool(info_type == 'ephemeral')
 
     @property
     def state(self):
@@ -211,11 +211,11 @@ class LXDInstance(BaseInstance):
 
         Not used for LXD.
         """
-        pass
+        raise NotImplementedError
 
     def wait_for_stop(self):
         """Wait for stop.
 
         Not used for LXD.
         """
-        pass
+        raise NotImplementedError
