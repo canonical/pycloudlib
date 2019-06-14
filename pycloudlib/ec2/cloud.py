@@ -60,8 +60,24 @@ class EC2(BaseCloud):
         """
         return VPC(self.resource, name, ipv4_cidr)
 
+    def released_image(self, release, arch='amd64', root_store='ssd'):
+        """Find the id of the latest released image for a particular release.
+
+        Args:
+            release: string, Ubuntu release to look for
+            arch: string, architecture to use
+            root_store: string, root store to use
+
+        Returns:
+            string, id of latest image
+
+        """
+        self._log.debug('finding released Ubuntu image for %s', release)
+        images = self._image_list(release, arch, root_store, daily=False)
+        return images[0]['id']
+
     def daily_image(self, release, arch='amd64', root_store='ssd'):
-        """Find the id of the latest image for a particular release.
+        """Find the id of the latest daily image for a particular release.
 
         Args:
             release: string, Ubuntu release to look for
@@ -221,7 +237,7 @@ class EC2(BaseCloud):
         self._log.debug('using SSH key %s', name)
         self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
-    def _image_list(self, release, arch='amd64', root_store='ssd'):
+    def _image_list(self, release, arch='amd64', root_store='ssd', daily=True):
         """Find list of images with a filter.
 
         Args:
@@ -233,6 +249,11 @@ class EC2(BaseCloud):
             list of dictionaries of images
 
         """
+        if daily:
+            mirror_url = 'https://cloud-images.ubuntu.com/daily'
+        else:
+            mirror_url = 'https://cloud-images.ubuntu.com/releases'
+
         filters = [
             'arch=%s' % arch,
             'endpoint=%s' % 'https://ec2.%s.amazonaws.com' % self.region,
@@ -243,9 +264,10 @@ class EC2(BaseCloud):
         ]
 
         stream = Streams(
-            mirror_url='https://cloud-images.ubuntu.com/daily',
+            mirror_url=mirror_url,
             keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
         )
+
         return stream.query(filters)
 
     def _wait_for_snapshot(self, image):

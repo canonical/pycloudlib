@@ -37,14 +37,31 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def daily_image(self, release):
-        """ID of the latest image for a particular release.
+    def released_image(self, release):
+        """ID of the latest released image for a particular release.
 
         Args:
             release: The release to look for
 
         Returns:
-            A single string with the latest image ID for the specified release
+            A single string with the latest released image ID for the
+            specified release.
+
+        """
+        raise NotImplementedError
+
+    def daily_image(self, release):
+        """ID of the latest daily image for a particular release.
+
+        Args:
+            release: The release to look for
+
+        Returns:
+            A single string with the latest daily image ID for the
+            specified release.
+
+        """
+        raise NotImplementedError
 
         """
         raise NotImplementedError
