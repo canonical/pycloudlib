@@ -92,6 +92,20 @@ class EC2(BaseCloud):
         images = self._image_list(release, arch, root_store)
         return images[0]['id']
 
+    def image_serial(self, imageid):
+        """Find the image serial of the latest daily image for a particular release.
+
+        Args:
+            imageid: string, Ubuntu image id
+
+        Returns:
+            string, serial of latest image
+
+        """
+        self._log.debug('finding image serial for Ubuntu image %s', id)
+        image_info = self._image_info(id)
+        return image_info['version_name']
+
     def delete_image(self, image_id):
         """Delete an image.
 
@@ -269,6 +283,39 @@ class EC2(BaseCloud):
         )
 
         return stream.query(filters)
+
+    @staticmethod
+    def _image_info(imageid):
+        """Find the streams image metadata given an image id.
+
+        Args:
+            imageid: string, Ubuntu image id
+
+        Returns:
+            a dictionary containing the image metadata
+
+        """
+        stream = Streams(
+            mirror_url='https://cloud-images.ubuntu.com/daily',
+            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
+        )
+
+        filters = ['id=%s' % imageid]
+        images = stream.query(filters)
+
+        if images:
+            # Image info found
+            return images[0]
+
+        # Image info not found, try searching the 'releases' stream
+
+        stream = Streams(
+            mirror_url='https://cloud-images.ubuntu.com/releases',
+            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
+        )
+
+        images = stream.query(filters)
+        return images[0]
 
     def _wait_for_snapshot(self, image):
         """Wait for snapshot image to be created.
