@@ -92,18 +92,18 @@ class EC2(BaseCloud):
         images = self._image_list(release, arch, root_store)
         return images[0]['id']
 
-    def image_serial(self, imageid):
+    def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
 
         Args:
-            imageid: string, Ubuntu image id
+            image_id: string, Ubuntu image id
 
         Returns:
             string, serial of latest image
 
         """
-        self._log.debug('finding image serial for Ubuntu image %s', id)
-        image_info = self._image_info(id)
+        self._log.debug('finding image serial for Ubuntu image %s', image_id)
+        image_info = self._image_info(image_id)
         return image_info['version_name']
 
     def delete_image(self, image_id):
@@ -285,11 +285,11 @@ class EC2(BaseCloud):
         return stream.query(filters)
 
     @staticmethod
-    def _image_info(imageid):
+    def _image_info(image_id):
         """Find the streams image metadata given an image id.
 
         Args:
-            imageid: string, Ubuntu image id
+            image_id: string, Ubuntu image id
 
         Returns:
             a dictionary containing the image metadata
@@ -300,7 +300,7 @@ class EC2(BaseCloud):
             keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
         )
 
-        filters = ['id=%s' % imageid]
+        filters = ['id=%s' % image_id]
         images = stream.query(filters)
 
         if images:

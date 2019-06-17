@@ -63,11 +63,11 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def image_serial(self, imageid):
+    def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
 
         Args:
-            imageid: string, Ubuntu image id
+            image_id: string, Ubuntu image id
 
         Returns:
             string, serial of latest image
