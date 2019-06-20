@@ -160,7 +160,7 @@ class BaseInstance:
             if return_code != 0:
                 raise RuntimeError("Failed to write to '%s'" % remote_path)
 
-    def restart(self):
+    def restart(self, wait=True):
         """Restart an instance."""
         raise NotImplementedError
 

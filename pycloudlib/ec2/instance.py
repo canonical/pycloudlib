@@ -106,16 +106,22 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def restart(self):
+    def restart(self, wait=True):
         """Restart the instance."""
         self._log.debug('restarting instance %s', self._instance.id)
-        self._instance.reboot()
+        if not wait:
+            self._instance.reboot()
+        else:
+            pre_reboot_boot_id = self._get_boot_id()
+            self._instance.reboot()
+            while self._get_boot_id() == pre_reboot_boot_id:
+                # If the instance does not cleanly shut down within four
+                # minutes Amazon EC2 performs a hard reboot, so we shouldn't
+                # end stuck here forever.
+                time.sleep(2)
 
-        # This is a terrible hack, however it is not obviously clear
-        # how to wait for a system to start to restart.
-        time.sleep(30)
-
-        self.wait()
+            # The boot_id changed, now wait for cloud-init to complete
+            self.wait()
 
     def shutdown(self, wait=True):
         """Shutdown the instance.
@@ -328,3 +334,13 @@ class EC2Instance(BaseInstance):
             used_device_names.add(device['DeviceName'])
 
         return list(set(all_device_names) - used_device_names)[0]
+
+    def _get_boot_id(self):
+        """Get the instance boot_id.
+
+        Returns:
+            string with the boot UUID
+
+        """
+        boot_id = self.execute("cat /proc/sys/kernel/random/boot_id")
+        return boot_id
