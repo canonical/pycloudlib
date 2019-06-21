@@ -4,6 +4,10 @@
 import string
 import time
 
+from paramiko.ssh_exception import (
+    SSHException
+)
+
 from pycloudlib.instance import BaseInstance
 
 
@@ -109,18 +113,38 @@ class EC2Instance(BaseInstance):
     def restart(self, wait=True):
         """Restart the instance."""
         self._log.debug('restarting instance %s', self._instance.id)
+
+        # Case 1: wait=False. Call boto3's reboot() and return.
         if not wait:
             self._instance.reboot()
-        else:
+            return
+
+        try:
             pre_reboot_boot_id = self._get_boot_id()
+        except SSHException:
+            # Case 2: wait=True, but the instance is unreachable.
+            # Call boto3's reboot(),  wait(), and finally return.
             self._instance.reboot()
+            self.wait()
+            return
+
+        # Case 3: wait=True, the instance is reachable.
+        # Call boto3's reboot() and wait for the instance to change its
+        # boot_id, or to become unreachable. Then call wait().
+        self._instance.reboot()
+        try:
             while self._get_boot_id() == pre_reboot_boot_id:
                 # If the instance does not cleanly shut down within four
                 # minutes Amazon EC2 performs a hard reboot, so we shouldn't
                 # end stuck here forever.
                 time.sleep(2)
-
-            # The boot_id changed, now wait for cloud-init to complete
+        except SSHException:
+            # The instance is down, we can proceed safely.
+            pass
+        finally:
+            # The instance went down (it's rebooting) or it's up and the
+            # boot_id changed, meaning it already rebooted. In any case wait
+            # for cloud-init to complete.
             self.wait()
 
     def shutdown(self, wait=True):
