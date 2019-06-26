@@ -119,33 +119,42 @@ class EC2Instance(BaseInstance):
             self._instance.reboot()
             return
 
+        pre_reboot_boot_id = None
+
         try:
+            # Try to get the current boot_id. We shouldn't assume this will
+            # succeed, as one may want to restart the instance exactly because
+            # it become unreachable.
             pre_reboot_boot_id = self._get_boot_id()
-        except SSHException:
+        except (ConnectionRefusedError, SSHException):
             # Case 2: wait=True, but the instance is unreachable.
-            # Call boto3's reboot(),  wait(), and finally return.
+            # The best we can do is to send a reboot signal and wait.
+            self._log.debug('Instance seems down; '
+                            'will send reboot signal and wait.')
             self._instance.reboot()
             self.wait()
             return
 
-        # Case 3: wait=True, the instance is reachable.
-        # Call boto3's reboot() and wait for the instance to change its
-        # boot_id, or to become unreachable. Then call wait().
+        self._log.debug('Pre-reboot boot_id: %s', pre_reboot_boot_id)
+
+        # Case 3: wait=True, the instance is reachable. Call boto3's reboot()
+        # and wait for the instance to change its boot_id, then wait().
+        current_boot_id = pre_reboot_boot_id
         self._instance.reboot()
-        try:
-            while self._get_boot_id() == pre_reboot_boot_id:
-                # If the instance does not cleanly shut down within four
-                # minutes Amazon EC2 performs a hard reboot, so we shouldn't
-                # end stuck here forever.
-                time.sleep(2)
-        except SSHException:
-            # The instance is down, we can proceed safely.
-            pass
-        finally:
-            # The instance went down (it's rebooting) or it's up and the
-            # boot_id changed, meaning it already rebooted. In any case wait
-            # for cloud-init to complete.
-            self.wait()
+        while current_boot_id == pre_reboot_boot_id:
+            time.sleep(5)
+            try:
+                self._log.debug('Reading the current boot_id.')
+                current_boot_id = self._get_boot_id()
+                self._log.debug('Current boot_id: %s', current_boot_id)
+            except (ConnectionRefusedError, ConnectionResetError,
+                    SSHException):
+                # The instance went down. Exit the loop and delegate the rest
+                # of the waiting to wait().
+                self._log.debug('Instance went down (rebooting).')
+                break
+
+        self.wait()
 
     def shutdown(self, wait=True):
         """Shutdown the instance.
