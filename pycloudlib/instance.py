@@ -25,6 +25,7 @@ class BaseInstance:
         """Set up instance."""
         self._log = logging.getLogger(__name__)
         self._ssh_client = None
+        self._sftp_client = None
         self._tmp_count = 0
 
         self.name = ''
@@ -45,6 +46,12 @@ class BaseInstance:
 
     def __del__(self):
         """Cleanup of instance."""
+        if self._sftp_client:
+            try:
+                self._sftp_client.close()
+            except SSHException:
+                self._log.warning('Failed to close SFTP connection.')
+            self._sftp_client = None
         if self._ssh_client:
             try:
                 self._ssh_client.close()
@@ -129,36 +136,24 @@ class BaseInstance:
 
         Args:
             remote_path: path on remote instance
-            local_path: path on local instance
+            local_path: local path
         """
-        # when sh is invoked with '-c', then the first argument is "$0"
-        # which is commonly understood as the "program name".
-        # 'read_data' is the program name, and 'remote_path' is '$1'
-        stdout, _stderr, return_code = self.execute(
-            ["sh", "-c", 'exec cat "$1"', 'read_data', remote_path])
-        if return_code != 0:
-            raise RuntimeError("Failed to read file '%s'" % remote_path)
+        self._log.debug('pulling file %s to %s', remote_path, local_path)
 
-        with open(local_path, 'wb') as file:
-            file.write(stdout)
+        sftp = self._sftp_connect()
+        sftp.get(remote_path, local_path)
 
     def push_file(self, local_path, remote_path):
         """Copy file at 'local_path' to instance at 'remote_path'.
 
         Args:
-            local_path: path on local instance
+            local_path: local path
             remote_path: path on remote instance
         """
-        with open(local_path, "rb") as file:
-            # when sh is invoked with '-c', then the first argument is "$0"
-            # which is commonly understood as the "program name".
-            # 'write_data' is the program name, and 'remote_path' is '$1'
-            _, _, return_code = self.execute(
-                ["sh", "-c", 'exec cat >"$1"', 'write_data', remote_path],
-                stdin=file)
+        self._log.debug('pushing file %s to %s', local_path, remote_path)
 
-            if return_code != 0:
-                raise RuntimeError("Failed to write to '%s'" % remote_path)
+        sftp = self._sftp_connect()
+        sftp.put(local_path, remote_path)
 
     def restart(self, wait=True):
         """Restart an instance."""
@@ -263,10 +258,10 @@ class BaseInstance:
 
     def _ssh_connect(self):
         """Connect to instance via SSH."""
-        if self._ssh_client and self._ssh_client.get_transport().isAlive():
+        if self._ssh_client and self._ssh_client.get_transport().is_active():
             return self._ssh_client
 
-        logging.getLogger("paramiko").setLevel(logging.WARNING)
+        logging.getLogger("paramiko").setLevel(logging.INFO)
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -295,6 +290,20 @@ class BaseInstance:
             'Failed ssh connection to %s@%s:%s after 300 seconds',
             self.username, self.ip, self.port
         )
+
+    def _sftp_connect(self):
+        """Connect to instance via SFTP."""
+        if (self._sftp_client and
+                self._sftp_client.get_channel().get_transport().is_active()):
+            return self._sftp_client
+
+        logging.getLogger("paramiko").setLevel(logging.INFO)
+
+        # _ssh_connect() implements the required retry logic.
+        client = self._ssh_connect()
+        sftpclient = client.open_sftp()
+        self._sftp_client = sftpclient
+        return sftpclient
 
     def _tmpfile(self):
         """Get a tmp file in the target.
