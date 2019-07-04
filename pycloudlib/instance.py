@@ -273,7 +273,7 @@ class BaseInstance:
             self._log.error('RSA Key requires password!')
             raise
 
-        retries = 30
+        retries = 60
         while retries:
             try:
                 client.connect(username=self.username, hostname=self.ip,
@@ -287,7 +287,7 @@ class BaseInstance:
                 time.sleep(10)
 
         self._log.error(
-            'Failed ssh connection to %s@%s:%s after 300 seconds',
+            'Failed ssh connection to %s@%s:%s after 10 minutes',
             self.username, self.ip, self.port
         )
 
