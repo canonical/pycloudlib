@@ -103,13 +103,13 @@ def launch_options():
     lxd.delete_instance('pycloudlib-kvm')
 
     lxd.launch(
-        'pycloudlib-ephemeral', RELEASE, image_remote='ubuntu', ephemeral=True
+        'pycloudlib-ephemeral', 'ubuntu:%s' % RELEASE, ephemeral=True
     )
     lxd.delete_instance('pycloudlib-ephemeral')
 
     lxd.launch(
-        'pycloudlib-custom-hw', 'ubuntu/xenial', image_remote='images',
-        network='lxdbr0', storage='default', inst_type='t2.micro', wait=False
+        'pycloudlib-custom-hw', 'images:ubuntu/xenial', network='lxdbr0',
+        storage='default', inst_type='t2.micro', wait=False
     )
     lxd.delete_instance('pycloudlib-custom-hw')
 

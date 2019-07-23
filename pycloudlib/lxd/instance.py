@@ -81,6 +81,11 @@ class LXDInstance(BaseInstance):
         Args:
             wait: wait for delete
         """
+        # Delete the container in two stages (first stop, then delete)
+        # to workaround the "ZFS dataset is busy" problem.
+        # Upstream LXD bug: https://github.com/lxc/lxd/issues/4656
+        self.shutdown()
+
         self._log.debug('deleting %s', self.name)
         subp(['lxc', 'delete', self.name, '--force'])
 
@@ -114,12 +119,18 @@ class LXDInstance(BaseInstance):
         with path assumed to start from '/'.
 
         Args:
-            remote_path: absolute path to remote file to pull down
+            remote_path: path to remote file to pull down
             local_path: local path to put the file
         """
         self._log.debug('pulling file %s to %s', remote_path, local_path)
-        subp(['lxc', 'file', 'pull', '%s%s' % (self.name, remote_path),
-              local_path])
+
+        if remote_path[0] != '/':
+            remote_pwd = self.execute('pwd')
+            remote_path = remote_pwd + '/' + remote_path
+            self._log.debug("Absolute remote path: %s", remote_path)
+
+        subp(['lxc', 'file', 'pull', '%s%s' %
+              (self.name, remote_path), local_path])
 
     def push_file(self, local_path, remote_path):
         """Push file to an instance.
@@ -130,9 +141,15 @@ class LXDInstance(BaseInstance):
 
         Args:
             local_path: local path to file to push up
-            remote_path: absolute path to push file
+            remote_path: path to push file
         """
         self._log.debug('pushing file %s to %s', local_path, remote_path)
+
+        if remote_path[0] != '/':
+            remote_pwd = self.execute('pwd')
+            remote_path = remote_pwd + '/' + remote_path
+            self._log.debug("Absolute remote path: %s", remote_path)
+
         subp(['lxc', 'file', 'push', local_path,
               '%s%s' % (self.name, remote_path)])
 
@@ -212,11 +229,9 @@ class LXDInstance(BaseInstance):
 
         Not used for LXD.
         """
-        raise NotImplementedError
 
     def wait_for_stop(self):
         """Wait for stop.
 
         Not used for LXD.
         """
-        raise NotImplementedError

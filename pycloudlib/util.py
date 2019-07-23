@@ -3,6 +3,7 @@
 
 import base64
 from errno import ENOENT
+import platform
 import os
 import shlex
 import subprocess
@@ -133,15 +134,17 @@ def shell_safe(cmd):
     return out.decode()[4:-1]
 
 
-def subp(args, data=None, env=None, shell=False):
+def subp(args, data=None, env=None, shell=False, rcs=(0,),
+         shortcircuit_stdin=True):
     """Subprocess wrapper.
 
     Args:
         args: command to run
         data: data to pass
-        rcs: array of valid return codes
         env: optional env to use
         shell: optional shell to use
+        rcs: tuple of successful exit codes, default: (0)
+        shortcircuit_stdin: bind stdin to /dev/null if no data is given
 
     Returns:
         Tuple of out, err, return_code
@@ -149,15 +152,17 @@ def subp(args, data=None, env=None, shell=False):
     """
     devnull_fp = None
 
-    # using devnull assures any reads get null, rather
-    # than possibly waiting on input.
-    if data is None:
-        devnull_fp = open(os.devnull)
-        stdin = devnull_fp
-    else:
+    if data is not None:
         stdin = subprocess.PIPE
         if not isinstance(data, bytes):
             data = data.encode()
+    elif shortcircuit_stdin:
+        # using devnull assures any reads get null, rather
+        # than possibly waiting on input.
+        devnull_fp = open(os.devnull)
+        stdin = devnull_fp
+    else:
+        stdin = None
 
     bytes_args = _convert_args(args)
 
@@ -171,10 +176,21 @@ def subp(args, data=None, env=None, shell=False):
         if devnull_fp:
             devnull_fp.close()
 
+    rc = process.returncode
     out = '' if not out else out.rstrip().decode("utf-8")
     err = '' if not err else err.rstrip().decode("utf-8")
 
-    return Result(out, err, process.returncode)
+    if rcs and rc not in rcs:
+        if err:
+            errmsg = err
+        elif out:
+            errmsg = out
+        else:
+            errmsg = "command failed silently"
+        errmsg = "Failure (rc=%s): %s" % (rc, errmsg)
+        raise RuntimeError(errmsg)
+
+    return Result(out, err, rc)
 
 
 def touch(path, mode=None):
@@ -190,6 +206,38 @@ def touch(path, mode=None):
         chmod(path, mode)
     else:
         chmod(path, mode)
+
+
+def local_ubuntu_arch():
+    """Return the Ubuntu architecture suitable for the local system.
+
+    This is not simply the local machine hardware name, as in some cases it
+    differs from the Ubuntu architecture name. The most common case is x86_64
+    hardware, for which the Ubuntu architecture name is 'amd64'. This function
+    implements the required mapping.
+
+    On Debian and Ubuntu systmes the full mapping between the GNU architecture
+    names and the Ubuntu (Debian) architecture names is available in the
+    '/usr/share/dpkg/cputable' file, however the GNU architecture names are
+    again different from the machine hardware names from e.g. uname(1) or
+    os.uname(). The full mapping is available in the 'config.guess' script from
+    the GNU autotools, and it's complex. Let's keep it simple here, mapping
+    only what is relevant for Ubuntu.
+    """
+    arch_map = dict(
+        i686='i386',
+        x86_64='amd64',
+        aarch64='arm64',
+        ppc='powerpc',
+        ppc64el='ppc64el',
+        ppcle='powerpcel'
+    )
+    local_arch = platform.machine()
+
+    if local_arch in arch_map:
+        return arch_map[local_arch]
+
+    return local_arch
 
 
 def _convert_args(args):

@@ -6,6 +6,7 @@ import getpass
 import logging
 
 from pycloudlib.key import KeyPair
+from pycloudlib.streams import Streams
 
 
 class BaseCloud:
@@ -123,3 +124,28 @@ class BaseCloud:
             public_key_path: path to the public key to upload
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _streams_query(filters, daily=True):
+        """Query the cloud-images streams applying a filter.
+
+        Args:
+            filters: list of 'field=value' strings, filters to apply
+            daily: bool, query the 'daily' stream (default: True)
+
+        Returns:
+            a list of dictionaries containing the streams metadata of the
+            images matching 'filters'.
+
+        """
+        if daily:
+            mirror_url = 'https://cloud-images.ubuntu.com/daily'
+        else:
+            mirror_url = 'https://cloud-images.ubuntu.com/releases'
+
+        stream = Streams(
+            mirror_url=mirror_url,
+            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
+        )
+
+        return stream.query(filters)

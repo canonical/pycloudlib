@@ -147,7 +147,7 @@ class EC2Instance(BaseInstance):
                 self._log.debug('Reading the current boot_id.')
                 current_boot_id = self._get_boot_id()
                 self._log.debug('Current boot_id: %s', current_boot_id)
-            except (ConnectionRefusedError, ConnectionResetError,
+            except (ConnectionRefusedError, ConnectionResetError, EOFError,
                     SSHException):
                 # The instance went down. Exit the loop and delegate the rest
                 # of the waiting to wait().

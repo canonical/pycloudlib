@@ -8,7 +8,6 @@ from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session
 from pycloudlib.ec2.vpc import VPC
 from pycloudlib.key import KeyPair
-from pycloudlib.streams import Streams
 
 
 class EC2(BaseCloud):
@@ -73,8 +72,8 @@ class EC2(BaseCloud):
 
         """
         self._log.debug('finding released Ubuntu image for %s', release)
-        images = self._image_list(release, arch, root_store, daily=False)
-        return images[0]['id']
+        image = self._find_image(release, arch, root_store, daily=False)
+        return image['id']
 
     def daily_image(self, release, arch='amd64', root_store='ssd'):
         """Find the id of the latest daily image for a particular release.
@@ -89,11 +88,11 @@ class EC2(BaseCloud):
 
         """
         self._log.debug('finding daily Ubuntu image for %s', release)
-        images = self._image_list(release, arch, root_store)
-        return images[0]['id']
+        image = self._find_image(release, arch, root_store)
+        return image['id']
 
     def image_serial(self, image_id):
-        """Find the image serial of the latest daily image for a particular release.
+        """Find the image serial of a given EC2 image ID.
 
         Args:
             image_id: string, Ubuntu image id
@@ -102,9 +101,13 @@ class EC2(BaseCloud):
             string, serial of latest image
 
         """
-        self._log.debug('finding image serial for Ubuntu image %s', image_id)
-        image_info = self._image_info(image_id)
-        return image_info['version_name']
+        self._log.debug(
+            'finding image serial for EC2 Ubuntu image %s', image_id)
+        filters = ['id=%s' % image_id]
+        image_info = self._streams_query(filters, daily=True)
+        if not image_info:
+            image_info = self._streams_query(filters, daily=False)
+        return image_info[0]['version_name']
 
     def delete_image(self, image_id):
         """Delete an image.
@@ -251,8 +254,8 @@ class EC2(BaseCloud):
         self._log.debug('using SSH key %s', name)
         self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
-    def _image_list(self, release, arch='amd64', root_store='ssd', daily=True):
-        """Find list of images with a filter.
+    def _find_image(self, release, arch='amd64', root_store='ssd', daily=True):
+        """Find the latest image for a given release.
 
         Args:
             release: string, Ubuntu release to look for
@@ -263,11 +266,6 @@ class EC2(BaseCloud):
             list of dictionaries of images
 
         """
-        if daily:
-            mirror_url = 'https://cloud-images.ubuntu.com/daily'
-        else:
-            mirror_url = 'https://cloud-images.ubuntu.com/releases'
-
         filters = [
             'arch=%s' % arch,
             'endpoint=%s' % 'https://ec2.%s.amazonaws.com' % self.region,
@@ -277,45 +275,7 @@ class EC2(BaseCloud):
             'virt=hvm',
         ]
 
-        stream = Streams(
-            mirror_url=mirror_url,
-            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
-        )
-
-        return stream.query(filters)
-
-    @staticmethod
-    def _image_info(image_id):
-        """Find the streams image metadata given an image id.
-
-        Args:
-            image_id: string, Ubuntu image id
-
-        Returns:
-            a dictionary containing the image metadata
-
-        """
-        stream = Streams(
-            mirror_url='https://cloud-images.ubuntu.com/daily',
-            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
-        )
-
-        filters = ['id=%s' % image_id]
-        images = stream.query(filters)
-
-        if images:
-            # Image info found
-            return images[0]
-
-        # Image info not found, try searching the 'releases' stream
-
-        stream = Streams(
-            mirror_url='https://cloud-images.ubuntu.com/releases',
-            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
-        )
-
-        images = stream.query(filters)
-        return images[0]
+        return self._streams_query(filters, daily)[0]
 
     def _wait_for_snapshot(self, image):
         """Wait for snapshot image to be created.

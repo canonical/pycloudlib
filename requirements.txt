@@ -1,7 +1,7 @@
 boto3==1.9.71
 botocore==1.12.71
 google-api-python-client==1.7.7
-paramiko==2.4.2
+paramiko==2.6.0
 pyyaml==3.13
 
 # Simplestreams is not found on PyPi so pull from repo directly
