@@ -124,7 +124,7 @@ class LXD(BaseCloud):  # pylint: disable=W0223
             inst_type=None, profile_list=None, config_dict=None, wait=True):
         """Set up and launch a container.
 
-        This will init and start a container with the provied settings.
+        This will init and start a container with the provided settings.
         If no remote is specified pycloudlib defaults to daily images.
 
         Args:
