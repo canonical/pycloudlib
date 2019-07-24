@@ -4,7 +4,7 @@
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
 from pycloudlib.util import subp
-from pycloudlib.util import local_ubuntu_arch
+from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 
 
 class LXD(BaseCloud):  # pylint: disable=W0223
@@ -13,7 +13,6 @@ class LXD(BaseCloud):  # pylint: disable=W0223
     _type = 'lxd'
     _daily_remote = 'ubuntu-daily'
     _releases_remote = 'ubuntu'
-    _local_ubuntu_arch = local_ubuntu_arch()
 
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
@@ -147,7 +146,7 @@ class LXD(BaseCloud):  # pylint: disable=W0223
         instance.start(wait)
         return instance
 
-    def released_image(self, release, arch=_local_ubuntu_arch):
+    def released_image(self, release, arch=LOCAL_UBUNTU_ARCH):
         """Find the LXD fingerprint of the latest released image.
 
         Args:
@@ -164,7 +163,7 @@ class LXD(BaseCloud):  # pylint: disable=W0223
                            image_data['combined_squashfs_sha256'])
         return image
 
-    def daily_image(self, release, arch=_local_ubuntu_arch):
+    def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH):
         """Find the LXD fingerprint of the latest daily image.
 
         Args:
@@ -207,7 +206,7 @@ class LXD(BaseCloud):  # pylint: disable=W0223
         image_info = self._streams_query(filters, daily=daily)
         return image_info[0]['version_name']
 
-    def _find_image(self, release, arch=_local_ubuntu_arch, daily=True):
+    def _find_image(self, release, arch=LOCAL_UBUNTU_ARCH, daily=True):
         """Find the latest image for a given release.
 
         Args:

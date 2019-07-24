@@ -7,7 +7,7 @@ import yaml
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.kvm.instance import KVMInstance
 from pycloudlib.util import subp
-from pycloudlib.util import local_ubuntu_arch
+from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 
 
 class KVM(BaseCloud):  # pylint: disable=W0223
@@ -16,7 +16,6 @@ class KVM(BaseCloud):  # pylint: disable=W0223
     _type = 'kvm'
     _daily_remote = 'daily'
     _releases_remote = 'release'
-    _local_ubuntu_arch = local_ubuntu_arch()
 
     def __init__(self, tag):
         """Initialize KVM cloud class.
@@ -92,7 +91,7 @@ class KVM(BaseCloud):  # pylint: disable=W0223
 
         return KVMInstance(name)
 
-    def released_image(self, release, arch=_local_ubuntu_arch):
+    def released_image(self, release, arch=LOCAL_UBUNTU_ARCH):
         """Find the latest released image.
 
         Args:
@@ -108,7 +107,7 @@ class KVM(BaseCloud):  # pylint: disable=W0223
                            image_data['sha256'])
         return image
 
-    def daily_image(self, release, arch=_local_ubuntu_arch):
+    def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH):
         """Find the latest daily image.
 
         Args:
@@ -155,7 +154,7 @@ class KVM(BaseCloud):  # pylint: disable=W0223
         self._log.debug('Purging deleted instances')
         subp(['multipass', 'purge'])
 
-    def _find_image(self, release, arch=_local_ubuntu_arch, daily=True):
+    def _find_image(self, release, arch=LOCAL_UBUNTU_ARCH, daily=True):
         """Find the latest image for a given release.
 
         Args:

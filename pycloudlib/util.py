@@ -208,7 +208,7 @@ def touch(path, mode=None):
         chmod(path, mode)
 
 
-def local_ubuntu_arch():
+def _get_local_ubuntu_arch():
     """Return the Ubuntu architecture suitable for the local system.
 
     This is not simply the local machine hardware name, as in some cases it
@@ -232,12 +232,11 @@ def local_ubuntu_arch():
         ppc64el='ppc64el',
         ppcle='powerpcel'
     )
+
     local_arch = platform.machine()
+    local_ubuntu_arch = arch_map.get(local_arch, local_arch)
 
-    if local_arch in arch_map:
-        return arch_map[local_arch]
-
-    return local_arch
+    return local_ubuntu_arch
 
 
 def _convert_args(args):
