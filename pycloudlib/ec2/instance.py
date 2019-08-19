@@ -121,12 +121,23 @@ class EC2Instance(BaseInstance):
 
         pre_reboot_boot_id = None
 
+        # Exceptions that may be raised when the instances is not reachable
+        # via ssh.
+        ssh_exceptions = (
+            ConnectionRefusedError,
+            ConnectionResetError,
+            EOFError,
+            RuntimeError,
+            SSHException,
+            TimeoutError,
+        )
+
         try:
             # Try to get the current boot_id. We shouldn't assume this will
             # succeed, as one may want to restart the instance exactly because
             # it become unreachable.
             pre_reboot_boot_id = self._get_boot_id()
-        except (ConnectionRefusedError, SSHException):
+        except ssh_exceptions:
             # Case 2: wait=True, but the instance is unreachable.
             # The best we can do is to send a reboot signal and wait.
             self._log.debug('Instance seems down; '
@@ -147,14 +158,16 @@ class EC2Instance(BaseInstance):
                 self._log.debug('Reading the current boot_id.')
                 current_boot_id = self._get_boot_id()
                 self._log.debug('Current boot_id: %s', current_boot_id)
-            except (ConnectionRefusedError, ConnectionResetError, EOFError,
-                    SSHException):
+            except ssh_exceptions:
                 # The instance went down. Exit the loop and delegate the rest
                 # of the waiting to wait().
                 self._log.debug('Instance went down (rebooting).')
                 break
 
         self.wait()
+        current_boot_id = self._get_boot_id()
+        if current_boot_id == pre_reboot_boot_id:
+            raise RuntimeError("Reboot failed (boot_id didn't change)")
 
     def shutdown(self, wait=True):
         """Shutdown the instance.

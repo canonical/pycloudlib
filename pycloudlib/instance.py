@@ -282,6 +282,7 @@ class BaseInstance:
 
         retries = 60
         while retries:
+            last_exception = None
             try:
                 client.connect(username=self.username, hostname=self.ip,
                                port=self.port, pkey=private_key)
@@ -289,14 +290,14 @@ class BaseInstance:
                 return client
             except (ConnectionRefusedError, AuthenticationException,
                     BadHostKeyException, ConnectionResetError, SSHException,
-                    OSError):
+                    OSError) as e:
+                last_exception = e
                 retries -= 1
                 time.sleep(10)
 
-        self._log.error(
-            'Failed ssh connection to %s@%s:%s after 10 minutes',
-            self.username, self.ip, self.port
-        )
+        self._log.error('Failed ssh connection to %s@%s:%s after 10 minutes',
+                        self.username, self.ip, self.port)
+        raise last_exception
 
     def _sftp_connect(self):
         """Connect to instance via SFTP."""
