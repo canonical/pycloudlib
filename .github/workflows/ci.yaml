@@ -1,0 +1,14 @@
+name: Pycloudlib CI
+
+on: [push, pull_request]
+
+jobs:
+  tox:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Install dependencies
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox
+      - name: Git checkout
+        uses: actions/checkout@v2
+      - name: Run tox
+        run: tox
