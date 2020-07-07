@@ -24,6 +24,12 @@ class KeyPair:
         else:
             self.private_key_path = self.public_key_path.replace('.pub', '')
 
+    def __str__(self):
+        """Create string representation of class."""
+        return 'KeyPair({}, {}, name={})'.format(
+            self.private_key_path, self.public_key_path, self.name
+        )
+
     @property
     def public_key_content(self):
         """Read the contents of the public key.

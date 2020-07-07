@@ -272,20 +272,29 @@ class BaseInstance:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+        # Paramiko can barf on valid keys when initializing this way,
+        # so the check here is _only_ for checking if we have a
+        # password protected keyfile. The filename is passed directly
+        # when connecting
         try:
-            private_key = paramiko.RSAKey.from_private_key_file(
-                self.key_pair.private_key_path
-            )
+            paramiko.RSAKey.from_private_key_file(
+                self.key_pair.private_key_path)
         except PasswordRequiredException:
             self._log.error('RSA Key requires password!')
             raise
+        except SSHException:
+            pass
 
         retries = 60
+        last_exception = None
         while retries:
-            last_exception = None
             try:
-                client.connect(username=self.username, hostname=self.ip,
-                               port=self.port, pkey=private_key)
+                client.connect(
+                    username=self.username,
+                    hostname=self.ip,
+                    port=int(self.port),
+                    key_filename=self.key_pair.private_key_path,
+                )
                 self._ssh_client = client
                 return client
             except (ConnectionRefusedError, AuthenticationException,
