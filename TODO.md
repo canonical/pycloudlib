@@ -11,5 +11,4 @@
 - MAAS
 - Metal (using MAAS KVM pods)
 - OpenStack
-- Oracle Cloud Compute Classic (OCI-C)
 - Softlayer

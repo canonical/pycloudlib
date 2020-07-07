@@ -4,6 +4,7 @@ google-api-python-client==1.7.7
 paramiko==2.7.1
 pyyaml==5.1
 requests==2.22
+oci==2.17.0
 
 # Simplestreams is not found on PyPi so pull from repo directly
 git+https://git.launchpad.net/simplestreams@21c5bba2a5413c51e6b9131fc450e96f6b46090d

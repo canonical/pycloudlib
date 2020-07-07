@@ -12,6 +12,13 @@ import tempfile
 from pycloudlib.result import Result
 
 
+UBUNTU_RELEASE_VERSION_MAP = {
+    'focal': '20.04',
+    'bionic': '18.04',
+    'xenial': '16.04',
+}
+
+
 def chmod(path, mode):
     """Run chmod on a file or directory.
 
