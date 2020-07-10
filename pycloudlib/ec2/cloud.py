@@ -150,18 +150,18 @@ class EC2(BaseCloud):
 
         """
         instance = self.resource.Instance(instance_id)
-        return EC2Instance(self.client, self.key_pair, instance)
+        return EC2Instance(self.key_pair, self.client, instance)
 
     def launch(self, image_id, instance_type='t2.micro', user_data=None,
-               vpc=None, wait=True, **kwargs):
+               wait=True, vpc=None, **kwargs):
         """Launch instance on EC2.
 
         Args:
             image_id: string, AMI ID to use default: latest Ubuntu LTS
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
-            vpc: optional vpc object to create instance under
             wait: boolean, wait for instance to come up
+            vpc: optional vpc object to create instance under
             kwargs: other named arguments to add to instance JSON
 
         Returns:
@@ -201,7 +201,7 @@ class EC2(BaseCloud):
 
         self._log.debug('launching instance')
         instances = self.resource.create_instances(**args)
-        instance = EC2Instance(self.client, self.key_pair, instances[0])
+        instance = EC2Instance(self.key_pair, self.client, instances[0])
 
         if wait:
             instance.wait()

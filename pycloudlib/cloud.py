@@ -3,13 +3,14 @@
 
 import getpass
 import logging
+from abc import ABC, abstractmethod
 
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
-from pycloudlib.util import get_timestamped_tag
+from pycloudlib.util import get_timestamped_tag, validate_tag
 
 
-class BaseCloud:
+class BaseCloud(ABC):
     """Base Cloud Class."""
 
     _type = 'base'
@@ -26,8 +27,9 @@ class BaseCloud:
         self.key_pair = KeyPair(
             '/home/%s/.ssh/id_rsa.pub' % _username, name=_username
         )
-        self.tag = get_timestamped_tag(tag)
+        self.tag = validate_tag(get_timestamped_tag(tag))
 
+    @abstractmethod
     def delete_image(self, image_id):
         """Delete an image.
 
@@ -36,7 +38,8 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def released_image(self, release):
+    @abstractmethod
+    def released_image(self, release, **kwargs):
         """ID of the latest released image for a particular release.
 
         Args:
@@ -49,7 +52,8 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def daily_image(self, release):
+    @abstractmethod
+    def daily_image(self, release, **kwargs):
         """ID of the latest daily image for a particular release.
 
         Args:
@@ -62,6 +66,7 @@ class BaseCloud:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
 
@@ -74,7 +79,8 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def get_instance(self, instance_id):
+    @abstractmethod
+    def get_instance(self, instance_id):  # () -> BaseInstance
         """Get an instance by id.
 
         Args:
@@ -86,12 +92,15 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def launch(self, instance_type, image_id, wait=False, **kwargs):
+    @abstractmethod
+    def launch(self, image_id, instance_type=None, user_data=None,
+               wait=True, **kwargs):  # () -> BaseInstance
         """Launch an instance.
 
         Args:
-            instance_type: string, type of instance to create
             image_id: string, image ID to use for the instance
+            instance_type: string, type of instance to create
+            user_data: used by cloud-init to run custom scripts/configuration
             wait: wait for instance to be live
             **kwargs: dictionary of other arguments to pass to launch
 
@@ -101,16 +110,16 @@ class BaseCloud:
         """
         raise NotImplementedError
 
-    def snapshot(self, instance_id, clean=True, wait=True):
+    @abstractmethod
+    def snapshot(self, instance, clean=True, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
-            wait: wait for instance to get created
 
         Returns:
-            An image object
+            An image id
 
         """
         raise NotImplementedError

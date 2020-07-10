@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
-"""LXD Cloud type."""
+"""KVM Cloud type."""
 
+import os
 import requests
 import yaml
 
@@ -49,47 +50,87 @@ class KVM(BaseCloud):  # pylint: disable=W0223
         """
         return KVMInstance(instance_name)
 
-    def launch(self, name, release, inst_type=None, wait=True):
+    def launch(self, image_id, instance_type=None, user_data=None,
+               wait=True, name=None):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
         If no remote is specified pycloudlib defaults to daily images.
 
         Args:
-            name: string, what to call the instance
-            release: string, [<remote>:]image, what release to launch
-            inst_type: string, type to use
+            image_id: string, [<remote>:]image, release to launch, returned
+                from either `released_image()` or `daily_image()`
+            instance_type: string, type to use
+            user_data: used by cloud-init to run custom scripts/configuration
             wait: boolean, wait for instance to start
+            name: string, what to call the instance
 
         Returns:
             The created KVM instance object
 
         """
-        if ':' not in release:
-            release = self._daily_remote + ':' + release
+        if not name:
+            name = self.tag
 
-        self._log.debug("Full release to launch: '%s'", release)
+        if not wait:
+            raise ValueError("KVM launch cannot be called with wait=False")
+
+        if ':' not in image_id:
+            image_id = self._daily_remote + ':' + image_id
+
+        self._log.debug("Full release to launch: '%s'", image_id)
 
         cmd = ['multipass', 'launch', '--name', name]
 
-        if inst_type:
+        if instance_type:
             inst_types = self._get_instance_types()
-            if inst_type not in inst_types:
-                raise RuntimeError('Unknown instance type: %s' % inst_type)
-            inst_cpus = str(int(inst_types[inst_type]['cpu']))
-            inst_mem = str(int(inst_types[inst_type]['mem']*1024**3))
+            if instance_type not in inst_types:
+                raise RuntimeError('Unknown instance type: %s' % instance_type)
+            inst_cpus = str(int(inst_types[instance_type]['cpu']))
+            inst_mem = str(int(inst_types[instance_type]['mem']*1024**3))
             self._log.debug(
                 "Instance type '%s' => cpus=%s, mem=%s",
-                inst_type, inst_cpus, inst_mem)
+                instance_type, inst_cpus, inst_mem)
 
             cmd += ['--cpus', inst_cpus, '--mem', inst_mem]
 
-        cmd.append(release)
+        cmd.append(image_id)
+
+        data = None
+        if user_data:
+            cmd.append('--cloud-init')
+            cmd.append('-')
+            if os.path.isfile(user_data):
+                with open(user_data) as f:
+                    data = f.read()
+            else:
+                data = user_data
 
         self._log.debug('Creating %s', name)
-        subp(cmd)
+        subp(cmd, data=data)
 
         return KVMInstance(name)
+
+    def snapshot(self, instance, clean=True):
+        """Snapshot an instance and generate an image from it.
+
+        Args:
+            instance: Instance to snapshot
+            clean: run instance clean method before taking snapshot
+
+        Returns:
+            An image id
+
+        """
+        raise NotImplementedError
+
+    def delete_image(self, image_id):
+        """Delete an image.
+
+        Args:
+            image_id: string, id of the image to delete
+        """
+        raise NotImplementedError
 
     def released_image(self, release, arch=LOCAL_UBUNTU_ARCH):
         """Find the latest released image.

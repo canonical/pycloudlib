@@ -16,12 +16,12 @@ class EC2Instance(BaseInstance):
 
     _type = 'ec2'
 
-    def __init__(self, client, key_pair, instance):
+    def __init__(self, key_pair, client, instance):
         """Set up instance.
 
         Args:
-            client: boto3 client object
             key_pair: SSH key object
+            client: boto3 client object
             instance: created boto3 instance object
         """
         super(EC2Instance, self).__init__(key_pair)
@@ -31,6 +31,15 @@ class EC2Instance(BaseInstance):
         self._client = client
 
         self.boot_timeout = 300
+
+    def __repr__(self):
+        """Create string representation for class."""
+        return '{}(key_pair={}, client={}, instance={})'.format(
+            self.__class__.__name__,
+            self.key_pair,
+            self._client,
+            self._instance
+        )
 
     @property
     def availability_zone(self):
@@ -47,6 +56,11 @@ class EC2Instance(BaseInstance):
     def id(self):
         """Return id of instance."""
         return self._instance.instance_id
+
+    @property
+    def name(self):
+        """Return id of instance."""
+        return self.id
 
     @property
     def image_id(self):

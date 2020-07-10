@@ -34,10 +34,18 @@ class OciInstance(BaseInstance):
         self.compute_client = oci.core.ComputeClient(config)
         self.network_client = oci.core.VirtualNetworkClient(config)
 
-    def __str__(self):
+    def __repr__(self):
         """Create string representation of class."""
-        return 'OciInstance(instance_id={}, compartment_id={}'.format(
-            self.instance_id, self.compartment_id)
+        return '{}(instance_id={}, compartment_id={})'.format(
+            self.__class__.__name__,
+            self.instance_id,
+            self.compartment_id,
+        )
+
+    @property
+    def name(self):
+        """Return the instance name."""
+        return self.instance_id
 
     @property
     def ip(self):
@@ -112,7 +120,6 @@ class OciInstance(BaseInstance):
             current_data=self.instance_data,
             desired_state='RUNNING',
         )
-        self.execute('/usr/bin/cloud-init status --wait --long')
 
     def wait_for_delete(self):
         """Wait for instance to be deleted."""
