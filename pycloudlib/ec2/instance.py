@@ -344,7 +344,7 @@ class EC2Instance(BaseInstance):
             integer to use as index for NIC
 
         """
-        all_index = {index for index in range(0, 16)}
+        all_index = range(0, 16)
 
         used_index = set()
         for nic in self._instance.network_interfaces:
