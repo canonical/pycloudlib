@@ -81,6 +81,7 @@ class OCI(BaseCloud):
 
         Returns:
             string, id of latest image
+
         """
         if operating_system == 'Canonical Ubuntu':
             if not re.match(r'^\d{2}\.\d{2}$', release):  # 18.04, 20.04, etc
