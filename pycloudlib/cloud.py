@@ -117,6 +117,15 @@ class BaseCloud:
         """
         raise NotImplementedError
 
+    def list_keys(self):
+        """List ssh key names present on the cloud for accessing instances.
+
+        Returns:
+           A list of strings of key pair names accessible to the cloud.
+
+        """
+        raise NotImplementedError
+
     def use_key(self, public_key_path, private_key_path=None, name=None):
         """Use an existing key.
 

@@ -194,6 +194,7 @@ class EC2(BaseCloud):
         return instance
 
     def list_keys(self):
+        """List all ssh key pair names loaded on this EC2 region."""
         keypair_names = []
         for keypair in self.client.describe_key_pairs()["KeyPairs"]:
             keypair_names.append(keypair["KeyName"])
