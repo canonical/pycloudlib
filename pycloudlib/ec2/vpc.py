@@ -11,25 +11,30 @@ from pycloudlib.ec2.util import _tag_resource
 class VPC:
     """Virtual Private Cloud Class."""
 
-    def __init__(self, resource, name, ipv4_cidr='192.168.1.0/20'):
+    def __init__(self, resource, name, ipv4_cidr='192.168.1.0/20',
+                 vpc_id=None):
         """Define and setup a VPC.
 
         Args:
             resource: EC2 resource object
             name: name of VPC
             ipv4_cidr: CIDR for IPV4 network
+            vpc_id: Optional ID of existing VPC object to return
         """
         self._log = logging.getLogger(__name__)
-        self._resource = resource
 
         self.name = name
-        self.ipv4_cidr = ipv4_cidr
-
-        self.vpc = self._create_vpc()
-        self.internet_gateway = self._create_internet_gateway()
-        self.subnet = self._create_subnet()
-        self.routing_table = self._create_routing_table()
-        self.security_group = self._create_security_group()
+        if vpc_id is not None:
+            self._log.debug(
+                'Reusing existing VPC (%s) named %s.', vpc_id, name
+            )
+            self.vpc = resource.Vpc(vpc_id)
+        else:
+            self._resource = resource
+            self.vpc = self._create_vpc(ipv4_cidr)
+            gateway = self._create_internet_gateway()
+            subnet = self._create_subnet(ipv4_cidr)
+            self._create_routing_table(gateway.id, subnet.id)
 
     @property
     def id(self):
@@ -51,31 +56,25 @@ class VPC:
 
         return internet_gateway
 
-    def _create_routing_table(self):
-        """Update default routing table with internet gateway.
+    def _create_routing_table(self, gateway_id, subnet_id):
+        """Update default routing table with internet gateway and subnet.
 
         This sets up internet access between the VPC via the internet gateway
         by configuring routing tables for IPv4 and IPv6.
-
-        Returns:
-            Routing table object
-
         """
         self._log.debug('creating routing table')
         route_table = self.vpc.create_route_table()
         route_table.create_route(
             DestinationCidrBlock='0.0.0.0/0',
-            GatewayId=self.internet_gateway.id
+            GatewayId=gateway_id
         )
         route_table.create_route(
             DestinationIpv6CidrBlock='::/0',
-            GatewayId=self.internet_gateway.id
+            GatewayId=gateway_id
         )
-        route_table.associate_with_subnet(SubnetId=self.subnet.id)
+        route_table.associate_with_subnet(SubnetId=subnet_id)
 
         _tag_resource(route_table, self.name)
-
-        return route_table
 
     def _create_security_group(self):
         """Enable ingress to default VPC security group.
@@ -97,8 +96,11 @@ class VPC:
 
         return security_group
 
-    def _create_subnet(self):
+    def _create_subnet(self, ipv4_cidr):
         """Generate IPv4 and IPv6 subnets for use.
+
+        Args:
+            ipv4_cidr: CIDR for IPV4 network
 
         Returns:
             Create subnet object
@@ -108,10 +110,10 @@ class VPC:
             'Ipv6CidrBlock'][:-2] + '64'
 
         self._log.debug('creating subnets with following ranges:')
-        self._log.debug('ipv4: %s', self.ipv4_cidr)
+        self._log.debug('ipv4: %s', ipv4_cidr)
         self._log.debug('ipv6: %s', ipv6_cidr)
         subnet = self.vpc.create_subnet(
-            CidrBlock=self.ipv4_cidr, Ipv6CidrBlock=ipv6_cidr
+            CidrBlock=ipv4_cidr, Ipv6CidrBlock=ipv6_cidr
         )
 
         # enable public IP on instance launch
@@ -124,17 +126,20 @@ class VPC:
 
         return subnet
 
-    def _create_vpc(self):
+    def _create_vpc(self, ipv4_cidr):
         """Set up AWS EC2 VPC or return existing VPC.
 
+        Args:
+            ipv4_cidr: CIDR for IPV4 network
+
         Returns:
-            Create VPN object
+            Create VPC object
 
         """
         self._log.debug('creating new vpc named %s', self.name)
         try:
             vpc = self._resource.create_vpc(
-                CidrBlock=self.ipv4_cidr,
+                CidrBlock=ipv4_cidr,
                 AmazonProvidedIpv6CidrBlock=True
             )
         except ClientError as error:
@@ -153,26 +158,26 @@ class VPC:
             instance.terminate()
             instance.wait_until_terminated()
 
-        if self.security_group:
+        for security_group in self.vpc.security_groups.all():
             self._log.debug(
-                'deleting security group %s', self.security_group.id
+                'deleting security group %s', security_group.id
             )
-            self.security_group.delete()
+            security_group.delete()
 
-        if self.subnet:
-            self._log.debug('deleting subnet %s', self.subnet.id)
-            self.subnet.delete()
+        for subnet in self.vpc.subnets.all():
+            self._log.debug('deleting subnet %s', subnet.id)
+            subnet.delete()
 
-        if self.routing_table:
-            self._log.debug('deleting routing table %s', self.routing_table.id)
-            self.routing_table.delete()
+        for route_table in self.vpc.route_tables.all():
+            self._log.debug('deleting routing table %s', route_table.id)
+            route_table.delete()
 
-        if self.internet_gateway:
+        for gateway in self.vpc.internet_gateways.all():
             self._log.debug(
-                'deleting internet gateway %s', self.internet_gateway.id
+                'deleting internet gateway %s', gateway.id
             )
-            self.internet_gateway.detach_from_vpc(VpcId=self.vpc.id)
-            self.internet_gateway.delete()
+            gateway.detach_from_vpc(VpcId=self.vpc.id)
+            gateway.delete()
 
         if self.vpc:
             self._log.debug('deleting vpc %s', self.vpc.id)
