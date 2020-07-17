@@ -2,10 +2,11 @@
 """EC2 Util Functions."""
 
 import base64
-import datetime
 
 import boto3
 import botocore
+
+from pycloudlib.util import get_timestamped_tag
 
 
 def _tag_resource(resource, tag_value=None):
@@ -19,7 +20,7 @@ def _tag_resource(resource, tag_value=None):
         tag_value: string, what to tag the item with
     """
     if not tag_value:
-        tag_value = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        tag_value = get_timestamped_tag(tag="")
 
     tag = {
         'Key': 'Name',

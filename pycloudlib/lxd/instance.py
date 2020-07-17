@@ -19,7 +19,12 @@ class LXDInstance(BaseInstance):
         """
         super(LXDInstance, self).__init__(key_pair=None)
 
-        self.name = name
+        self._name = name
+
+    @property
+    def name(self):
+        """Return instance name."""
+        return self._name
 
     @property
     def ephemeral(self):
