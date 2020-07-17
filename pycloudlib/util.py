@@ -2,6 +2,7 @@
 """Helpers for shell string and processing."""
 
 import base64
+import datetime
 from errno import ENOENT
 import platform
 import os
@@ -287,3 +288,18 @@ def _safe_int(possible_int):
         return int(possible_int)
     except (ValueError, TypeError):
         return None
+
+
+def get_timestamped_tag(tag):
+    """Create tag with current timestamp.
+
+    Args:
+        tag: string, Base tag to be used
+
+    Returns
+        An updated tag with current timestamp
+
+    """
+    return'%s-%s' % (
+        tag, datetime.datetime.now().strftime("%m%d-%H%M%S")
+    )

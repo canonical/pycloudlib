@@ -1,12 +1,12 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
-import datetime
 import getpass
 import logging
 
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
+from pycloudlib.util import get_timestamped_tag
 
 
 class BaseCloud:
@@ -26,9 +26,7 @@ class BaseCloud:
         self.key_pair = KeyPair(
             '/home/%s/.ssh/id_rsa.pub' % _username, name=_username
         )
-        self.tag = '%s-%s' % (
-            tag, datetime.datetime.now().strftime("%m%d-%H%M%S")
-        )
+        self.tag = get_timestamped_tag(tag)
 
     def delete_image(self, image_id):
         """Delete an image.

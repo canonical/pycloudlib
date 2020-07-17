@@ -28,11 +28,15 @@ class BaseInstance:
         self._sftp_client = None
         self._tmp_count = 0
 
-        self.name = ''
         self.boot_timeout = 120
         self.key_pair = key_pair
         self.port = '22'
         self.username = 'ubuntu'
+
+    @property
+    def name(self):
+        """Return instance name."""
+        return ''
 
     @property
     def ip(self):  # pylint: disable=C0103
