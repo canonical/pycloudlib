@@ -15,7 +15,7 @@ class VPC:
     """Virtual Private Cloud class proxy for AWS VPC resource."""
 
     def __init__(self, vpc):
-        """Setup a VPC proxy instance for an AWS VPC resource.
+        """Create a VPC proxy instance for an AWS VPC resource.
 
         Args:
             vpc_id: Optional ID of existing VPC object to return
@@ -34,6 +34,7 @@ class VPC:
 
         Returns:
             pycloudlib.ec2.VPC instance
+
         """
         logger.debug('Creating VPC named (%s)', name)
         vpc = cls._create_vpc(
@@ -58,6 +59,7 @@ class VPC:
 
         Returns:
             pycloudlib.ec2.VPC instance
+
         """
         logger.debug('Reusing existing VPC (%s)', vpc_id)
         vpc = resource.Vpc(vpc_id)
@@ -131,7 +133,7 @@ class VPC:
 
     @classmethod
     def _create_subnet(cls, vpc, ipv4_cidr):
-        """Generate IPv4 and IPv6 subnets for use in an AWS VPC resource
+        """Generate IPv4 and IPv6 subnets for use in an AWS VPC resource.
 
         Args:
             vpc: AWS VPC resource to which the created subnet is associated.
@@ -169,7 +171,8 @@ class VPC:
             ipv4_cidr: CIDR for IPV4 network
 
         Returns:
-            Created VPC resource from AWS cli
+            VPC resource created from AWS cli
+
         """
         logger.debug(
             'creating new vpc named %s with subnet %s', name, ipv4_cidr
