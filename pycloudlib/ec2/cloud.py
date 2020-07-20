@@ -187,7 +187,13 @@ class EC2(BaseCloud):
             args[key] = value
 
         if vpc:
-            [subnet_id] = [s.id for s in vpc.vpc.subnets.all()]
+            try:
+                [subnet_id] = [s.id for s in vpc.vpc.subnets.all()]
+            except ValueError:
+                raise RuntimeError(
+                    "Too many subnets in vpc {}. pycloudlib does not support"
+                    " launching into VPCs with multiple subnets".format(vpc.id)
+                )
             args['SubnetId'] = subnet_id
             args['SecurityGroupIds'] = [
                 sg.id for sg in vpc.vpc.security_groups.all()
