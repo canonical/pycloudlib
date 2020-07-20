@@ -59,7 +59,7 @@ Launching an instance requires at a minimum an AMI ID. Optionally, a user can sp
 ```python
 inst_0 = ec2.launch('ami-537e9a30')
 inst_1 = ec2.launch('ami-537e9a30', instance_type='i3.metal', user_data=data)
-vpc = ec2.create_vpc('private_vpc')
+vpc = ec2.get_or_create_vpc('private_vpc')
 inst_2 = ec2.launch('ami-537e9a30', vpc=vpc)
 ```
 
@@ -140,7 +140,7 @@ If a custom VPC is required for any reason, then one can be created
 and then later used during instance creation.
 
 ```python
-vpc = ec2.create_vpc(name, ipv4_cidr='192.168.1.0/20')
+vpc = ec2.get_or_create_vpc(name, ipv4_cidr='192.168.1.0/20')
 ec2.launch('ami-537e9a30', vpc=vpc)
 ```
 
