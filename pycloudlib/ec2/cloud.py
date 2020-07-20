@@ -43,7 +43,7 @@ class EC2(BaseCloud):
             raise RuntimeError(
                 'Please configure ec2 credentials in $HOME/.aws/credentials')
 
-    def create_vpc(self, name, ipv4_cidr='192.168.1.0/20'):
+    def get_or_create_vpc(self, name, ipv4_cidr='192.168.1.0/20'):
         """Create a or return matching VPC.
 
         This can be used instead of using the default VPC to create
@@ -62,8 +62,8 @@ class EC2(BaseCloud):
             Filters=[{'Name': 'tag:Name', 'Values': [name]}]
         )['Vpcs']
         if vpcs:
-            return VPC(self.resource, name=name, vpc_id=vpcs[0]['VpcId'])
-        return VPC(self.resource, name=name, ipv4_cidr=ipv4_cidr)
+            return VPC.from_existing(self.resource, vpc_id=vpcs[0]['VpcId'])
+        return VPC.create(self.resource, name=name, ipv4_cidr=ipv4_cidr)
 
     def released_image(self, release, arch='amd64', root_store='ssd'):
         """Find the id of the latest released image for a particular release.
