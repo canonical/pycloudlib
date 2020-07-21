@@ -1,3 +1,4 @@
+# pylint: disable=E1101
 # This file is part of pycloudlib. See LICENSE file for license information.
 """OCI instance."""
 
