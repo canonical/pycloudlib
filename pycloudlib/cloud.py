@@ -131,8 +131,11 @@ class BaseCloud:
 
         Args:
             public_key_path: path to the public key to upload
+            private_key_path: path to the private key
+            name: name to reference key by
         """
-        raise NotImplementedError
+        self._log.debug('using SSH key from %s', public_key_path)
+        self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
     @staticmethod
     def _streams_query(filters, daily=True):
