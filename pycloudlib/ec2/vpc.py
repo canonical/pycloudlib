@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Used to define custom Virtual Private Clouds (VPC)."""
 
+import ipaddress
 import logging
 
 from botocore.exceptions import ClientError
@@ -40,6 +41,8 @@ class VPC:
         vpc = cls._create_vpc(
             resource=resource, name=name, ipv4_cidr=ipv4_cidr
         )
+        vpc.wait_until_available()
+        vpc.reload()
         gateway = cls._create_internet_gateway(resource, vpc)
         subnet = cls._create_subnet(vpc, ipv4_cidr)
         route_table = cls._create_routing_table(vpc, gateway.id, subnet.id)
@@ -144,14 +147,22 @@ class VPC:
 
         """
         ipv6_cidr = vpc.ipv6_cidr_block_association_set[0][
-            'Ipv6CidrBlock'][:-2] + '64'
-
+            'Ipv6CidrBlock']
+        kwargs = {'CidrBlock': ipv4_cidr}
+        try:
+            ipaddress.IPv6Network(ipv6_cidr)
+            kwargs['Ipv6CidrBlock'] = ipv6_cidr[:-2] + '64'
+        except ValueError as e:
+            logger.warning(
+                'Skipping IPv6 association on vpc.'
+                ' Could not understand Ipv6CidrBlock: [%s]: %s',
+                ipv6_cidr,
+                str(e)
+            )
         logger.debug('creating subnets with following ranges:')
-        logger.debug('ipv4: %s', ipv4_cidr)
-        logger.debug('ipv6: %s', ipv6_cidr)
-        subnet = vpc.create_subnet(
-            CidrBlock=ipv4_cidr, Ipv6CidrBlock=ipv6_cidr
-        )
+        for key, value in kwargs.items():
+            logger.debug('%s: %s', key, value)
+        subnet = vpc.create_subnet(**kwargs)
 
         # enable public IP on instance launch
         modify_subnet = subnet.meta.client.modify_subnet_attribute
