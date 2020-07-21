@@ -60,10 +60,10 @@ def snapshot(ec2, daily):
 
 def custom_vpc(ec2, daily):
     """Launch instances using a custom VPC."""
-    vpc = ec2.create_vpc('test-vpc')
-    instance = ec2.launch(daily, vpc=vpc)
+    vpc = ec2.get_or_create_vpc(name='test-vpc')
+    ec2.launch(daily, vpc=vpc)
 
-    instance.delete()
+    # vpc.delete will also delete any associated instances in that VPC
     vpc.delete()
 
 

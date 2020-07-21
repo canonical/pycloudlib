@@ -43,8 +43,8 @@ class EC2(BaseCloud):
             raise RuntimeError(
                 'Please configure ec2 credentials in $HOME/.aws/credentials')
 
-    def create_vpc(self, name, ipv4_cidr='192.168.1.0/20'):
-        """Create a custom VPC.
+    def get_or_create_vpc(self, name, ipv4_cidr='192.168.1.0/20'):
+        """Create a or return matching VPC.
 
         This can be used instead of using the default VPC to create
         a custom VPC for usage.
@@ -57,7 +57,13 @@ class EC2(BaseCloud):
             VPC object
 
         """
-        return VPC(self.resource, name, ipv4_cidr)
+        # Check to see if current VPC exists
+        vpcs = self.client.describe_vpcs(
+            Filters=[{'Name': 'tag:Name', 'Values': [name]}]
+        )['Vpcs']
+        if vpcs:
+            return VPC.from_existing(self.resource, vpc_id=vpcs[0]['VpcId'])
+        return VPC.create(self.resource, name=name, ipv4_cidr=ipv4_cidr)
 
     def released_image(self, release, arch='amd64', root_store='ssd'):
         """Find the id of the latest released image for a particular release.
@@ -181,8 +187,17 @@ class EC2(BaseCloud):
             args[key] = value
 
         if vpc:
-            args['SecurityGroupIds'] = [vpc.security_group.id]
-            args['SubnetId'] = vpc.subnet.id
+            try:
+                [subnet_id] = [s.id for s in vpc.vpc.subnets.all()]
+            except ValueError:
+                raise RuntimeError(
+                    "Too many subnets in vpc {}. pycloudlib does not support"
+                    " launching into VPCs with multiple subnets".format(vpc.id)
+                )
+            args['SubnetId'] = subnet_id
+            args['SecurityGroupIds'] = [
+                sg.id for sg in vpc.vpc.security_groups.all()
+            ]
 
         self._log.debug('launching instance')
         instances = self.resource.create_instances(**args)
