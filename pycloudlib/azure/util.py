@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Azure Util Functions."""
 import logging
+import re
 
 from azure.common.client_factory import (get_client_from_cli_profile,
                                          get_client_from_json_dict)
@@ -8,6 +9,10 @@ from knack.util import CLIError
 
 
 logger = logging.getLogger(__name__)
+
+RE_AZURE_IMAGE_ID = (
+    r'(?P<publisher>[^:]+):(?P<offer>[^:]+):(?P<sku>[^:]+)(:(?P<version>.*))?'
+)
 
 
 def get_client(resource, config_dict):
@@ -21,7 +26,7 @@ def get_client(resource, config_dict):
 
     Args:
         resource: Azure Resource, An Azure resource that we want to get
-                    a client for.
+                  a client for.
         config_dict: dict, Id parameters passed by the user to this class.
 
     Returns:
@@ -68,38 +73,25 @@ def get_client(resource, config_dict):
     return client
 
 
-def get_offer_from_image_id(image_id):
-    """Extract offer from an image_id string.
+def parse_image_id(image_id):
+    """Extract publisher, offer, sku and optional version from image_id.
 
     The image_id is expected to be a string in the following
-    format: Canonical:UbuntuServer:19.10-DAILY. The offer is
-    the first name after the first ':' symbol.
+    format: Canonical:UbuntuServer:19.10-DAILY[:latest]
 
     Args:
         image_id: string, The image id
 
     Returns
-        A string representing the image offer
+        Dict with publisher, offer and sku and optional version keys.
 
     """
-    return image_id.split(":")[1]
+    match = re.match(RE_AZURE_IMAGE_ID, image_id)
+    if not match:
+        # Snapshot image ids do not follow the publisher:offer:sku pattern
+        return {}
 
-
-def get_sku_from_image_id(image_id):
-    """Extract sku from an image_id string.
-
-    The image_id is expected to be a string in the following
-    format: Canonical:UbuntuServer:19.10-DAILY. The sku is
-    the name after the second ':' symbol.
-
-    Args:
-        image_id: string, The image id
-
-    Returns
-        A string representing the image offer
-
-    """
-    return image_id.split(":")[-1]
+    return match.groupdict()
 
 
 def get_resource_group_name_from_id(resource_id):
@@ -139,25 +131,84 @@ def get_image_reference_params(image_id):
 
     Args:
         image_id: string, Represents a image to be used when provisioning
-                    a virtual machine
+                  a virtual machine
 
     Returns:
-        A dict representing the image referece parameters that will be
+        A dict representing the image reference parameters that will be
         used to provision a virtual machine
 
     """
-    # If the image id starts with 'Canonical", we know that it is a
-    # marketplace image, and to we must reference it using the
-    # combination of publisher, offer, sku and version info
-    if image_id.startswith('Canonical'):
-        return {
-            "publisher": 'Canonical',
-            "offer": get_offer_from_image_id(image_id),
-            "sku": get_sku_from_image_id(image_id),
-            "version": "latest"
-        }
+    img_dict = parse_image_id(image_id)
+    if img_dict.get("publisher") == "Canonical":
+        # If the image id starts with 'Canonical", we know that it is a
+        # marketplace image, and to we must reference it using the
+        # combination of publisher, offer, sku and version info
+        img_dict.update({"version": "latest"})
+        return img_dict
 
     # Custom images can be directly referenced by their id
     return {
         "id": image_id
+    }
+
+
+def is_pro_image(image_id, registered_image):
+    """Verify if the image id represents a pro image.
+
+    Check the image id string for patterns found only on
+    pro images. However, snapshot images do not have pro
+    information on ther image id. We are enconding that
+    information on the registed_image dict, which represents
+    the base image that created the snapshot. Therefore,
+    we fail at looking in the image id string, we look it up
+    at the registered_image dict.
+
+    Args:
+        image_id: string, Represents a image to be used when provisioning
+                  a virtual machine
+        registered_image: dict, Represents the base image used for creating
+                          the image referenced by image_id. This will only
+                          happen for snapshot images.
+
+    Returns:
+        A boolean indicating if the image is pro image
+
+    """
+    offer = ""
+    img_dict = parse_image_id(image_id)
+    if img_dict.get("publisher") == "Canonical":
+        offer = img_dict["offer"]
+    elif registered_image is not None:
+        offer = registered_image["offer"]
+
+    return bool("-pro-" in offer)
+
+
+def get_plan_params(image_id, registered_image):
+    """Return the correct parameter for plan based on pro image id.
+
+    Args:
+        image_id: string, Represents a image to be used when provisioning
+                  a virtual machine
+        registered_image: dict, Represents the base image used for creating
+                          the image referenced by image_id. This will only
+                          happen for snapshot images.
+
+    Returns:
+        A dict representing the plan parameters that will be
+        used to provision a virtual machine
+
+    """
+    if registered_image is not None:
+        return {
+            "name": registered_image["sku"],
+            "product": registered_image["offer"],
+            "publisher": "canonical"
+        }
+
+    img_dict = parse_image_id(image_id)
+    return {
+        "name": img_dict.get("sku"),
+        "product": img_dict.get("offer"),
+        "publisher": img_dict.get("publisher", "").lower()
     }

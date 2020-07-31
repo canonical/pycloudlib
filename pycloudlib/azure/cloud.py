@@ -27,7 +27,7 @@ class Azure(BaseCloud):
     }
 
     def __init__(self, tag, client_id=None, client_secret=None,
-                 subscription_id=None, tenant_id=None):
+                 subscription_id=None, tenant_id=None, region="centralus"):
         """Initialize the connection to Azure.
 
         Azure will try to read user credentials form the /home/$USER/.azure
@@ -40,10 +40,11 @@ class Azure(BaseCloud):
             client_secret: user's client secret access key
             subscription_id: user's subscription id key
             tenant_id: user's tenant id key
+            region: The region where the instance will be created
         """
         super().__init__(tag)
         self._log.debug('logging into Azure')
-        self.location = "centralus"
+        self.location = region
         self.username = "ubuntu"
 
         self.registered_instances = {}
@@ -296,7 +297,7 @@ class Azure(BaseCloud):
 
         return nic_call.result()
 
-    def _create_vm_parameters(self, vm_name, image_id, nic_id, user_data):
+    def _create_vm_parameters(self, name, image_id, nic_id, user_data):
         """Create the virtual machine parameters to be used for provision.
 
         Composes the dict that will be used to provision an Azure virtual
@@ -304,7 +305,7 @@ class Azure(BaseCloud):
         image_id we are receiving, which can be snapshots ids or not.
 
         Args:
-            vm_name: string, The name of the virtual machine.
+            name: string, The name of the virtual machine.
             image_id: string, The identifier of an image.
             nic_id: string, The network interface id.
             user_data: string, The user data to be passed to the
@@ -323,7 +324,7 @@ class Azure(BaseCloud):
                 "image_reference": {}
             },
             "os_profile": {
-                "computer_name": vm_name,
+                "computer_name": name,
                 "admin_username": self.username,
                 "linux_configuration": {
                     "ssh": {
@@ -357,9 +358,22 @@ class Azure(BaseCloud):
         vm_parameters["storage_profile"][
             "image_reference"] = util.get_image_reference_params(image_id)
 
+        # We can have pro images from two different sources; marketplaces
+        # and snapshots. A snapshot image does not have the necessary metadata
+        # encoded in the image_id to create the 'plan' dict. In this case,
+        # we get the necessary info from the registered_images dict
+        # where we store the required metadata about any snapshot created by
+        # pycloudlib.
+        registered_image = self.registered_images.get(image_id)
+        if util.is_pro_image(image_id, registered_image):
+            vm_parameters["plan"] = util.get_plan_params(
+                image_id, registered_image)
+
         return vm_parameters
 
-    def _create_virtual_machine(self, image_id, nic_id, user_data):
+    def _create_virtual_machine(
+            self, image_id, nic_id, user_data, name, **kwargs
+    ):
         """Create a virtual machine.
 
         This method provisions an Azure virtual machine for the image_id
@@ -369,20 +383,26 @@ class Azure(BaseCloud):
             image_id: string, The image to be used when provisiong
                       a virtual machine.
             nic_id: string, The network interface to used for this
-                            virtual machine.
+                    virtual machine.
             user_data: string, user data used by cloud-init when
                        booting the virtual machine.
+            name: string, optional name to provide when creating the vm.
+            kwargs: dict of key value pairs to provide to
+                    virtual_machines.create_or_update.
+
         Returns:
             The virtual machine created by Azure
 
         """
-        vm_name = "{}-vm".format(self.tag)
-
-        self._log.debug('Creating Azure virtual machine')
+        if not name:
+            name = "{}-vm".format(self.tag)
+        params = self._create_vm_parameters(name, image_id, nic_id, user_data)
+        params.update(**kwargs)
+        self._log.debug('Creating Azure virtual machine: %s', name)
         vm_call = self.compute_client.virtual_machines.create_or_update(
             self.resource_group.name,
-            vm_name,
-            self._create_vm_parameters(vm_name, image_id, nic_id, user_data)
+            name,
+            params,
         )
 
         return vm_call.result()
@@ -471,14 +491,17 @@ class Azure(BaseCloud):
 
         return None
 
-    def launch(self, image_id, user_data=None, wait=True, **kwargs):
+    def launch(self, image_id, user_data=None, wait=True, name=None, **kwargs):
         """Launch virtual machine on Azure.
 
         Args:
             image_id: string, Ubuntu image to use
             user_data: string, user-data to pass to virtual machine
             wait: boolean, wait for instance to come up
-            kwargs: other named arguments to add to instance JSON
+            name: string, optional name to give the vm when launching.
+                  Default results in a name of <tag>-vm
+            kwargs: dict, other named arguments to provide to
+                    virtual_machines.create_or_update
 
         Returns:
             Azure Instance object
@@ -545,7 +568,9 @@ class Azure(BaseCloud):
         vm = self._create_virtual_machine(
             image_id=image_id,
             nic_id=nic.id,
-            user_data=user_data
+            user_data=user_data,
+            name=name,
+            **kwargs
         )
 
         instance_info = {
@@ -793,7 +818,8 @@ class Azure(BaseCloud):
                     "id": instance.id
                 },
                 "tags": {
-                    "name": self.tag
+                    "name": self.tag,
+                    "src-image-id": instance.image_id
                 }
             }
         )
@@ -804,8 +830,9 @@ class Azure(BaseCloud):
         image_name = image.name
 
         self.registered_images[image_id] = {
-            "id": image_id,
-            "name": image_name
+            "name": image_name,
+            "sku": instance.sku,
+            "offer": instance.offer
         }
 
         return image_id
