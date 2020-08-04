@@ -33,6 +33,28 @@ class AzureInstance(BaseInstance):
         raise NotImplementedError
 
     @property
+    def image_id(self):
+        """Return the image_id from which this instance was created."""
+        storage_profile = self._instance['vm'].as_dict().get(
+            'storage_profile', {})
+        image_ref = storage_profile.get(
+            'image_reference', {})
+
+        if image_ref:
+            return ":".join(
+                [
+                    image_ref.get('publisher', '').lower(),
+                    image_ref.get('offer', ''),
+                    image_ref.get('sku', ''),
+                    image_ref.get('version', '')
+                ]
+            )
+
+        # Snapshot instances will not contain such info. For them, we will
+        # return a default string
+        return "snapshot-image"
+
+    @property
     def ip(self):
         """Return IP address of instance."""
         return self._instance["ip_address"]
@@ -46,6 +68,18 @@ class AzureInstance(BaseInstance):
     def name(self):
         """Return instance name."""
         return self._instance["vm"].name
+
+    @property
+    def sku(self):
+        """Return instance sku."""
+        image_profile = self._instance["vm"].storage_profile.image_reference
+        return getattr(image_profile, 'sku', '')
+
+    @property
+    def offer(self):
+        """Return instance sku."""
+        image_profile = self._instance["vm"].storage_profile.image_reference
+        return getattr(image_profile, 'offer', '')
 
     def shutdown(self, wait=True):
         """Shutdown the instance.
