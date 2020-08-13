@@ -84,7 +84,7 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_instance(self, instance_id):  # () -> BaseInstance
+    def get_instance(self, instance_id, **kwargs):  # () -> BaseInstance
         """Get an instance by id.
 
         Args:

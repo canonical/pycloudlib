@@ -25,7 +25,6 @@ def exercise_api(client: BaseCloud):
         image_id=image_id,
         user_data=cloud_config
     )
-    assert repr(instance) == repr(client.get_instance(instance.name))
 
     print('instance name: {}'.format(instance.name))
     with suppress(NotImplementedError):
@@ -37,18 +36,21 @@ def exercise_api(client: BaseCloud):
     instance.execute('cloud-init status --wait --long')
     with suppress(NotImplementedError):
         instance.console_log()
-    assert instance.execute('cat /home/ubuntu/example.txt').stdout == 'hello'
+    example_output = instance.execute('cat /home/ubuntu/example.txt').stdout
+    assert example_output == 'hello', example_output
 
     print('restarting instance...')
     instance.execute('sync')  # Prevent's some wtfs :)
     instance.restart()
-    assert instance.execute('cat /home/ubuntu/example.txt').stdout == 'hello'
+    example_output = instance.execute('cat /home/ubuntu/example.txt').stdout
+    assert example_output == 'hello', example_output
 
     print('shutting down instance...')
     instance.shutdown()
     print('starting instance...')
     instance.start()
-    print(instance.execute('cat /home/ubuntu/example.txt').stdout)
+    example_output = instance.execute('cat /home/ubuntu/example.txt').stdout
+    assert example_output == 'hello', example_output
     snapshot_id = None
     with suppress(NotImplementedError):
         print('snapshotting instance...')
@@ -66,11 +68,11 @@ def exercise_api(client: BaseCloud):
 clouds = {
     pycloudlib.Azure: {},
     pycloudlib.EC2: {},
-    # pycloudlib.GCE: {
-    #     'project': os.environ.get('PROJECT'),
-    #     'region': 'us-central1',
-    #     'zone': 'a',
-    # },
+    pycloudlib.GCE: {
+        'project': os.environ.get('PROJECT'),
+        'region': 'us-central1',
+        'zone': 'a',
+    },
     pycloudlib.OCI: {
         'compartment_id': os.environ.get('COMPARTMENT_ID')
     },
@@ -79,8 +81,8 @@ clouds = {
 }
 
 if __name__ == '__main__':
-    for cloud, kwargs in clouds.items():
+    for cloud, cloud_kwargs in clouds.items():
         print('Using cloud: {}'.format(cloud.__name__))
-        client_api = cloud(tag='base-api-test', **kwargs)
+        client_api = cloud(tag='base-api-test', **cloud_kwargs)
         exercise_api(client_api)
         print()

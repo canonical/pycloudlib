@@ -8,18 +8,22 @@ instance. It however, does not allow any further actions from occuring.
 
 import logging
 import time
+from itertools import count
 
 import googleapiclient.discovery
 
 from pycloudlib.cloud import BaseCloud
+from pycloudlib.gce.util import raise_on_error
+from pycloudlib.gce.instance import GceInstance
 from pycloudlib.key import KeyPair
-from pycloudlib.streams import Streams
 
 logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 
 
 class GCE(BaseCloud):
     """GCE Cloud Class."""
+
+    _type = 'gce'
 
     def __init__(
         self, tag, timestamp_suffix=True, project=None, region=None, zone=None
@@ -45,19 +49,32 @@ class GCE(BaseCloud):
         self.project = project
         self.region = region
         self.zone = '%s-%s' % (region, zone)
+        self.instance_counter = count()
 
-    def released_image(self, release):
+    def _find_image(self, release, daily, arch='amd64'):
+        images = self._image_list(release, daily, arch)
+
+        image_id = None
+        try:
+            image_id = images[0]['id']
+        except IndexError:
+            Exception('No images found')
+
+        return 'projects/ubuntu-os-cloud-devel/global/images/%s' % image_id
+
+    def released_image(self, release, arch='amd64'):
         """ID of the latest released image for a particular release.
 
         Args:
             release: The release to look for
+            arch: string, architecture to use
+
 
         Returns:
             A single string with the latest released image ID for the
             specified release.
-
         """
-        raise NotImplementedError
+        return self.daily_image(release, arch)
 
     def daily_image(self, release, arch='amd64'):
         """Find the id of the latest image for a particular release.
@@ -71,14 +88,7 @@ class GCE(BaseCloud):
 
         """
         self._log.debug('finding daily Ubuntu image for %s', release)
-        images = self._image_list(release, arch)
-
-        try:
-            image_id = images[0]['id']
-        except IndexError:
-            Exception('No images found')
-
-        return 'projects/ubuntu-os-cloud-devel/global/images/%s' % image_id
+        return self._find_image(release, daily=True, arch=arch)
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
@@ -98,19 +108,26 @@ class GCE(BaseCloud):
         Args:
             image_id: string, id of the image to delete
         """
-        raise NotImplementedError
+        response = self.compute.images().delete(
+            project=self.project,
+            image=image_id,
+        ).execute()
 
-    def get_instance(self, instance_id):
+        raise_on_error(response)
+
+    def get_instance(self, instance_id, project=None, zone=None, name=None):
         """Get an instance by id.
 
         Args:
-            instance_id:
+            instance_id: The instance ID returned upon creation
+            project: Project used when creating this instance
+            zone: Zone used when creating this instance
 
         Returns:
             An instance object to use to manipulate the instance further.
 
         """
-        raise NotImplementedError
+        return GceInstance(self.key_pair, instance_id, project, zone, name)
 
     def launch(self, image_id, instance_type='n1-standard-1', user_data=None,
                wait=True, **kwargs):
@@ -124,11 +141,9 @@ class GCE(BaseCloud):
             kwargs: other named arguments to add to instance JSON
 
         """
-        if user_data:
-            self._log.warning('GCE platform does not support user-data')
-
+        instance_name = 'i{}-{}'.format(next(self.instance_counter), self.tag)
         config = {
-            'name': self.tag,
+            'name': instance_name,
             'machineType': 'zones/%s/machineTypes/%s' % (
                 self.zone, instance_type
             ),
@@ -153,25 +168,41 @@ class GCE(BaseCloud):
             },
         }
 
+        if user_data:
+            user_metadata = {
+                'key': 'user-data',
+                'value': user_data
+            }
+            config['metadata']['items'].append(user_metadata)
+
         operation = self.compute.instances().insert(
             project=self.project,
             zone=self.zone,
             body=config
         ).execute()
+        raise_on_error(operation)
 
         self._wait_for_operation(operation)
 
         result = self.compute.instances().get(
             project=self.project,
             zone=self.zone,
-            instance=self.tag
+            instance=instance_name,
         ).execute()
+        raise_on_error(result)
 
         self._log.info(
             result['networkInterfaces'][0]['accessConfigs'][0]['natIP']
         )
 
-    def snapshot(self, instance, clean=True):
+        return self.get_instance(
+            result['id'],
+            self.project,
+            self.zone,
+            name=result['name']
+        )
+
+    def snapshot(self, instance: GceInstance, clean=True, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
@@ -180,9 +211,32 @@ class GCE(BaseCloud):
 
         Returns:
             An image object
-
         """
-        raise NotImplementedError
+        response = self.compute.disks().list(
+            project=self.project, zone=self.zone
+        ).execute()
+
+        instance_disks = [
+            disk for disk in response['items'] if disk['name'] == instance.name
+        ]
+
+        if len(instance_disks) > 1:
+            raise Exception(
+                "Snapshotting an image with multiple disks not supported")
+
+        instance.shutdown()
+
+        snapshot_name = '{}-image'.format(instance.name)
+        response = self.compute.images().insert(
+            project=self.project,
+            body={
+                'name': snapshot_name,
+                'sourceDisk': instance_disks[0]['selfLink'],
+            }
+        ).execute()
+        raise_on_error(response)
+
+        return snapshot_name
 
     def use_key(self, public_key_path, private_key_path=None, name=None):
         """Use an existing already uploaded key.
@@ -195,7 +249,7 @@ class GCE(BaseCloud):
         self._log.debug('using SSH key from %s', public_key_path)
         self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
-    def _image_list(self, release, arch='amd64'):
+    def _image_list(self, release, daily, arch='amd64'):
         """Find list of images with a filter.
 
         Args:
@@ -214,24 +268,25 @@ class GCE(BaseCloud):
             'virt=kvm'
         ]
 
-        stream = Streams(
-            mirror_url='https://cloud-images.ubuntu.com/daily',
-            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
-        )
+        return self._streams_query(filters, daily)
 
-        return stream.query(filters)
-
-    def _wait_for_operation(self, operation):
-        """TODO."""
-        while True:
-            time.sleep(5)
-            result = self.compute.zoneOperations().get(
+    def _wait_for_operation(self, operation, sleep_seconds=300):
+        response = None
+        for _ in range(sleep_seconds):
+            response = self.compute.zoneOperations().get(
                 project=self.project,
                 zone=self.zone,
                 operation=operation['name']
             ).execute()
-
-            if result['status'] == 'DONE':
-                if 'error' in result:
-                    raise Exception(result['error'])
-                return result
+            if response['status'] == 'DONE':
+                break
+            time.sleep(1)
+        else:
+            raise Exception(
+                'Expected DONE state, but found {} after waiting {} seconds. '
+                'Check GCE console for more details. \n'
+                'Status message: {}'.format(
+                    response['status'], sleep_seconds,
+                    response['statusMessage']
+                )
+            )
