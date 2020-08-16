@@ -5,7 +5,7 @@ import botocore
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.ec2.instance import EC2Instance
-from pycloudlib.ec2.util import _get_session
+from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
 from pycloudlib.key import KeyPair
 
@@ -237,12 +237,13 @@ class EC2(BaseCloud):
 
         response = self.client.create_image(
             Name='%s-%s' % (self.tag, instance.image_id),
-            InstanceId=instance.id
+            InstanceId=instance.id,
         )
         image_ami_edited = response['ImageId']
         image = self.resource.Image(image_ami_edited)
 
         self._wait_for_snapshot(image)
+        _tag_resource(image, self.tag)
 
         instance.start(wait=True)
 
