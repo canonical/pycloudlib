@@ -34,8 +34,10 @@ class BaseInstance(ABC):
         self.key_pair = key_pair
         self.port = '22'
         self.username = 'ubuntu'
+        self.connect_timeout = 60
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def name(self):
         """Return instance name."""
         raise NotImplementedError
@@ -311,6 +313,7 @@ class BaseInstance(ABC):
                     username=self.username,
                     hostname=self.ip,
                     port=int(self.port),
+                    timeout=self.connect_timeout,
                     key_filename=self.key_pair.private_key_path,
                 )
                 self._ssh_client = client
@@ -318,6 +321,10 @@ class BaseInstance(ABC):
             except (ConnectionRefusedError, AuthenticationException,
                     BadHostKeyException, ConnectionResetError, SSHException,
                     OSError) as e:
+                self._log.info(
+                    "%s\nRetrying ssh connection %d more time(s) to  %s@%s:%s",
+                    e, retries, self.username, self.ip, self.port
+                )
                 last_exception = e
                 retries -= 1
                 time.sleep(10)
