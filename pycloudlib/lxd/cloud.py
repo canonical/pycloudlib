@@ -7,7 +7,7 @@ from pycloudlib.util import subp
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 
 
-class LXD(BaseCloud):  # pylint: disable=W0223
+class LXD(BaseCloud):
     """LXD Cloud Class."""
 
     _type = 'lxd'
@@ -45,22 +45,23 @@ class LXD(BaseCloud):  # pylint: disable=W0223
         inst = self.get_instance(instance_name)
         inst.delete(wait)
 
-    def get_instance(self, instance_name):
+    def get_instance(self, instance_id):
         """Get an existing instance.
 
         Args:
-            instance_name: instance name to get
+            instance_id: instance name to get
 
         Returns:
             The existing instance as a LXD instance object
 
         """
-        return LXDInstance(instance_name)
+        return LXDInstance(instance_id)
 
     # pylint: disable=R0914
     def init(
             self, name, release, ephemeral=False, network=None, storage=None,
-            inst_type=None, profile_list=None, config_dict=None):
+            inst_type=None, profile_list=None, user_data=None,
+            config_dict=None):
         """Init a container.
 
         This will initialize a container, but not launch or start it.
@@ -75,6 +76,7 @@ class LXD(BaseCloud):  # pylint: disable=W0223
             storage: string, optional, storage name to use
             inst_type: string, optional, type to use
             profile_list: list, optional, profile(s) to use
+            user_data: used by cloud-init to run custom scripts/configuration
             config_dict: dict, optional, configuration values to pass
 
         Returns:
@@ -86,7 +88,10 @@ class LXD(BaseCloud):  # pylint: disable=W0223
 
         self._log.debug("Full release to launch: '%s'", release)
 
-        cmd = ['lxc', 'init', release, name]
+        cmd = ['lxc', 'init', release]
+
+        if name:
+            cmd.append(name)
 
         if ephemeral:
             cmd.append('--ephemeral')
@@ -113,36 +118,50 @@ class LXD(BaseCloud):  # pylint: disable=W0223
             cmd.append('--config')
             cmd.append('%s=%s' % (key, value))
 
-        self._log.debug('Creating %s', name)
-        subp(cmd)
+        if user_data:
+            if 'user.user-data' in config_dict:
+                raise ValueError(
+                    "User data cannot be defined in config_dict and also"
+                    "passed through user_data. Pick one"
+                )
+            cmd.append('--config')
+            cmd.append('user.user-data=%s' % user_data)
+
+        self._log.debug('Creating new instance...')
+        result = subp(cmd)
+        if not name:
+            name = result.split('Instance name is: ')[1]
+        self._log.debug('Created %s', name)
 
         return LXDInstance(name)
 
-    def launch(
-            self, name, release, ephemeral=False, network=None, storage=None,
-            inst_type=None, profile_list=None, config_dict=None, wait=True):
+    def launch(self, image_id, instance_type=None, user_data=None, wait=True,
+               name=None, ephemeral=False, network=None, storage=None,
+               profile_list=None, config_dict=None, **kwargs):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
         If no remote is specified pycloudlib defaults to daily images.
 
         Args:
+            image_id: string, [<remote>:]<image>, what release to launch
+            instance_type: string, type to use
+            user_data: used by cloud-init to run custom scripts/configuration
+            wait: boolean, wait for instance to start
             name: string, what to call the instance
-            release: string, [<remote>:]<image>, what release to launch
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, network name to use
             storage: string, storage name to use
-            inst_type: string, type to use
             profile_list: list, profile(s) to use
             config_dict: dict, configuration values to pass
-            wait: boolean, wait for instance to start
 
         Returns:
             The created LXD instance object
 
         """
-        instance = self.init(name, release, ephemeral, network,
-                             storage, inst_type, profile_list, config_dict)
+        instance = self.init(name, image_id, ephemeral, network,
+                             storage, instance_type, profile_list, user_data,
+                             config_dict)
         instance.start(wait)
         return instance
 
@@ -205,6 +224,33 @@ class LXD(BaseCloud):  # pylint: disable=W0223
         filters = ['combined_squashfs_sha256=%s' % image_id]
         image_info = self._streams_query(filters, daily=daily)
         return image_info[0]['version_name']
+
+    def delete_image(self, image_id):
+        """Delete the image.
+
+        Args:
+            image_id: string, LXD image fingerprint
+        """
+        self._log.debug("Deleting image: '%s'", image_id)
+
+        subp(['lxc', 'image', 'delete', image_id])
+        self._log.debug('Deleted %s', image_id)
+
+    def snapshot(self, instance, clean=True, name=None):
+        """Take a snapshot of the passed in instance for use as image.
+
+        :param instance: The instance to create an image from
+        :type instance: LXDInstance
+        :param clean: Whether to call cloud-init clean before creation
+        :param wait: Whether to wait until before image is created
+            before returning
+        :param name: Name of the new image
+        :param stateful: Whether to use an LXD stateful snapshot
+        """
+        if clean:
+            instance.clean()
+
+        return instance.snapshot(name)
 
     def _find_image(self, release, arch=LOCAL_UBUNTU_ARCH, daily=True):
         """Find the latest image for a given release.

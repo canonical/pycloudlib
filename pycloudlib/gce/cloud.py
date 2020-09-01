@@ -42,6 +42,19 @@ class GCE(BaseCloud):
         self.region = region
         self.zone = '%s-%s' % (region, zone)
 
+    def released_image(self, release):
+        """ID of the latest released image for a particular release.
+
+        Args:
+            release: The release to look for
+
+        Returns:
+            A single string with the latest released image ID for the
+            specified release.
+
+        """
+        raise NotImplementedError
+
     def daily_image(self, release, arch='amd64'):
         """Find the id of the latest image for a particular release.
 
@@ -62,6 +75,18 @@ class GCE(BaseCloud):
             Exception('No images found')
 
         return 'projects/ubuntu-os-cloud-devel/global/images/%s' % image_id
+
+    def image_serial(self, image_id):
+        """Find the image serial of the latest daily image for a particular release.
+
+        Args:
+            image_id: string, Ubuntu image id
+
+        Returns:
+            string, serial of latest image
+
+        """
+        raise NotImplementedError
 
     def delete_image(self, image_id):
         """Delete an image.

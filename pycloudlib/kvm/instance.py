@@ -22,10 +22,19 @@ class KVMInstance(BaseInstance):
 
         self._name = name
 
+    def __repr__(self):
+        """Create string representation for class."""
+        return '{}(name={})'.format(self.__class__.__name__, self.name)
+
     @property
     def name(self):
         """Return instance name."""
         return self._name
+
+    @property
+    def ip(self):
+        """Return IP address of instance."""
+        raise NotImplementedError
 
     @property
     def state(self):
@@ -57,11 +66,12 @@ class KVMInstance(BaseInstance):
         Args:
             wait: wait for delete
         """
+        if not wait:
+            raise ValueError(
+                'wait=False not supported for KVM instance delete'
+            )
         self._log.debug('deleting %s', self.name)
         subp(['multipass', 'delete', '--purge', self.name])
-
-        if wait:
-            self.wait_for_delete()
 
     def pull_file(self, remote_path, local_path):
         """Pull file from an instance.
@@ -104,14 +114,15 @@ class KVMInstance(BaseInstance):
         Args:
             wait: boolean, wait for instance to shutdown
         """
+        if not wait:
+            raise ValueError(
+                'wait=False not supported for KVM instance shutdown'
+            )
         if self.state == 'Stopped':
             return
 
         self._log.debug('shutting down %s', self.name)
         subp(['multipass', 'stop', self.name])
-
-        if wait:
-            self.wait_for_stop()
 
     def start(self, wait=True):
         """Start instance.
@@ -137,9 +148,11 @@ class KVMInstance(BaseInstance):
 
         Not used for KVM.
         """
+        raise NotImplementedError
 
     def wait_for_stop(self):
         """Wait for stop.
 
         Not used for KVM.
         """
+        raise NotImplementedError

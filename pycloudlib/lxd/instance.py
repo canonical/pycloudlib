@@ -21,10 +21,27 @@ class LXDInstance(BaseInstance):
 
         self._name = name
 
+    def __repr__(self):
+        """Create string representation for class."""
+        return 'LXDInstance(name={})'.format(self.name)
+
     @property
     def name(self):
         """Return instance name."""
         return self._name
+
+    @property
+    def ip(self):
+        """Return IP address of instance.
+
+        Returns:
+            IP address assigned to instance.
+
+        """
+        command = 'lxc list {} -c 4 --format csv'.format(self.name)
+        result = subp(command.split()).stdout
+        ip_address = result.split()[0]
+        return ip_address
 
     @property
     def ephemeral(self):
@@ -193,8 +210,8 @@ class LXDInstance(BaseInstance):
         if wait:
             self.wait_for_stop()
 
-    def snapshot(self, snapshot_name, stateful=False):
-        """Create a snapshot from the instance.
+    def local_snapshot(self, snapshot_name, stateful=False):
+        """Create an LXD snapshot (not a launchable image).
 
         Args:
             snapshot_name: name to call snapshot
@@ -203,12 +220,36 @@ class LXDInstance(BaseInstance):
         self.clean()
         self.shutdown()
 
+        if snapshot_name is None:
+            snapshot_name = '{}-snapshot'.format(self.name)
         cmd = ['lxc', 'snapshot', self.name, snapshot_name]
         if stateful:
             cmd.append('--stateful')
 
         self._log.debug('creating snapshot %s', snapshot_name)
         subp(cmd)
+        return snapshot_name
+
+    def snapshot(self, snapshot_name):
+        """Create an image snapshot.
+
+        Snapshot is a bit of a misnomer here. Since "snapshot" in the
+        context of clouds means "create a launchable container from
+        this instance", we actually need to do a publish here. If you
+        need the lxd "snapshot" functionality, use local_snapshot
+
+        Args:
+            snapshot_name: name to call snapshot
+        """
+        self.clean()
+        self.shutdown()
+        if snapshot_name is None:
+            snapshot_name = '{}-snapshot'.format(self.name)
+        cmd = ['lxc', 'publish', self.name, '--alias', snapshot_name]
+
+        self._log.debug('Publishing snapshot %s', snapshot_name)
+        subp(cmd)
+        return "local:{}".format(snapshot_name)
 
     def start(self, wait=True):
         """Start instance.

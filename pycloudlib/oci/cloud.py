@@ -2,6 +2,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """OCI Cloud type."""
 
+import base64
 import os
 import re
 import oci
@@ -143,7 +144,7 @@ class OCI(BaseCloud):
             config_path=self.config_path,
         )
 
-    def launch(self, image_id, instance_type='VM.Standard1.1', user_data=None,
+    def launch(self, image_id, instance_type='VM.Standard2.1', user_data=None,
                wait=True, **kwargs):
         """Launch an instance.
 
@@ -174,7 +175,8 @@ class OCI(BaseCloud):
             'ssh_authorized_keys': key_data,
         }
         if user_data:
-            metadata['user_data'] = user_data
+            metadata['user_data'] = base64.b64encode(
+                user_data.encode('utf8')).decode('ascii')
 
         instance_details = oci.core.models.LaunchInstanceDetails(
             display_name=self.tag,
@@ -197,13 +199,12 @@ class OCI(BaseCloud):
             )
         return self.get_instance(instance_data.id)
 
-    def snapshot(self, instance, clean=True, wait=True, name=None):
+    def snapshot(self, instance, clean=True, name=None):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
-            wait: wait for instance to get created
             name: (Optional) Name of created image
         Returns:
             An image object
@@ -219,10 +220,10 @@ class OCI(BaseCloud):
         image_data = self.compute_client.create_image(
             oci.core.models.CreateImageDetails(**image_details)
         ).data
-        if wait:
-            image_data = wait_till_ready(
-                func=self.compute_client.get_image,
-                current_data=image_data,
-                desired_state='AVAILABLE'
-            )
+        image_data = wait_till_ready(
+            func=self.compute_client.get_image,
+            current_data=image_data,
+            desired_state='AVAILABLE'
+        )
+
         return image_data.id
