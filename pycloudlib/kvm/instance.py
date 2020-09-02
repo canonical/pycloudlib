@@ -18,7 +18,7 @@ class KVMInstance(BaseInstance):
         Args:
             name: name of instance
         """
-        super(KVMInstance, self).__init__(key_pair=None)
+        super().__init__(key_pair=None)
 
         self._name = name
 

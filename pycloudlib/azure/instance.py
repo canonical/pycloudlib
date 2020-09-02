@@ -17,7 +17,7 @@ class AzureInstance(BaseInstance):
             client: Azure compute management client
             instance: created azure instance object
         """
-        super(AzureInstance, self).__init__(key_pair)
+        super().__init__(key_pair)
 
         self._client = client
         self._instance = instance

@@ -31,7 +31,7 @@ class OCI(BaseCloud):
                 https://console.us-phoenix-1.oraclecloud.com/a/identity/compartments
             config_path: Path of OCI config file
         """
-        super(OCI, self).__init__(tag)
+        super().__init__(tag)
         self.compartment_id = compartment_id
 
         if not os.path.isfile(os.path.expanduser(config_path)):

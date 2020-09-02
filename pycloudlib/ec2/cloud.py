@@ -36,12 +36,14 @@ class EC2(BaseCloud):
             self.client = session.client('ec2')
             self.resource = session.resource('ec2')
             self.region = session.region_name
-        except botocore.exceptions.NoRegionError:
+        except botocore.exceptions.NoRegionError as e:
             raise RuntimeError(
-                'Please configure default region in $HOME/.aws/config')
-        except botocore.exceptions.NoCredentialsError:
+                'Please configure default region in $HOME/.aws/config'
+            ) from e
+        except botocore.exceptions.NoCredentialsError as e:
             raise RuntimeError(
-                'Please configure ec2 credentials in $HOME/.aws/credentials')
+                'Please configure ec2 credentials in $HOME/.aws/credentials'
+            ) from e
 
     def get_or_create_vpc(self, name, ipv4_cidr='192.168.1.0/20'):
         """Create a or return matching VPC.
@@ -189,11 +191,11 @@ class EC2(BaseCloud):
         if vpc:
             try:
                 [subnet_id] = [s.id for s in vpc.vpc.subnets.all()]
-            except ValueError:
+            except ValueError as e:
                 raise RuntimeError(
                     "Too many subnets in vpc {}. pycloudlib does not support"
                     " launching into VPCs with multiple subnets".format(vpc.id)
-                )
+                ) from e
             args['SubnetId'] = subnet_id
             args['SecurityGroupIds'] = [
                 sg.id for sg in vpc.vpc.security_groups.all()
