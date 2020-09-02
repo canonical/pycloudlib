@@ -103,11 +103,6 @@ class LXDInstance(BaseInstance):
         Args:
             wait: wait for delete
         """
-        # Delete the container in two stages (first stop, then delete)
-        # to workaround the "ZFS dataset is busy" problem.
-        # Upstream LXD bug: https://github.com/lxc/lxd/issues/4656
-        self.shutdown()
-
         self._log.debug('deleting %s', self.name)
         subp(['lxc', 'delete', self.name, '--force'])
 
