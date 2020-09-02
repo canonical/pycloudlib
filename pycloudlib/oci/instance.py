@@ -25,7 +25,7 @@ class OciInstance(BaseInstance):
             config_path: Path of OCI config file
 
         """
-        super(OciInstance, self).__init__(key_pair)
+        super().__init__(key_pair)
         self.instance_id = instance_id
         self.compartment_id = compartment_id
         self._ip = None

@@ -194,7 +194,7 @@ class VPC:
                 AmazonProvidedIpv6CidrBlock=True
             )
         except ClientError as error:
-            raise RuntimeError(error)
+            raise RuntimeError(error) from error
 
         vpc.wait_until_available()
 

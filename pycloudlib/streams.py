@@ -61,7 +61,7 @@ class FilterMirror(mirrors.BasicMirrorWriter):
         Args:
             config: custom config to use
         """
-        super(FilterMirror, self).__init__(config=config)
+        super().__init__(config=config)
         if config is None:
             config = {}
         self.config = config

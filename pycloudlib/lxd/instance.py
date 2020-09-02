@@ -17,7 +17,7 @@ class LXDInstance(BaseInstance):
         Args:
             name: name of instance
         """
-        super(LXDInstance, self).__init__(key_pair=None)
+        super().__init__(key_pair=None)
 
         self._name = name
 

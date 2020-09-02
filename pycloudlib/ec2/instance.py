@@ -24,7 +24,7 @@ class EC2Instance(BaseInstance):
             client: boto3 client object
             instance: created boto3 instance object
         """
-        super(EC2Instance, self).__init__(key_pair)
+        super().__init__(key_pair)
 
         self._instance = instance
         self._ip = None
