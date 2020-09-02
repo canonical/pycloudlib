@@ -355,7 +355,7 @@ class BaseInstance(ABC):
         """Wait until system is fully booted and cloud-init has finished."""
         # runlevel 'N 2' supports distros without recent cloud-init (trusty).
         cloud_init_wait_or_runlevel_result = (
-            "cloud-init status --wait 2&>1 > /dev/null || "
+            "cloud-init status --wait > /dev/null 2>&1 || "
             "[[ $(runlevel) = 'N 2' ]] && [ -f /run/cloud-init/result.json ]"
         )
         cmd = (
