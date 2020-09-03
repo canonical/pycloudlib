@@ -15,8 +15,10 @@ class EC2(BaseCloud):
 
     _type = 'ec2'
 
-    def __init__(self, tag, access_key_id=None, secret_access_key=None,
-                 region=None):
+    def __init__(
+        self, tag, timestamp_suffix=True, access_key_id=None,
+        secret_access_key=None, region=None
+    ):
         """Initialize the connection to EC2.
 
         boto3 will read a users /home/$USER/.aws/* files if no
@@ -24,11 +26,13 @@ class EC2(BaseCloud):
 
         Args:
             tag: string used to name and tag resources with
+            timestamp_suffix: bool set True to append a timestamp suffix to the
+                tag
             access_key_id: user's access key ID
             secret_access_key: user's secret access key
             region: region to login to
         """
-        super().__init__(tag)
+        super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into EC2')
 
         try:

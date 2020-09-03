@@ -18,7 +18,10 @@ class OCI(BaseCloud):
 
     _type = 'oci'
 
-    def __init__(self, tag, compartment_id, config_path='~/.oci/config'):
+    def __init__(
+        self, tag, timestamp_suffix=True, compartment_id=None,
+        config_path='~/.oci/config',
+    ):
         """
         Initialize the connection to OCI.
 
@@ -27,11 +30,13 @@ class OCI(BaseCloud):
 
         Args:
             tag: Name of instance
+            timestamp_suffix: bool set True to append a timestamp suffix to the
+                tag
             compartment_id: A compartment found at
                 https://console.us-phoenix-1.oraclecloud.com/a/identity/compartments
             config_path: Path of OCI config file
         """
-        super().__init__(tag)
+        super().__init__(tag, timestamp_suffix)
         self.compartment_id = compartment_id
 
         if not os.path.isfile(os.path.expanduser(config_path)):

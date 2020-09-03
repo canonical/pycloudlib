@@ -15,11 +15,12 @@ class BaseCloud(ABC):
 
     _type = 'base'
 
-    def __init__(self, tag):
+    def __init__(self, tag, timestamp_suffix=True):
         """Initialize base cloud class.
 
         Args:
             tag: string used to name and tag resources with
+            timestamp_suffic: Append a timestamped suffix to the tag string.
         """
         self._log = logging.getLogger(__name__)
 
@@ -27,7 +28,10 @@ class BaseCloud(ABC):
         self.key_pair = KeyPair(
             '/home/%s/.ssh/id_rsa.pub' % _username, name=_username
         )
-        self.tag = validate_tag(get_timestamped_tag(tag))
+        if timestamp_suffix:
+            self.tag = validate_tag(get_timestamped_tag(tag))
+        else:
+            self.tag = validate_tag(tag)
 
     @abstractmethod
     def delete_image(self, image_id):

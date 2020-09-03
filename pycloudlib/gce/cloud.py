@@ -21,16 +21,20 @@ logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 class GCE(BaseCloud):
     """GCE Cloud Class."""
 
-    def __init__(self, tag, project, region, zone):
+    def __init__(
+        self, tag, timestamp_suffix=True, project=None, region=None, zone=None
+    ):
         """Initialize the connection to GCE.
 
         Args:
-            tag:
+            tag: string used to name and tag resources with
+            timestamp_suffix: bool set True to append a timestamp suffix to the
+                tag
             project:
             region:
             zone:
         """
-        super().__init__(tag)
+        super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into GCE')
 
         # disable cache_discovery due to:
