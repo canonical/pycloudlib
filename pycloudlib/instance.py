@@ -36,8 +36,8 @@ class BaseInstance(ABC):
         self.username = 'ubuntu'
         self.connect_timeout = 60
 
-    @abstractmethod
     @property
+    @abstractmethod
     def name(self):
         """Return instance name."""
         raise NotImplementedError
