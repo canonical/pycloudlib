@@ -17,15 +17,7 @@ class KVM(BaseCloud):  # pylint: disable=W0223
     _type = 'kvm'
     _daily_remote = 'daily'
     _releases_remote = 'release'
-
-    def __init__(self, tag):
-        """Initialize KVM cloud class.
-
-        Args:
-            tag: string used to name and tag resources with
-        """
-        super().__init__(tag)
-        self._instance_types = None
+    _instance_types = None
 
     def delete_instance(self, instance_name, wait=True):
         """Delete an instance.

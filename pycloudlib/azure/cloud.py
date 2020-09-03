@@ -26,8 +26,10 @@ class Azure(BaseCloud):
         "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts"
     }
 
-    def __init__(self, tag, client_id=None, client_secret=None,
-                 subscription_id=None, tenant_id=None, region="centralus"):
+    def __init__(
+        self, tag, timestamp_suffix=True, client_id=None, client_secret=None,
+        subscription_id=None, tenant_id=None, region="centralus"
+    ):
         """Initialize the connection to Azure.
 
         Azure will try to read user credentials form the /home/$USER/.azure
@@ -36,13 +38,15 @@ class Azure(BaseCloud):
 
         Args:
             tag: string used to name and tag resources with
+            timestamp_suffix: bool set True to append a timestamp suffix to the
+                tag
             client_id: user's client id
             client_secret: user's client secret access key
             subscription_id: user's subscription id key
             tenant_id: user's tenant id key
             region: The region where the instance will be created
         """
-        super().__init__(tag)
+        super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into Azure')
         self.location = region
         self.username = "ubuntu"
