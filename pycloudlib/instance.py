@@ -142,6 +142,7 @@ class BaseInstance(ABC):
         if isinstance(command, str):
             command = ['sh', '-c', command]
 
+        self._log.info('executing: %s', shell_quote(command))
         if description:
             self._log.debug(description)
         else:
@@ -360,10 +361,12 @@ class BaseInstance(ABC):
 
     def _wait_for_system(self):
         """Wait until system is fully booted and cloud-init has finished."""
+        self._log.debug('wait_for_system cloud-init completion')
         # runlevel 'N 2' supports distros without recent cloud-init (trusty).
         cloud_init_wait_or_runlevel_result = (
             "cloud-init status --wait > /dev/null 2>&1 || "
-            "[[ $(runlevel) = 'N 2' ]] && [ -f /run/cloud-init/result.json ]"
+            "[ \"$(runlevel)\" = \"N 2\" ] && "
+            "[ -f /run/cloud-init/result.json ]"
         )
         cmd = (
             "i=0; while [ $i -lt {} ] && i=$(($i+1)); do {} && exit 0;"
@@ -375,4 +378,8 @@ class BaseInstance(ABC):
         result = self.execute(cmd, description='waiting for start')
 
         if result.failed:
-            raise OSError('cloud-init failed to start: %s' % result.stdout)
+            raise OSError(
+                'cloud-init failed to start: out: %s error: %s' % (
+                     result.stdout, result.stderr
+                )
+            )
