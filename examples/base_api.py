@@ -58,6 +58,11 @@ def exercise_api(client: BaseCloud):
         print('snapshot image id: {}'.format(snapshot_id))
     if snapshot_id:
         assert snapshot_id != image_id
+        instance_from_snapshot = client.launch(image_id=snapshot_id)
+        instance_from_snapshot.start()
+        instance_from_snapshot.execute('cloud-init status --wait --long')
+        print('deleting instance created from snapshot')
+        instance_from_snapshot.delete()
         print('deleting snapshot...')
         client.delete_image(snapshot_id)
 

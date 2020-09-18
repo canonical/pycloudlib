@@ -7,6 +7,7 @@ instance. It however, does not allow any further actions from occuring.
 """
 
 import logging
+import os
 import time
 from itertools import count
 
@@ -108,9 +109,13 @@ class GCE(BaseCloud):
         Args:
             image_id: string, id of the image to delete
         """
+        api_image_id = self.compute.images().get(
+            project=self.project,
+            image=os.path.basename(image_id)
+        ).execute()['id']
         response = self.compute.images().delete(
             project=self.project,
-            image=image_id,
+            image=api_image_id,
         ).execute()
 
         raise_on_error(response)
@@ -182,7 +187,7 @@ class GCE(BaseCloud):
         ).execute()
         raise_on_error(operation)
 
-        self._wait_for_operation(operation)
+        self._wait_for_operation(operation, operation_type='zone')
 
         result = self.compute.instances().get(
             project=self.project,
@@ -210,7 +215,7 @@ class GCE(BaseCloud):
             clean: run instance clean method before taking snapshot
 
         Returns:
-            An image object
+            An image id
         """
         response = self.compute.disks().list(
             project=self.project, zone=self.zone
@@ -227,16 +232,18 @@ class GCE(BaseCloud):
         instance.shutdown()
 
         snapshot_name = '{}-image'.format(instance.name)
-        response = self.compute.images().insert(
+        operation = self.compute.images().insert(
             project=self.project,
             body={
                 'name': snapshot_name,
                 'sourceDisk': instance_disks[0]['selfLink'],
             }
         ).execute()
-        raise_on_error(response)
+        raise_on_error(operation)
+        self._wait_for_operation(operation)
 
-        return snapshot_name
+        return 'projects/{}/global/images/{}'.format(
+            self.project, snapshot_name)
 
     def use_key(self, public_key_path, private_key_path=None, name=None):
         """Use an existing already uploaded key.
@@ -270,14 +277,20 @@ class GCE(BaseCloud):
 
         return self._streams_query(filters, daily)
 
-    def _wait_for_operation(self, operation, sleep_seconds=300):
+    def _wait_for_operation(self, operation, operation_type='global',
+                            sleep_seconds=300):
         response = None
+        kwargs = {
+            'project': self.project,
+            'operation': operation['name']
+        }
+        if operation_type == 'zone':
+            kwargs['zone'] = self.zone
+            api = self.compute.zoneOperations()
+        else:
+            api = self.compute.globalOperations()
         for _ in range(sleep_seconds):
-            response = self.compute.zoneOperations().get(
-                project=self.project,
-                zone=self.zone,
-                operation=operation['name']
-            ).execute()
+            response = api.get(**kwargs).execute()
             if response['status'] == 'DONE':
                 break
             time.sleep(1)
