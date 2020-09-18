@@ -794,17 +794,20 @@ class Azure(BaseCloud):
             "Could not find {}".format(instance_id)
         )
 
-    def snapshot(self, instance):
+    def snapshot(self, instance, clean=True, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
-            clean: run instance clean method before taking snapshot
+            clean: Run instance clean method before taking snapshot
+            kwargs: Other named arguments specific to this implementation
 
         Returns:
             An image id string
 
         """
+        if clean:
+            instance.clean()
         instance.execute("sudo waagent -deprovision+user -force")
         instance.shutdown(wait=True)
         instance.generalize()
