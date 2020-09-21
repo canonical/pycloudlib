@@ -35,9 +35,9 @@ class GCE(BaseCloud):
             tag: string used to name and tag resources with
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
-            project:
-            region:
-            zone:
+            project: GCE project
+            region: GCE region
+            zone: GCE zone
         """
         super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into GCE')
@@ -47,6 +47,8 @@ class GCE(BaseCloud):
         self.compute = googleapiclient.discovery.build(
             'compute', 'v1', cache_discovery=False
         )
+        if not all([project, region, zone]):
+            raise ValueError('project, region, and zone are required!')
         self.project = project
         self.region = region
         self.zone = '%s-%s' % (region, zone)
@@ -69,7 +71,6 @@ class GCE(BaseCloud):
         Args:
             release: The release to look for
             arch: string, architecture to use
-
 
         Returns:
             A single string with the latest released image ID for the
@@ -120,19 +121,18 @@ class GCE(BaseCloud):
 
         raise_on_error(response)
 
-    def get_instance(self, instance_id, project=None, zone=None, name=None):
+    def get_instance(self, instance_id, name=None):
         """Get an instance by id.
 
         Args:
             instance_id: The instance ID returned upon creation
-            project: Project used when creating this instance
-            zone: Zone used when creating this instance
 
         Returns:
             An instance object to use to manipulate the instance further.
 
         """
-        return GceInstance(self.key_pair, instance_id, project, zone, name)
+        return GceInstance(self.key_pair, instance_id,
+                           self.project, self.zone, name)
 
     def launch(self, image_id, instance_type='n1-standard-1', user_data=None,
                wait=True, **kwargs):
@@ -200,12 +200,7 @@ class GCE(BaseCloud):
             result['networkInterfaces'][0]['accessConfigs'][0]['natIP']
         )
 
-        return self.get_instance(
-            result['id'],
-            self.project,
-            self.zone,
-            name=result['name']
-        )
+        return self.get_instance(result['id'], name=result['name'])
 
     def snapshot(self, instance: GceInstance, clean=True, **kwargs):
         """Snapshot an instance and generate an image from it.
