@@ -45,6 +45,11 @@ class GceInstance(BaseInstance):
         )
 
     @property
+    def id(self):
+        """Return the instance id."""
+        return self.instance_id
+
+    @property
     def name(self):
         """Return the instance name."""
         if not self._name:
