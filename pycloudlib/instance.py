@@ -262,9 +262,6 @@ class BaseInstance(ABC):
                 break
             except (ConnectionResetError, NoValidConnectionsError) as e:
                 last_error = e
-            # On OCI instances, attempting to re-connect without a longer
-            # sleep leaves you locked out of ssh completely
-            time.sleep(5)
         else:
             raise last_error  # noqa
         channel = fp_in.channel
