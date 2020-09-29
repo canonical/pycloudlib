@@ -14,26 +14,7 @@ def read_readme():
     return readme_txt
 
 
-def gather_deps():
-    """Read requirements.txt and pre-process for setup.
-
-    Returns:
-         list of packages and dependency links.
-
-    """
-    default = open('requirements.txt', 'r').readlines()
-    new_pkgs = []
-    links = []
-    for resource in default:
-        if 'git+https' in resource.strip():
-            links.append(resource)
-        else:
-            new_pkgs.append(resource)
-
-    return new_pkgs, links
-
-
-PKGS, LINKS = gather_deps()
+PKGS = open('requirements.txt', 'r').readlines()
 
 setup(
     name='pycloudlib',
@@ -50,7 +31,6 @@ setup(
     packages=find_packages(),
     python_requires='>=3.4',
     install_requires=PKGS,
-    dependency_links=LINKS,
     zip_safe=True,
     classifiers=[
         'Development Status :: 4 - Beta',
