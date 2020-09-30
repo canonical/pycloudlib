@@ -150,14 +150,16 @@ class BaseInstance(ABC):
 
         if self._type == 'lxd':
             base_cmd = ['lxc', 'exec', self.name, '--']
-            return subp(base_cmd + list(command))
+            return subp(base_cmd + list(command), rcs=None)
 
         # multipass handling of redirects is buggy, so we don't bind
         # stdin to /dev/null for the moment (shortcircuit_stdin=False).
         # See: https://github.com/CanonicalLtd/multipass/issues/667
         if self._type == 'kvm':
             base_cmd = ['multipass', 'exec', self.name, '--']
-            return subp(base_cmd + list(command), shortcircuit_stdin=False)
+            return subp(
+                base_cmd + list(command), rcs=None, shortcircuit_stdin=False
+            )
 
         return self._ssh(list(command), stdin=stdin)
 
