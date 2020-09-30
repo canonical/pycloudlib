@@ -84,10 +84,17 @@ class BaseInstance(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
+    def _wait_for_instance_start(self):
+        """Wait for the cloud instance to be up.
+
+        Subclasses should implement this if their cloud provides a way of
+        detecting when an instance has started through their API.
+        """
+
     def wait(self):
         """Wait for instance to be up and cloud-init to be complete."""
-        raise NotImplementedError
+        self._wait_for_instance_start()
+        self._wait_for_cloudinit()
 
     @abstractmethod
     def wait_for_delete(self):
@@ -358,7 +365,7 @@ class BaseInstance(ABC):
         self._tmp_count += 1
         return path
 
-    def _wait_for_system(self):
+    def _wait_for_cloudinit(self):
         """Wait until system is fully booted and cloud-init has finished."""
         self._log.debug('wait_for_system cloud-init completion')
 

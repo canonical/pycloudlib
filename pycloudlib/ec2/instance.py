@@ -210,13 +210,12 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait()
 
-    def wait(self):
-        """Wait for instance to be up and cloud-init to be complete."""
+    def _wait_for_instance_start(self):
+        """Wait for instance to be up."""
         self._log.debug('wait for instance running %s', self._instance.id)
         self._instance.wait_until_running()
         self._log.debug('reloading instance state %s', self._instance.id)
         self._instance.reload()
-        self._wait_for_system()
 
     def wait_for_delete(self):
         """Wait for instance to be deleted."""

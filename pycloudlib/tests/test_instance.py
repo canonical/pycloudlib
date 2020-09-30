@@ -8,6 +8,9 @@ from pycloudlib.kvm.instance import KVMInstance
 from pycloudlib.lxd.instance import LXDInstance
 from pycloudlib.result import Result
 
+# Disable this pylint check as fixture usage incorrectly triggers it:
+# pylint: disable=redefined-outer-name
+
 
 @pytest.fixture
 def concrete_instance_cls():
@@ -42,11 +45,26 @@ class TestExecute:
         assert kwargs.get("rcs", mock.sentinel.not_none) is None
 
 
-class TestWaitForSystem:
-    """Tests covering pycloudlib.instance.Instance._wait_for_system."""
+class TestWait:
+    """Tests covering pycloudlib.instance.Instance.wait."""
 
-    # Disable this pylint check as fixture usage incorrectly triggers it:
-    # pylint: disable=redefined-outer-name
+    def test_wait(self, concrete_instance_cls):
+        """Test that wait calls the two methods it should."""
+        instance = concrete_instance_cls(key_pair=None)
+        with mock.patch.multiple(
+            instance,
+            _wait_for_instance_start=mock.DEFAULT,
+            _wait_for_cloudinit=mock.DEFAULT,
+        ) as mocks:
+            instance.wait()
+
+        assert 1 == mocks["_wait_for_instance_start"].call_count
+        assert 1 == mocks["_wait_for_cloudinit"].call_count
+
+
+class TestWaitForSystem:
+    """Tests covering pycloudlib.instance.Instance._wait_for_cloudinit."""
+
     # Disable this one because we're intentionally testing a protected member
     # pylint: disable=protected-access
 
@@ -62,7 +80,7 @@ class TestWaitForSystem:
         instance = concrete_instance_cls(key_pair=None)
         with mock.patch.object(instance, "execute") as m_execute:
             m_execute.side_effect = side_effect
-            instance._wait_for_system()
+            instance._wait_for_cloudinit()
 
         assert 2 == m_execute.call_count
         assert (
@@ -89,7 +107,7 @@ class TestWaitForSystem:
         instance = concrete_instance_cls(key_pair=None)
         with mock.patch.object(instance, "execute") as m_execute:
             m_execute.side_effect = side_effect
-            instance._wait_for_system()
+            instance._wait_for_cloudinit()
 
         assert 2 == m_execute.call_count
         assert (
@@ -121,6 +139,6 @@ class TestWaitForSystem:
         with mock.patch.object(instance, "execute") as m_execute:
             m_execute.side_effect = side_effect
             with pytest.raises(OSError) as excinfo:
-                instance._wait_for_system()
+                instance._wait_for_cloudinit()
 
         assert "out: fail_out error: fail_err" in str(excinfo.value)

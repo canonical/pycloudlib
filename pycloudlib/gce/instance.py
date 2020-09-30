@@ -135,11 +135,10 @@ class GceInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def wait(self):
+    def _wait_for_instance_start(self):
         """Wait for instance to be up."""
         self._wait_for_status('RUNNING')
         self._ip = self._get_ip()
-        self._wait_for_system()
 
     def wait_for_delete(self, sleep_seconds=300):
         """Wait for instance to be deleted."""
