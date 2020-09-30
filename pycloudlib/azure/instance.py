@@ -140,10 +140,6 @@ class AzureInstance(BaseInstance):
 
         self.status = "deleted"
 
-    def wait(self):
-        """Wait for instance to be up and cloud-init to be complete."""
-        self._wait_for_system()
-
     def console_log(self):
         """Return the instance console log."""
         raise NotImplementedError

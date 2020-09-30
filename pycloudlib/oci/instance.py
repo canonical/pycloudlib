@@ -113,8 +113,8 @@ class OciInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def wait(self):
-        """Wait for instance to be up and cloud-init to be complete."""
+    def _wait_for_instance_start(self):
+        """Wait for instance to be up."""
         wait_till_ready(
             func=self.compute_client.get_instance,
             current_data=self.instance_data,

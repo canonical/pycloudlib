@@ -139,10 +139,6 @@ class KVMInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def wait(self):
-        """Wait for instance to be up and cloud-init to be complete."""
-        self._wait_for_system()
-
     def wait_for_delete(self):
         """Wait for delete.
 
