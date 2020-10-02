@@ -89,7 +89,7 @@ class TestWaitForSystem:
         )
         assert (
             mock.call(
-                ["cloud-init", "status", "--wait"],
+                ["cloud-init", "status", "--wait", "--long"],
                 description="waiting for start",
             )
             == m_execute.call_args_list[1]
