@@ -372,7 +372,7 @@ class BaseInstance(ABC):
         has_wait = "--wait" in self.execute("cloud-init status --help").stdout
 
         if has_wait:
-            cmd = ["cloud-init", "status", "--wait"]
+            cmd = ["cloud-init", "status", "--wait", "--long"]
         else:
             # runlevel 'N 2' supports distros without recent cloud-init
             # (e.g. trusty).
