@@ -5,6 +5,7 @@ from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
 from pycloudlib.util import subp
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
+from pycloudlib.lxd.defaults import base_vm_profiles
 
 
 class LXD(BaseCloud):
@@ -34,6 +35,37 @@ class LXD(BaseCloud):
         subp(['lxc', 'copy', base, new_instance_name])
         return LXDInstance(new_instance_name)
 
+    def create_profile(
+        self, profile_name, profile_config, force_creation=False
+    ):
+        """Create a lxd profile.
+
+        Create a lxd profile and populate it with the given
+        profile config. If the profile already exists, we will
+        not recreate it, unless the force_creation parameter is set to True.
+
+        Args:
+            profile_name: Name of the profile to be created
+            profile_config: Config to be added to the new profile
+            force_creation: Force the profile creation if it already exists
+        """
+        profile_list = subp(["lxc", "profile", "list"])
+
+        if profile_name in profile_list and not force_creation:
+            msg = "The profile named {} already exist".format(profile_name)
+            self._log.debug(msg)
+            print(msg)
+        else:
+
+            if force_creation:
+                self._log.debug(
+                    "Deleting current profile %s ...", profile_name)
+                subp(["lxc", "profile", "delete", profile_name])
+
+            self._log.debug("Creating profile %s ...", profile_name)
+            subp(["lxc", "profile", "create", profile_name])
+            subp(["lxc", "profile", "edit", profile_name], data=profile_config)
+
     def delete_instance(self, instance_name, wait=True):
         """Delete an instance.
 
@@ -57,11 +89,30 @@ class LXD(BaseCloud):
         """
         return LXDInstance(instance_id)
 
+    def _set_release_image(self, release, is_vm):
+        """Return the qualified name to launch a given release.
+
+        Args:
+            release: Name of the release to be launched
+            is_vm: If instance should be a virtual machine or not
+
+        Returns:
+            The qualified name to launch the given release.
+        """
+        if is_vm and release == "xenial":
+            # xenial needs to launch images:ubuntu/16.04/cloud
+            # because it contains the HWE kernel which has vhost-vsock support
+            release = "images:ubuntu/16.04/cloud"
+        elif ':' not in release:
+            release = self._daily_remote + ':' + release
+
+        return release
+
     # pylint: disable=R0914
     def init(
-            self, name, release, ephemeral=False, network=None, storage=None,
+            self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
-            config_dict=None):
+            config_dict=None, is_vm=False):
         """Init a container.
 
         This will initialize a container, but not launch or start it.
@@ -69,7 +120,7 @@ class LXD(BaseCloud):
 
         Args:
             name: string, what to call the instance
-            release: string, [<remote>:]<release>, what release to launch
+            image_id: string, [<remote>:]<release>, what release to launch
                      (default remote: )
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
@@ -78,20 +129,32 @@ class LXD(BaseCloud):
             profile_list: list, optional, profile(s) to use
             user_data: used by cloud-init to run custom scripts/configuration
             config_dict: dict, optional, configuration values to pass
+            is_vm: boolean, optional, defines if a virtual machine will
+                   be created
 
         Returns:
             The created LXD instance object
 
         """
-        if ':' not in release:
-            release = self._daily_remote + ':' + release
+        base_release = image_id
 
+        release = self._set_release_image(image_id, is_vm)
         self._log.debug("Full release to launch: '%s'", release)
 
-        cmd = ['lxc', 'init', release]
+        cmd = ['lxc', 'init', release, name]
 
-        if name:
-            cmd.append(name)
+        if is_vm:
+            cmd.append('--vm')
+
+            if not profile_list:
+                profile_name = "vm-{}".format(base_release)
+
+                self.create_profile(
+                    profile_name=profile_name,
+                    profile_config=base_vm_profiles[base_release]
+                )
+
+                profile_list = [profile_name]
 
         if ephemeral:
             cmd.append('--ephemeral')
@@ -128,16 +191,17 @@ class LXD(BaseCloud):
             cmd.append('user.user-data=%s' % user_data)
 
         self._log.debug('Creating new instance...')
+        print(cmd)
         result = subp(cmd)
         if not name:
             name = result.split('Instance name is: ')[1]
         self._log.debug('Created %s', name)
 
-        return LXDInstance(name)
+        return LXDInstance(name, is_vm)
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
                name=None, ephemeral=False, network=None, storage=None,
-               profile_list=None, config_dict=None, **kwargs):
+               profile_list=None, config_dict=None, is_vm=False, **kwargs):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
@@ -154,6 +218,8 @@ class LXD(BaseCloud):
             storage: string, storage name to use
             profile_list: list, profile(s) to use
             config_dict: dict, configuration values to pass
+            is_vm: boolean, optional, defines if a virtual machine will
+                   be created
 
         Returns:
             The created LXD instance object
@@ -161,7 +227,7 @@ class LXD(BaseCloud):
         """
         instance = self.init(name, image_id, ephemeral, network,
                              storage, instance_type, profile_list, user_data,
-                             config_dict)
+                             config_dict, is_vm)
         instance.start(wait)
         return instance
 

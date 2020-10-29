@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD instance."""
 import re
+import time
 
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import subp
@@ -11,15 +12,17 @@ class LXDInstance(BaseInstance):
 
     _type = 'lxd'
 
-    def __init__(self, name):
+    def __init__(self, name, is_vm=False):
         """Set up instance.
 
         Args:
             name: name of instance
+            is_vm: Specify if instance is a vm or not
         """
         super().__init__(key_pair=None)
 
         self._name = name
+        self._is_vm = is_vm
 
     def __repr__(self):
         """Create string representation for class."""
@@ -272,3 +275,30 @@ class LXDInstance(BaseInstance):
 
         Not used for LXD.
         """
+
+    def _wait_for_cloudinit(self, *, raise_on_failure: bool):
+        """Wait until cloud-init has finished.
+
+        If the instance is a virtual machine, we need to wait for the
+        lxd-agent to be ready before getting the cloud-init status.
+        To do that, we retry on vm instances if raise_on_failure
+        is specified.
+
+        :param raise_on_failure:
+            When `True`, if the process waiting for cloud-init exits non-zero
+            then this method will raise an `OSError`.
+        """
+        if self._is_vm and raise_on_failure:
+            retries = [30, 45, 60, 75, 90, 105]
+
+            for sleep_time in retries:
+                try:
+                    super()._wait_for_cloudinit(
+                        raise_on_failure=raise_on_failure)
+                    break
+                except OSError:
+                    time.sleep(sleep_time)
+                    continue
+        else:
+            super()._wait_for_cloudinit(
+                raise_on_failure=raise_on_failure)
