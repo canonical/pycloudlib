@@ -12,17 +12,20 @@ class LXDInstance(BaseInstance):
 
     _type = 'lxd'
 
-    def __init__(self, name, is_vm=False):
+    def __init__(self, name, is_vm=False, key_pair=False):
         """Set up instance.
 
         Args:
             name: name of instance
             is_vm: Specify if instance is a vm or not
         """
-        super().__init__(key_pair=None)
+        super().__init__(key_pair=key_pair)
 
         self._name = name
         self._is_vm = is_vm
+
+        if self.key_pair:
+            self._type = "lxd-ssh"
 
     def __repr__(self):
         """Create string representation for class."""
@@ -41,8 +44,18 @@ class LXDInstance(BaseInstance):
             IP address assigned to instance.
 
         """
-        command = 'lxc list {} -c 4 --format csv'.format(self.name)
-        result = subp(command.split()).stdout
+        retries = 3
+
+        while retries != 0:
+            command = 'lxc list {} -c 4 --format csv'.format(self.name)
+            result = subp(command.split()).stdout
+
+            if result != '':
+                break
+
+            retries -= 1
+            time.sleep(20)
+
         ip_address = result.split()[0]
         return ip_address
 

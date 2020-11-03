@@ -1,5 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
+import textwrap
+import paramiko
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
@@ -108,11 +110,34 @@ class LXD(BaseCloud):
 
         return release
 
-    # pylint: disable=R0914
+    def _manage_ssh_key_pair(self, name):
+        """Create and set a ssh key pair to be used by the lxd instance.
+
+        Args:
+            name: The name of the pycloudlib instance
+        """
+        key = paramiko.RSAKey.generate(4096)
+        pub_key_path = "/tmp/{}-pubkey".format(name)
+        priv_key_path = "/tmp/{}-privkey".format(name)
+
+        pub_key = key.get_base64()
+
+        with open(pub_key_path, "w") as f:
+            f.write(pub_key)
+
+        with open(priv_key_path, "w") as f:
+            key.write_private_key(f, password=None)
+
+        self.use_key(
+            public_key_path=pub_key_path,
+            private_key_path=priv_key_path
+        )
+
+    # pylint: disable=R0914,R0912
     def init(
             self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
-            config_dict=None, is_vm=False):
+            config_dict=None, is_vm=False, use_ssh=False):
         """Init a container.
 
         This will initialize a container, but not launch or start it.
@@ -131,12 +156,18 @@ class LXD(BaseCloud):
             config_dict: dict, optional, configuration values to pass
             is_vm: boolean, optional, defines if a virtual machine will
                    be created
+            use_ssh: boolean, optional, set instance to execute commands
+                     through ssh instead of lxc exec.
 
         Returns:
             The created LXD instance object
 
         """
+        self.key_pair = None
         base_release = image_id
+
+        profile_list = profile_list if profile_list else []
+        config_dict = config_dict if config_dict else {}
 
         release = self._set_release_image(image_id, is_vm)
         self._log.debug("Full release to launch: '%s'", release)
@@ -156,6 +187,24 @@ class LXD(BaseCloud):
 
                 profile_list = [profile_name]
 
+        if use_ssh:
+            self._manage_ssh_key_pair(name)
+            ssh_user_data = textwrap.dedent(
+                """\
+                ssh_authorized_keys:
+                    - ssh-rsa {}
+                """.format(self.key_pair.public_key_content)
+            )
+
+            if user_data:
+                user_data += "\n{}".format(ssh_user_data)
+
+            if "user.user-data" in config_dict:
+                config_dict["user.user-data"] += "\n{}".format(ssh_user_data)
+
+            if not user_data and "user.user-data" not in config_dict:
+                user_data = "#cloud-config\n{}".format(ssh_user_data)
+
         if ephemeral:
             cmd.append('--ephemeral')
 
@@ -171,12 +220,10 @@ class LXD(BaseCloud):
             cmd.append('--type')
             cmd.append(inst_type)
 
-        profile_list = profile_list if profile_list else []
         for profile in profile_list:
             cmd.append('--profile')
             cmd.append(profile)
 
-        config_dict = config_dict if config_dict else {}
         for key, value in config_dict.items():
             cmd.append('--config')
             cmd.append('%s=%s' % (key, value))
@@ -197,11 +244,12 @@ class LXD(BaseCloud):
             name = result.split('Instance name is: ')[1]
         self._log.debug('Created %s', name)
 
-        return LXDInstance(name, is_vm)
+        return LXDInstance(name, is_vm, self.key_pair)
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
                name=None, ephemeral=False, network=None, storage=None,
-               profile_list=None, config_dict=None, is_vm=False, **kwargs):
+               profile_list=None, config_dict=None, is_vm=False,
+               use_ssh=False, **kwargs):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
@@ -227,7 +275,7 @@ class LXD(BaseCloud):
         """
         instance = self.init(name, image_id, ephemeral, network,
                              storage, instance_type, profile_list, user_data,
-                             config_dict, is_vm)
+                             config_dict, is_vm, use_ssh)
         instance.start(wait)
         return instance
 
