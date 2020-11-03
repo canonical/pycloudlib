@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Basic examples of various lifecycle with a LXD instance."""
-
 import logging
 
 import textwrap
@@ -178,8 +177,10 @@ def basic_lifecycle():
 def launch_virtual_machine():
     """Demonstrate launching virtual machine scenario."""
     lxd = pycloudlib.LXD('example-vm')
+    image_id = lxd.released_image(release=RELEASE, is_vm=True)
     name = 'pycloudlib-vm'
-    inst = lxd.launch(name=name, image_id=RELEASE, is_vm=True)
+    inst = lxd.launch(
+        name=name, image_id=image_id, is_vm=True, use_ssh=True)
     result = inst.execute("lsb_release -a")
     print(result)
     print(result.return_code)
@@ -187,9 +188,9 @@ def launch_virtual_machine():
     print(result.failed)
     print(bool(result))
 
-    inst.shutdown()
+    inst.shutdown(force=False)
     inst.start()
-    inst.restart()
+    inst.restart(force=False)
     inst.delete()
 
 

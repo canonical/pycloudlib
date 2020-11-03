@@ -12,14 +12,15 @@ class LXDInstance(BaseInstance):
 
     _type = 'lxd'
 
-    def __init__(self, name, is_vm=False):
+    def __init__(self, name, is_vm=False, key_pair=None):
         """Set up instance.
 
         Args:
             name: name of instance
             is_vm: Specify if instance is a vm or not
+            key_pair: SSH key object
         """
-        super().__init__(key_pair=None)
+        super().__init__(key_pair=key_pair)
 
         self._name = name
         self._is_vm = is_vm
@@ -27,6 +28,14 @@ class LXDInstance(BaseInstance):
     def __repr__(self):
         """Create string representation for class."""
         return 'LXDInstance(name={})'.format(self.name)
+
+    def _run_command(self, command, stdin):
+        """Run command in the instance."""
+        if self.key_pair:
+            return super()._run_command(command, stdin)
+
+        base_cmd = ['lxc', 'exec', self.name, '--']
+        return subp(base_cmd + list(command), rcs=None)
 
     @property
     def name(self):
@@ -41,8 +50,18 @@ class LXDInstance(BaseInstance):
             IP address assigned to instance.
 
         """
-        command = 'lxc list {} -c 4 --format csv'.format(self.name)
-        result = subp(command.split()).stdout
+        retries = 5
+
+        while retries != 0:
+            command = 'lxc list {} -c 4 --format csv'.format(self.name)
+            result = subp(command.split()).stdout
+
+            if result != '':
+                break
+
+            retries -= 1
+            time.sleep(20)
+
         ip_address = result.split()[0]
         return ip_address
 
@@ -173,14 +192,18 @@ class LXDInstance(BaseInstance):
         subp(['lxc', 'file', 'push', local_path,
               '%s%s' % (self.name, remote_path)])
 
-    def restart(self, wait=True):
+    def restart(self, wait=True, force=True):
         """Restart an instance.
 
         For LXD this means stopping the instance, and then starting it.
+
+        Args:
+            wait: boolean, wait for instance to restart
+            force: boolean, force instance to shutdown before restart
         """
         self._log.debug('restarting %s', self.name)
 
-        self.shutdown(wait=True)
+        self.shutdown(wait=True, force=force)
         self.start(wait=wait)
 
     def restore(self, snapshot_name):
@@ -193,17 +216,23 @@ class LXDInstance(BaseInstance):
                         self.name, snapshot_name)
         subp(['lxc', 'restore', self.name, snapshot_name])
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, force=True):
         """Shutdown instance.
 
         Args:
             wait: boolean, wait for instance to shutdown
+            force: boolean, force instance to shutdown
         """
         if self.state == 'Stopped':
             return
 
         self._log.debug('shutting down %s', self.name)
-        subp(['lxc', 'stop', self.name, '--force'])
+        cmd = ["lxc", "stop", self.name]
+
+        if force:
+            cmd.append("--force")
+
+        subp(cmd)
 
         if wait:
             self.wait_for_stop()
@@ -296,9 +325,12 @@ class LXDInstance(BaseInstance):
                     super()._wait_for_cloudinit(
                         raise_on_failure=raise_on_failure)
                     break
-                except OSError:
-                    time.sleep(sleep_time)
-                    continue
+                except OSError as e:
+                    if "Failed to connect to lxd-agent" in str(e):
+                        time.sleep(sleep_time)
+                        continue
+
+                    raise e
         else:
             super()._wait_for_cloudinit(
                 raise_on_failure=raise_on_failure)

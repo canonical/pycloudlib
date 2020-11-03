@@ -1,11 +1,32 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
+import io
+import re
+import textwrap
+import paramiko
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
-from pycloudlib.util import subp
+from pycloudlib.util import subp, UBUNTU_RELEASE_VERSION_MAP
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 from pycloudlib.lxd.defaults import base_vm_profiles
+
+
+class UnsupportedReleaseException(Exception):
+    """Unsupported release exception."""
+
+    msg_tmpl = "Release {} is not supported for LXD{}"
+
+    def __init__(self, release, is_vm):
+        """Prepare unsupported release message."""
+        vm_msg = ""
+
+        if is_vm:
+            vm_msg = " vms"
+
+        super().__init__(
+            self.msg_tmpl.format(release, vm_msg)
+        )
 
 
 class LXD(BaseCloud):
@@ -14,6 +35,10 @@ class LXD(BaseCloud):
     _type = 'lxd'
     _daily_remote = 'ubuntu-daily'
     _releases_remote = 'ubuntu'
+
+    XENIAL_VM_IMAGE = "images:ubuntu/16.04/cloud"
+    VM_HASH_KEY = "combined_disk1-img_sha256"
+    CONTAINER_HASH_KEY = "combined_squashfs_sha256"
 
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
@@ -36,35 +61,35 @@ class LXD(BaseCloud):
         return LXDInstance(new_instance_name)
 
     def create_profile(
-        self, profile_name, profile_config, force_creation=False
+        self, profile_name, profile_config, force=False
     ):
         """Create a lxd profile.
 
         Create a lxd profile and populate it with the given
         profile config. If the profile already exists, we will
-        not recreate it, unless the force_creation parameter is set to True.
+        not recreate it, unless the force parameter is set to True.
 
         Args:
             profile_name: Name of the profile to be created
             profile_config: Config to be added to the new profile
-            force_creation: Force the profile creation if it already exists
+            force: Force the profile creation if it already exists
         """
         profile_list = subp(["lxc", "profile", "list"])
 
-        if profile_name in profile_list and not force_creation:
-            msg = "The profile named {} already exist".format(profile_name)
+        if profile_name in profile_list and not force:
+            msg = "The profile named {} already exists".format(profile_name)
             self._log.debug(msg)
             print(msg)
-        else:
+            return
 
-            if force_creation:
-                self._log.debug(
-                    "Deleting current profile %s ...", profile_name)
-                subp(["lxc", "profile", "delete", profile_name])
+        if force:
+            self._log.debug(
+                "Deleting current profile %s ...", profile_name)
+            subp(["lxc", "profile", "delete", profile_name])
 
-            self._log.debug("Creating profile %s ...", profile_name)
-            subp(["lxc", "profile", "create", profile_name])
-            subp(["lxc", "profile", "edit", profile_name], data=profile_config)
+        self._log.debug("Creating profile %s ...", profile_name)
+        subp(["lxc", "profile", "create", profile_name])
+        subp(["lxc", "profile", "edit", profile_name], data=profile_config)
 
     def delete_instance(self, instance_name, wait=True):
         """Delete an instance.
@@ -89,30 +114,56 @@ class LXD(BaseCloud):
         """
         return LXDInstance(instance_id)
 
-    def _set_release_image(self, release, is_vm):
-        """Return the qualified name to launch a given release.
+    def _create_key_pair(self):
+        """Create and set a ssh key pair to be used by the lxd instance.
 
         Args:
-            release: Name of the release to be launched
-            is_vm: If instance should be a virtual machine or not
+            name: The name of the pycloudlib instance
 
         Returns:
-            The qualified name to launch the given release.
+            A tuple containing the public and private key created
         """
-        if is_vm and release == "xenial":
-            # xenial needs to launch images:ubuntu/16.04/cloud
-            # because it contains the HWE kernel which has vhost-vsock support
-            release = "images:ubuntu/16.04/cloud"
-        elif ':' not in release:
-            release = self._daily_remote + ':' + release
+        key = paramiko.RSAKey.generate(4096)
+        priv_str = io.StringIO()
 
-        return release
+        pub_key = key.get_base64()
+        key.write_private_key(priv_str, password=None)
 
-    # pylint: disable=R0914
+        return pub_key, priv_str.getvalue()
+
+    def _extract_release_from_image_id(self, image_id, is_vm=False):
+        """Extract the base release from the image_id.
+
+        Args:
+            image_id: string, [<remote>:]<release>, what release to launch
+                     (default remote: )
+
+        Returns:
+            A string contaning the base release from the image_id that is used
+            to launch the image.
+        """
+        release_regex = (
+            "(.*ubuntu.*(?P<release>(" +
+            "|".join(UBUNTU_RELEASE_VERSION_MAP) +
+            "|".join(UBUNTU_RELEASE_VERSION_MAP.values()) +
+            ")).*)"
+        )
+        ubuntu_match = re.match(release_regex, image_id)
+        if ubuntu_match:
+            release = ubuntu_match.groupdict()["release"]
+            for codename, version in UBUNTU_RELEASE_VERSION_MAP.items():
+                if release in (codename, version):
+                    return codename
+
+        # If we have a hash in the image_id we need to query simplestreams to
+        # identify the release.
+        return self._image_info(image_id, is_vm)[0]["release"]
+
+    # pylint: disable=R0914,R0912,R0915
     def init(
-            self, name, image_id, ephemeral=False, network=None, storage=None,
+            self, name, release, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
-            config_dict=None, is_vm=False):
+            config_dict=None, is_vm=False, use_ssh=False):
         """Init a container.
 
         This will initialize a container, but not launch or start it.
@@ -120,7 +171,7 @@ class LXD(BaseCloud):
 
         Args:
             name: string, what to call the instance
-            image_id: string, [<remote>:]<release>, what release to launch
+            release: string, [<remote>:]<release>, what release to launch
                      (default remote: )
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
@@ -131,23 +182,30 @@ class LXD(BaseCloud):
             config_dict: dict, optional, configuration values to pass
             is_vm: boolean, optional, defines if a virtual machine will
                    be created
+            use_ssh: boolean, optional, defines if we should create ssh
+                     keys and use them to execute commands in the instance
 
         Returns:
             The created LXD instance object
 
         """
-        base_release = image_id
+        self.key_pair = None
 
-        release = self._set_release_image(image_id, is_vm)
+        profile_list = profile_list if profile_list else []
+        config_dict = config_dict if config_dict else {}
+
+        if ':' not in release:
+            release = self._daily_remote + ':' + release
+
         self._log.debug("Full release to launch: '%s'", release)
-
         cmd = ['lxc', 'init', release, name]
 
         if is_vm:
             cmd.append('--vm')
+            base_release = self._extract_release_from_image_id(release, is_vm)
 
             if not profile_list:
-                profile_name = "vm-{}".format(base_release)
+                profile_name = "pycloudlib-vm-{}".format(base_release)
 
                 self.create_profile(
                     profile_name=profile_name,
@@ -155,6 +213,39 @@ class LXD(BaseCloud):
                 )
 
                 profile_list = [profile_name]
+
+        if use_ssh:
+            pub_key_path = "{}-pubkey".format(name)
+            priv_key_path = "{}-privkey".format(name)
+
+            pub_key, priv_key = self._create_key_pair()
+
+            with open(pub_key_path, "w") as f:
+                f.write(pub_key)
+
+            with open(priv_key_path, "w") as f:
+                f.write(priv_key)
+
+            self.use_key(
+                public_key_path=pub_key_path,
+                private_key_path=priv_key_path
+            )
+
+            ssh_user_data = textwrap.dedent(
+                """\
+                ssh_authorized_keys:
+                    - ssh-rsa {}
+                """.format(pub_key)
+            )
+
+            if user_data:
+                user_data += "\n{}".format(ssh_user_data)
+
+            if "user.user-data" in config_dict:
+                config_dict["user.user-data"] += "\n{}".format(ssh_user_data)
+
+            if not user_data and "user.user-data" not in config_dict:
+                user_data = "#cloud-config\n{}".format(ssh_user_data)
 
         if ephemeral:
             cmd.append('--ephemeral')
@@ -171,12 +262,10 @@ class LXD(BaseCloud):
             cmd.append('--type')
             cmd.append(inst_type)
 
-        profile_list = profile_list if profile_list else []
         for profile in profile_list:
             cmd.append('--profile')
             cmd.append(profile)
 
-        config_dict = config_dict if config_dict else {}
         for key, value in config_dict.items():
             cmd.append('--config')
             cmd.append('%s=%s' % (key, value))
@@ -197,11 +286,12 @@ class LXD(BaseCloud):
             name = result.split('Instance name is: ')[1]
         self._log.debug('Created %s', name)
 
-        return LXDInstance(name, is_vm)
+        return LXDInstance(name, is_vm, self.key_pair)
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
                name=None, ephemeral=False, network=None, storage=None,
-               profile_list=None, config_dict=None, is_vm=False, **kwargs):
+               profile_list=None, config_dict=None, is_vm=False,
+               use_ssh=False, **kwargs):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
@@ -220,6 +310,8 @@ class LXD(BaseCloud):
             config_dict: dict, configuration values to pass
             is_vm: boolean, optional, defines if a virtual machine will
                    be created
+            use_ssh: boolean, optional, defines if we should create ssh
+                     keys and use them to execute commands in the instance
 
         Returns:
             The created LXD instance object
@@ -227,43 +319,121 @@ class LXD(BaseCloud):
         """
         instance = self.init(name, image_id, ephemeral, network,
                              storage, instance_type, profile_list, user_data,
-                             config_dict, is_vm)
+                             config_dict, is_vm, use_ssh)
         instance.start(wait)
         return instance
 
-    def released_image(self, release, arch=LOCAL_UBUNTU_ARCH):
+    def released_image(self, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False):
         """Find the LXD fingerprint of the latest released image.
 
         Args:
             release: string, Ubuntu release to look for
             arch: string, architecture to use
+            is_vm: boolean, specify if the image_id represents a
+                   virtual machine
 
         Returns:
             string, LXD fingerprint of latest image
 
         """
         self._log.debug('finding released Ubuntu image for %s', release)
-        image_data = self._find_image(release, arch, daily=False)
-        image = '%s:%s' % (self._releases_remote,
-                           image_data['combined_squashfs_sha256'])
-        return image
+        return self._search_for_image(
+            remote=self._releases_remote,
+            release=release,
+            arch=arch,
+            is_vm=is_vm
+        )
 
-    def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH):
+    def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False):
         """Find the LXD fingerprint of the latest daily image.
 
         Args:
             release: string, Ubuntu release to look for
             arch: string, architecture to use
+            is_vm: boolean, specify if the image_id represents a
+                   virtual machine
 
         Returns:
             string, LXD fingerprint of latest image
 
         """
         self._log.debug('finding daily Ubuntu image for %s', release)
+        return self._search_for_image(
+            remote=self._daily_remote,
+            release=release,
+            arch=arch,
+            is_vm=is_vm
+        )
+
+    def _search_for_image(
+        self, remote, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False
+    ):
+        """Find the LXD fingerprint in a given remote.
+
+        Args:
+            remote: string, remote to search image in
+            release: string, Ubuntu release to look for
+            arch: string, architecture to use
+            is_vm: boolean, specify if the image_id represents a
+                   virtual machine
+
+        Returns:
+            string, LXD fingerprint of latest image
+
+        """
+        if is_vm and release == "xenial":
+            # xenial needs to launch images:ubuntu/16.04/cloud
+            # because it contains the HWE kernel which has vhost-vsock support
+            return self.XENIAL_VM_IMAGE
+
+        if is_vm and release == "trusty":
+            # trusty is not supported on LXD vms
+            raise UnsupportedReleaseException(
+                release="trusty",
+                is_vm=is_vm
+            )
+
         image_data = self._find_image(release, arch, daily=True)
-        image = '%s:%s' % (self._daily_remote,
-                           image_data['combined_squashfs_sha256'])
+
+        if is_vm:
+            image_hash_key = self.VM_HASH_KEY
+        else:
+            image_hash_key = self.CONTAINER_HASH_KEY
+
+        image = '%s:%s' % (remote,
+                           image_data[image_hash_key])
         return image
+
+    def _image_info(self, image_id, is_vm=False):
+        """Find the image serial of a given LXD image.
+
+        Args:
+            image_id: string, LXD image fingerprint
+            is_vm: boolean, specify if the image_id represents a
+                   virtual machine
+
+        Returns:
+            dict, image info available for the image_id
+
+        """
+        daily = True
+        if ':' in image_id:
+            remote = image_id[:image_id.index(':')]
+            image_id = image_id[image_id.index(':')+1:]
+            if remote == self._releases_remote:
+                daily = False
+            elif remote != self._daily_remote:
+                raise RuntimeError('Unknown remote: %s' % remote)
+
+        if is_vm:
+            image_hash_key = self.VM_HASH_KEY
+        else:
+            image_hash_key = self.CONTAINER_HASH_KEY
+
+        filters = ['%s=%s' % (image_hash_key, image_id)]
+        image_info = self._streams_query(filters, daily=daily)
+
+        return image_info
 
     def image_serial(self, image_id):
         """Find the image serial of a given LXD image.
@@ -278,17 +448,8 @@ class LXD(BaseCloud):
         self._log.debug(
             'finding image serial for LXD Ubuntu image %s', image_id)
 
-        daily = True
-        if ':' in image_id:
-            remote = image_id[:image_id.index(':')]
-            image_id = image_id[image_id.index(':')+1:]
-            if remote == self._releases_remote:
-                daily = False
-            elif remote != self._daily_remote:
-                raise RuntimeError('Unknown remote: %s' % remote)
+        image_info = self._image_info(image_id)
 
-        filters = ['combined_squashfs_sha256=%s' % image_id]
-        image_info = self._streams_query(filters, daily=daily)
         return image_info[0]['version_name']
 
     def delete_image(self, image_id):

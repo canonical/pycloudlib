@@ -1,5 +1,6 @@
 """Tests related to pycloudlib.lxd.instance module."""
 from unittest import mock
+import pytest
 
 from pycloudlib.instance import BaseInstance
 from pycloudlib.lxd.instance import LXDInstance
@@ -16,8 +17,14 @@ class TestWaitForCloudinit:
         """Test covering _wait_for_cloudinit on LXD vms."""
         instance = LXDInstance(name=None, is_vm=True)
 
-        m_wait_for_cloudinit.side_effect = [OSError(), OSError(), True]
-        instance._wait_for_cloudinit(raise_on_failure=True)
+        m_wait_for_cloudinit.side_effect = [
+            OSError("Failed to connect to lxd-agent"),
+            OSError("Failed to connect to lxd-agent"),
+            OSError("cloud-init error")
+        ]
+
+        with pytest.raises(OSError) as excinfo:
+            instance._wait_for_cloudinit(raise_on_failure=True)
 
         assert m_wait_for_cloudinit.call_args_list == [
             mock.call(raise_on_failure=True),
@@ -26,3 +33,4 @@ class TestWaitForCloudinit:
         ]
         assert m_sleep.call_count == 2
         assert m_wait_for_cloudinit.call_count == 3
+        assert "cloud-init error" == str(excinfo.value)

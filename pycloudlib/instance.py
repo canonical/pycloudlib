@@ -15,7 +15,7 @@ from paramiko.ssh_exception import (
 )
 
 from pycloudlib.result import Result
-from pycloudlib.util import shell_quote, shell_pack, subp
+from pycloudlib.util import shell_quote, shell_pack
 
 
 class BaseInstance(ABC):
@@ -134,7 +134,11 @@ class BaseInstance(ABC):
         self.execute('sudo cloud-init clean --logs')
         self.execute('sudo rm -rf /var/log/syslog')
 
-    def execute(self, command, stdin=None, description=None):
+    def _run_command(self, command, stdin):
+        """Run command in the instance."""
+        return self._ssh(list(command), stdin=stdin)
+
+    def execute(self, command, stdin=None, description=None, **kwargs):
         """Execute command in instance, recording output, error and exit code.
 
         Assumes functional networking and execution with the target filesystem
@@ -160,20 +164,7 @@ class BaseInstance(ABC):
         else:
             self._log.debug('executing: %s', shell_quote(command))
 
-        if self._type == 'lxd':
-            base_cmd = ['lxc', 'exec', self.name, '--']
-            return subp(base_cmd + list(command), rcs=None)
-
-        # multipass handling of redirects is buggy, so we don't bind
-        # stdin to /dev/null for the moment (shortcircuit_stdin=False).
-        # See: https://github.com/CanonicalLtd/multipass/issues/667
-        if self._type == 'kvm':
-            base_cmd = ['multipass', 'exec', self.name, '--']
-            return subp(
-                base_cmd + list(command), rcs=None, shortcircuit_stdin=False
-            )
-
-        return self._ssh(list(command), stdin=stdin)
+        return self._run_command(command, stdin, **kwargs)
 
     def install(self, packages):
         """Install specific packages.
