@@ -130,18 +130,12 @@ class OCI(BaseCloud):
             An instance object to use to manipulate the instance further.
         """
         try:
-            instance_data = self.compute_client.get_instance(instance_id).data
+            self.compute_client.get_instance(instance_id)
         except oci.exceptions.ServiceError as e:
             raise Exception(
                 "Unable to retrieve instance with id: {} . "
                 "Is it a valid instance id?".format(instance_id)) from e
-        state = instance_data.lifecycle_state
-        if state != 'RUNNING':
-            raise ValueError(
-                'Instance {} cannot be used while in {} state'.format(
-                    instance_id, state
-                )
-            )
+
         return OciInstance(
             key_pair=self.key_pair,
             instance_id=instance_id,
