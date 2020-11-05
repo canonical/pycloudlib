@@ -135,13 +135,7 @@ class OCI(BaseCloud):
             raise Exception(
                 "Unable to retrieve instance with id: {} . "
                 "Is it a valid instance id?".format(instance_id)) from e
-        state = instance_data.lifecycle_state
-        if state != 'RUNNING':
-            raise ValueError(
-                'Instance {} cannot be used while in {} state'.format(
-                    instance_id, state
-                )
-            )
+
         return OciInstance(
             key_pair=self.key_pair,
             instance_id=instance_id,
