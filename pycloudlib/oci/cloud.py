@@ -130,7 +130,7 @@ class OCI(BaseCloud):
             An instance object to use to manipulate the instance further.
         """
         try:
-            instance_data = self.compute_client.get_instance(instance_id).data
+            self.compute_client.get_instance(instance_id)
         except oci.exceptions.ServiceError as e:
             raise Exception(
                 "Unable to retrieve instance with id: {} . "
