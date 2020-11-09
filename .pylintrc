@@ -9,8 +9,9 @@ jobs=4
 # R0913: Too many arguments
 # C0103: Invalid name
 # C0122: misplaced-comparison-constant
+# C0301: line-too-long  (flake8 already catches this for us)
 # R0201: Method could be a function (no-self-use)
-disable=R0902, R0903, R0913, W0221, C0103, C0122, R0201
+disable=R0902, R0903, R0913, W0221, C0103, C0122, C0301, R0201
 
 [TYPECHECK]
 # Ignore the googleapiclient module to avoid no-member checks
