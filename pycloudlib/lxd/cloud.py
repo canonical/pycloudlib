@@ -40,6 +40,18 @@ class LXD(BaseCloud):
     VM_HASH_KEY = "combined_disk1-img_sha256"
     CONTAINER_HASH_KEY = "combined_squashfs_sha256"
 
+    def __init__(self, tag, timestamp_suffix=True):
+        """Initialize LXD cloud class.
+
+        Args:
+            tag: string used to name and tag resources with
+            timestamp_suffic: Append a timestamped suffix to the tag string.
+        """
+        super().__init__(tag, timestamp_suffix)
+
+        # User must manually specify the key pair to be used
+        self.key_pair = None
+
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
 
@@ -114,7 +126,7 @@ class LXD(BaseCloud):
         """
         return LXDInstance(instance_id)
 
-    def _create_key_pair(self):
+    def create_key_pair(self):
         """Create and set a ssh key pair to be used by the lxd instance.
 
         Args:
@@ -163,7 +175,7 @@ class LXD(BaseCloud):
     def init(
             self, name, release, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
-            config_dict=None, is_vm=False, use_ssh=False):
+            config_dict=None, is_vm=False):
         """Init a container.
 
         This will initialize a container, but not launch or start it.
@@ -182,15 +194,11 @@ class LXD(BaseCloud):
             config_dict: dict, optional, configuration values to pass
             is_vm: boolean, optional, defines if a virtual machine will
                    be created
-            use_ssh: boolean, optional, defines if we should create ssh
-                     keys and use them to execute commands in the instance
 
         Returns:
             The created LXD instance object
 
         """
-        self.key_pair = None
-
         profile_list = profile_list if profile_list else []
         config_dict = config_dict if config_dict else {}
 
@@ -214,28 +222,12 @@ class LXD(BaseCloud):
 
                 profile_list = [profile_name]
 
-        if use_ssh:
-            pub_key_path = "{}-pubkey".format(name)
-            priv_key_path = "{}-privkey".format(name)
-
-            pub_key, priv_key = self._create_key_pair()
-
-            with open(pub_key_path, "w") as f:
-                f.write(pub_key)
-
-            with open(priv_key_path, "w") as f:
-                f.write(priv_key)
-
-            self.use_key(
-                public_key_path=pub_key_path,
-                private_key_path=priv_key_path
-            )
-
+        if self.key_pair:
             ssh_user_data = textwrap.dedent(
                 """\
                 ssh_authorized_keys:
                     - ssh-rsa {}
-                """.format(pub_key)
+                """.format(self.key_pair.public_key_content)
             )
 
             if user_data:
@@ -290,8 +282,7 @@ class LXD(BaseCloud):
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
                name=None, ephemeral=False, network=None, storage=None,
-               profile_list=None, config_dict=None, is_vm=False,
-               use_ssh=False, **kwargs):
+               profile_list=None, config_dict=None, is_vm=False, **kwargs):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
@@ -310,8 +301,6 @@ class LXD(BaseCloud):
             config_dict: dict, configuration values to pass
             is_vm: boolean, optional, defines if a virtual machine will
                    be created
-            use_ssh: boolean, optional, defines if we should create ssh
-                     keys and use them to execute commands in the instance
 
         Returns:
             The created LXD instance object
@@ -319,7 +308,7 @@ class LXD(BaseCloud):
         """
         instance = self.init(name, image_id, ephemeral, network,
                              storage, instance_type, profile_list, user_data,
-                             config_dict, is_vm, use_ssh)
+                             config_dict, is_vm)
         instance.start(wait)
         return instance
 
@@ -339,6 +328,7 @@ class LXD(BaseCloud):
         self._log.debug('finding released Ubuntu image for %s', release)
         return self._search_for_image(
             remote=self._releases_remote,
+            daily=False,
             release=release,
             arch=arch,
             is_vm=is_vm
@@ -360,18 +350,20 @@ class LXD(BaseCloud):
         self._log.debug('finding daily Ubuntu image for %s', release)
         return self._search_for_image(
             remote=self._daily_remote,
+            daily=True,
             release=release,
             arch=arch,
             is_vm=is_vm
         )
 
     def _search_for_image(
-        self, remote, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False
+        self, remote, daily, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False
     ):
         """Find the LXD fingerprint in a given remote.
 
         Args:
-            remote: string, remote to search image in
+            remote: string, remote to prepend to image_id
+            daily: boolean, search on daily remote
             release: string, Ubuntu release to look for
             arch: string, architecture to use
             is_vm: boolean, specify if the image_id represents a
@@ -393,16 +385,14 @@ class LXD(BaseCloud):
                 is_vm=is_vm
             )
 
-        image_data = self._find_image(release, arch, daily=True)
+        image_data = self._find_image(release, arch, daily=daily)
 
         if is_vm:
             image_hash_key = self.VM_HASH_KEY
         else:
             image_hash_key = self.CONTAINER_HASH_KEY
 
-        image = '%s:%s' % (remote,
-                           image_data[image_hash_key])
-        return image
+        return '%s:%s' % (remote, image_data[image_hash_key])
 
     def _image_info(self, image_id, is_vm=False):
         """Find the image serial of a given LXD image.

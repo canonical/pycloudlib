@@ -133,7 +133,8 @@ class TestSearchForImage:
 
         with pytest.raises(UnsupportedReleaseException) as excinfo:
             cloud._search_for_image(
-                remote=cloud._daily_remote,
+                remote="remote",
+                daily=False,
                 release="trusty",
                 is_vm=True
             )

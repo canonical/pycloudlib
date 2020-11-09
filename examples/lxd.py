@@ -177,10 +177,26 @@ def basic_lifecycle():
 def launch_virtual_machine():
     """Demonstrate launching virtual machine scenario."""
     lxd = pycloudlib.LXD('example-vm')
+
+    pub_key_path = "lxd-pubkey"
+    priv_key_path = "lxd-privkey"
+    pub_key, priv_key = lxd.create_key_pair()
+
+    with open(pub_key_path, "w") as f:
+        f.write(pub_key)
+
+    with open(priv_key_path, "w") as f:
+        f.write(priv_key)
+
+    lxd.use_key(
+        public_key_path=pub_key_path,
+        private_key_path=priv_key_path
+    )
+
     image_id = lxd.released_image(release=RELEASE, is_vm=True)
     name = 'pycloudlib-vm'
     inst = lxd.launch(
-        name=name, image_id=image_id, is_vm=True, use_ssh=True)
+        name=name, image_id=image_id, is_vm=True)
     result = inst.execute("lsb_release -a")
     print(result)
     print(result.return_code)
