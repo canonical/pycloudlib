@@ -157,7 +157,7 @@ class LXD(BaseCloud):
         """
         release_regex = (
             "(.*ubuntu.*(?P<release>(" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP) +
+            "|".join(UBUNTU_RELEASE_VERSION_MAP) + "|" +
             "|".join(UBUNTU_RELEASE_VERSION_MAP.values()) +
             ")).*)"
         )
