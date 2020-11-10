@@ -23,7 +23,7 @@ class TestProfileCreation:
                 profile_config="profile_config"
             )
 
-        expected_msg = "The profile named test_profile already exist"
+        expected_msg = "The profile named test_profile already exists"
         assert expected_msg in fake_stdout.getvalue().strip()
         assert m_subp.call_args_list == [
             mock.call(["lxc", "profile", "list"])
