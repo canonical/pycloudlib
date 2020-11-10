@@ -269,7 +269,7 @@ class LXDInstance(BaseInstance):
             snapshot_name: name to call snapshot
         """
         self.clean()
-        self.shutdown()
+        self.shutdown(wait=True, force=False)
         if snapshot_name is None:
             snapshot_name = '{}-snapshot'.format(self.name)
         cmd = ['lxc', 'publish', self.name, '--alias', snapshot_name]
