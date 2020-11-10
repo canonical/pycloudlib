@@ -38,6 +38,7 @@ class LXD(BaseCloud):
 
     XENIAL_VM_IMAGE = "images:ubuntu/16.04/cloud"
     VM_HASH_KEY = "combined_disk1-img_sha256"
+    TRUSTY_CONTAINER_HASH_KEY = "combined_rootxz_sha256"
     CONTAINER_HASH_KEY = "combined_squashfs_sha256"
 
     def __init__(self, tag, timestamp_suffix=True):
@@ -389,6 +390,8 @@ class LXD(BaseCloud):
 
         if is_vm:
             image_hash_key = self.VM_HASH_KEY
+        elif release == "trusty":
+            image_hash_key = self.TRUSTY_CONTAINER_HASH_KEY
         else:
             image_hash_key = self.CONTAINER_HASH_KEY
 
@@ -422,6 +425,12 @@ class LXD(BaseCloud):
 
         filters = ['%s=%s' % (image_hash_key, image_id)]
         image_info = self._streams_query(filters, daily=daily)
+
+        if not image_info:
+            # If this is a trusty image, the hash key for it is different.
+            # We will perform a second query for this situation.
+            filters = ['%s=%s' % (self.TRUSTY_CONTAINER_HASH_KEY, image_id)]
+            image_info = self._streams_query(filters, daily=daily)
 
         return image_info
 
