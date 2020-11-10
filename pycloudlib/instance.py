@@ -62,12 +62,12 @@ class BaseInstance(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def restart(self, wait=True):
+    def restart(self, wait=True, **kwargs):
         """Restart an instance."""
         raise NotImplementedError
 
     @abstractmethod
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
 
         Args:

@@ -192,7 +192,7 @@ class LXDInstance(BaseInstance):
         subp(['lxc', 'file', 'push', local_path,
               '%s%s' % (self.name, remote_path)])
 
-    def restart(self, wait=True, force=True):
+    def restart(self, wait=True, force=True, **kwargs):
         """Restart an instance.
 
         For LXD this means stopping the instance, and then starting it.
@@ -216,7 +216,7 @@ class LXDInstance(BaseInstance):
                         self.name, snapshot_name)
         subp(['lxc', 'restore', self.name, snapshot_name])
 
-    def shutdown(self, wait=True, force=True):
+    def shutdown(self, wait=True, force=True, **kwargs):
         """Shutdown instance.
 
         Args:

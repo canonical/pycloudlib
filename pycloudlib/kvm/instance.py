@@ -113,12 +113,12 @@ class KVMInstance(BaseInstance):
         if result.failed:
             raise RuntimeError(result.stderr)
 
-    def restart(self, wait=True):
+    def restart(self, wait=True, **kwargs):
         """Restart an instance."""
         self._log.debug('restarting %s', self.name)
         subp(['multipass', 'restart', self.name])
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, **kwargs):
         """Shutdown instance.
 
         Args:
