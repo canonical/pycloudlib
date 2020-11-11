@@ -17,9 +17,7 @@ def snapshot_instance():
 
     Next, both create the snapshot and immediately restore the original
     instance to the snapshot level.
-
     Finally, launch another instance from the snapshot of the instance.
-
     """
     lxd = pycloudlib.LXD('example-snapshot')
     inst = lxd.launch(name='pycloudlib-snapshot-base', image_id=RELEASE)
@@ -197,6 +195,7 @@ def launch_virtual_machine():
     name = 'pycloudlib-vm'
     inst = lxd.launch(
         name=name, image_id=image_id, is_vm=True)
+    print("Is vm: {}".format(inst.is_vm))
     result = inst.execute("lsb_release -a")
     print(result)
     print(result.return_code)

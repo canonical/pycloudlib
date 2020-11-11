@@ -279,7 +279,7 @@ class LXD(BaseCloud):
             name = result.split('Instance name is: ')[1]
         self._log.debug('Created %s', name)
 
-        return LXDInstance(name, is_vm, self.key_pair)
+        return LXDInstance(name, self.key_pair)
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
                name=None, ephemeral=False, network=None, storage=None,

@@ -11,11 +11,13 @@ class TestWaitForCloudinit:
 
     @mock.patch("pycloudlib.lxd.instance.time.sleep")
     @mock.patch.object(BaseInstance, "_wait_for_cloudinit")
+    @mock.patch.object(LXDInstance, "is_vm", new_callable=mock.PropertyMock)
     def test_wait_for_vm_with_raise_parameter(
-        self, m_wait_for_cloudinit, m_sleep
+        self, m_is_vm, m_wait_for_cloudinit, m_sleep
     ):  # pylint: disable=W0212
         """Test covering _wait_for_cloudinit on LXD vms."""
-        instance = LXDInstance(name=None, is_vm=True)
+        m_is_vm.return_value = True
+        instance = LXDInstance(name=None)
 
         m_wait_for_cloudinit.side_effect = [
             OSError("Failed to connect to lxd-agent"),

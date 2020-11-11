@@ -12,18 +12,17 @@ class LXDInstance(BaseInstance):
 
     _type = 'lxd'
 
-    def __init__(self, name, is_vm=False, key_pair=None):
+    def __init__(self, name, key_pair=None):
         """Set up instance.
 
         Args:
             name: name of instance
-            is_vm: Specify if instance is a vm or not
             key_pair: SSH key object
         """
         super().__init__(key_pair=key_pair)
 
         self._name = name
-        self._is_vm = is_vm
+        self._is_vm = None
 
     def __repr__(self):
         """Create string representation for class."""
@@ -36,6 +35,27 @@ class LXDInstance(BaseInstance):
 
         base_cmd = ['lxc', 'exec', self.name, '--']
         return subp(base_cmd + list(command), rcs=None)
+
+    @property
+    def is_vm(self):
+        """Return boolean if vm type or not.
+
+        Will return False if unknown.
+
+        Returns:
+            boolean if virtual-machine
+        """
+        if self._is_vm is None:
+            result = subp(['lxc', 'info', self.name])
+
+            try:
+                info_type = re.findall(r'Type: (.*)', result)[0]
+            except IndexError:
+                return False
+
+            self._is_vm = bool(info_type == 'virtual-machine')
+
+        return self._is_vm
 
     @property
     def name(self):
@@ -317,7 +337,7 @@ class LXDInstance(BaseInstance):
             When `True`, if the process waiting for cloud-init exits non-zero
             then this method will raise an `OSError`.
         """
-        if self._is_vm and raise_on_failure:
+        if self.is_vm and raise_on_failure:
             retries = [30, 45, 60, 75, 90, 105]
 
             for sleep_time in retries:
