@@ -31,15 +31,23 @@ class TestExecute:
           refactor.
     """
 
-    @pytest.mark.parametrize("instance_cls", (LXDInstance, KVMInstance))
-    def test_all_rcs_acceptable(self, instance_cls):
+    @pytest.mark.parametrize(
+        "instance_cls,cloud_name",
+        (
+            (LXDInstance, "lxd"),
+            (KVMInstance, "kvm"),
+        ),
+    )
+    def test_all_rcs_acceptable(self, instance_cls, cloud_name):
         """Test that we invoke util.subp with rcs=None.
 
         rcs=None means that we will get a Result object back for all return
         codes, rather than an exception for non-zero return codes.
         """
         instance = instance_cls(None)
-        with mock.patch("pycloudlib.instance.subp") as m_subp:
+        with mock.patch(
+            "pycloudlib.{}.instance.subp".format(cloud_name)
+        ) as m_subp:
             instance.execute("some_command")
         assert 1 == m_subp.call_count
         _args, kwargs = m_subp.call_args

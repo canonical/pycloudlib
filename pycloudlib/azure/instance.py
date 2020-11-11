@@ -81,7 +81,7 @@ class AzureInstance(BaseInstance):
         image_profile = self._instance["vm"].storage_profile.image_reference
         return getattr(image_profile, 'offer', '')
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
 
         Args:
@@ -117,7 +117,7 @@ class AzureInstance(BaseInstance):
             start.wait()
             self.wait()
 
-    def restart(self, wait=True):
+    def restart(self, wait=True, **kwargs):
         """Restart the instance."""
         restart = self._client.virtual_machines.restart(
             resource_group_name=self._instance["rg_name"],

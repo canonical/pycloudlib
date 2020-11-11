@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Basic examples of various lifecycle with a LXD instance."""
-
 import logging
 
+import textwrap
 import pycloudlib
 
 RELEASE = 'bionic'
@@ -17,15 +17,13 @@ def snapshot_instance():
 
     Next, both create the snapshot and immediately restore the original
     instance to the snapshot level.
-
     Finally, launch another instance from the snapshot of the instance.
-
     """
     lxd = pycloudlib.LXD('example-snapshot')
-    inst = lxd.launch('pycloudlib-snapshot-base', RELEASE)
+    inst = lxd.launch(name='pycloudlib-snapshot-base', image_id=RELEASE)
 
     snapshot_name = 'snapshot'
-    inst.snapshot(snapshot_name)
+    inst.local_snapshot(snapshot_name)
     inst.restore(snapshot_name)
 
     child = lxd.clone('%s/%s' % (inst.name, snapshot_name),
@@ -70,7 +68,11 @@ def launch_multiple():
 
     instances = []
     for num in range(3):
-        inst = lxd.launch('pycloudlib-%s' % num, RELEASE, wait=False)
+        inst = lxd.launch(
+            name='pycloudlib-%s' % num,
+            image_id=RELEASE,
+            wait=False
+        )
         instances.append(inst)
 
     for instance in instances:
@@ -96,25 +98,46 @@ def launch_options():
     Finally, an instance with custom configurations options.
     """
     lxd = pycloudlib.LXD('example-launch')
+    kvm_profile = textwrap.dedent(
+        """\
+        devices:
+          kvm:
+            path: /dev/kvm
+            type: unix-char
+        """
+    )
+
+    lxd.create_profile(
+        profile_name="kvm",
+        profile_config=kvm_profile
+    )
 
     lxd.launch(
-        'pycloudlib-kvm', RELEASE, profile_list=['default', 'kvm']
+        name='pycloudlib-kvm', image_id=RELEASE,
+        profile_list=['default', 'kvm']
     )
     lxd.delete_instance('pycloudlib-kvm')
 
     lxd.launch(
-        'pycloudlib-ephemeral', 'ubuntu:%s' % RELEASE, ephemeral=True
+        name='pycloudlib-ephemeral',
+        image_id='ubuntu:%s' % RELEASE,
+        ephemeral=True
     )
     lxd.delete_instance('pycloudlib-ephemeral')
 
     lxd.launch(
-        'pycloudlib-custom-hw', 'images:ubuntu/xenial', network='lxdbr0',
-        storage='default', inst_type='t2.micro', wait=False
+        name='pycloudlib-custom-hw',
+        image_id='images:ubuntu/xenial',
+        network='lxdbr0',
+        storage='default',
+        inst_type='t2.micro',
+        wait=False
     )
     lxd.delete_instance('pycloudlib-custom-hw')
 
     lxd.launch(
-        'pycloudlib-privileged', RELEASE,
+        name='pycloudlib-privileged',
+        image_id=RELEASE,
         config_dict={
             'security.nesting': 'true',
             'security.privileged': 'true'
@@ -127,7 +150,7 @@ def basic_lifecycle():
     """Demonstrate basic set of lifecycle operations with LXD."""
     lxd = pycloudlib.LXD('example-basic')
     name = 'pycloudlib-daily'
-    inst = lxd.launch(name, RELEASE)
+    inst = lxd.launch(name=name, image_id=RELEASE)
     inst.console_log()
 
     result = inst.execute('uptime')
@@ -149,6 +172,46 @@ def basic_lifecycle():
     inst.delete()
 
 
+def launch_virtual_machine():
+    """Demonstrate launching virtual machine scenario."""
+    lxd = pycloudlib.LXD('example-vm')
+
+    pub_key_path = "lxd-pubkey"
+    priv_key_path = "lxd-privkey"
+    pub_key, priv_key = lxd.create_key_pair()
+
+    with open(pub_key_path, "w") as f:
+        f.write(pub_key)
+
+    with open(priv_key_path, "w") as f:
+        f.write(priv_key)
+
+    lxd.use_key(
+        public_key_path=pub_key_path,
+        private_key_path=priv_key_path
+    )
+
+    image_id = lxd.released_image(release=RELEASE, is_vm=True)
+    name = 'pycloudlib-vm'
+    inst = lxd.launch(
+        name=name, image_id=image_id, is_vm=True)
+    print("Is vm: {}".format(inst.is_vm))
+    result = inst.execute("lsb_release -a")
+    print(result)
+    print(result.return_code)
+    print(result.ok)
+    print(result.failed)
+    print(bool(result))
+
+    inst_2 = lxd.get_instance(name)
+    print(inst_2.execute("lsb_release -a"))
+
+    inst.shutdown()
+    inst.start()
+    inst.restart()
+    inst.delete()
+
+
 def demo():
     """Show examples of using the LXD library."""
     basic_lifecycle()
@@ -156,6 +219,7 @@ def demo():
     launch_multiple()
     modify_instance()
     snapshot_instance()
+    launch_virtual_machine()
 
 
 if __name__ == '__main__':

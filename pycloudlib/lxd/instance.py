@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD instance."""
 import re
+import time
 
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import subp
@@ -10,20 +11,51 @@ class LXDInstance(BaseInstance):
     """LXD backed instance."""
 
     _type = 'lxd'
+    _is_vm = None
 
-    def __init__(self, name):
+    def __init__(self, name, key_pair=None):
         """Set up instance.
 
         Args:
             name: name of instance
+            key_pair: SSH key object
         """
-        super().__init__(key_pair=None)
+        super().__init__(key_pair=key_pair)
 
         self._name = name
 
     def __repr__(self):
         """Create string representation for class."""
         return 'LXDInstance(name={})'.format(self.name)
+
+    def _run_command(self, command, stdin):
+        """Run command in the instance."""
+        if self.key_pair:
+            return super()._run_command(command, stdin)
+
+        base_cmd = ['lxc', 'exec', "--user", "1000", self.name, '--']
+        return subp(base_cmd + list(command), rcs=None)
+
+    @property
+    def is_vm(self):
+        """Return boolean if vm type or not.
+
+        Will return False if unknown.
+
+        Returns:
+            boolean if virtual-machine
+        """
+        if self._is_vm is None:
+            result = subp(['lxc', 'info', self.name])
+
+            try:
+                info_type = re.findall(r'Type: (.*)', result)[0]
+            except IndexError:
+                return False
+
+            self._is_vm = bool(info_type == 'virtual-machine')
+
+        return self._is_vm
 
     @property
     def name(self):
@@ -38,8 +70,18 @@ class LXDInstance(BaseInstance):
             IP address assigned to instance.
 
         """
-        command = 'lxc list {} -c 4 --format csv'.format(self.name)
-        result = subp(command.split()).stdout
+        retries = 5
+
+        while retries != 0:
+            command = 'lxc list {} -c 4 --format csv'.format(self.name)
+            result = subp(command.split()).stdout
+
+            if result != '':
+                break
+
+            retries -= 1
+            time.sleep(20)
+
         ip_address = result.split()[0]
         return ip_address
 
@@ -170,14 +212,18 @@ class LXDInstance(BaseInstance):
         subp(['lxc', 'file', 'push', local_path,
               '%s%s' % (self.name, remote_path)])
 
-    def restart(self, wait=True):
+    def restart(self, wait=True, force=False, **kwargs):
         """Restart an instance.
 
         For LXD this means stopping the instance, and then starting it.
+
+        Args:
+            wait: boolean, wait for instance to restart
+            force: boolean, force instance to shutdown before restart
         """
         self._log.debug('restarting %s', self.name)
 
-        self.shutdown(wait=True)
+        self.shutdown(wait=True, force=force)
         self.start(wait=wait)
 
     def restore(self, snapshot_name):
@@ -190,17 +236,23 @@ class LXDInstance(BaseInstance):
                         self.name, snapshot_name)
         subp(['lxc', 'restore', self.name, snapshot_name])
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, force=False, **kwargs):
         """Shutdown instance.
 
         Args:
             wait: boolean, wait for instance to shutdown
+            force: boolean, force instance to shutdown
         """
         if self.state == 'Stopped':
             return
 
         self._log.debug('shutting down %s', self.name)
-        subp(['lxc', 'stop', self.name, '--force'])
+        cmd = ["lxc", "stop", self.name]
+
+        if force:
+            cmd.append("--force")
+
+        subp(cmd)
 
         if wait:
             self.wait_for_stop()
@@ -237,7 +289,7 @@ class LXDInstance(BaseInstance):
             snapshot_name: name to call snapshot
         """
         self.clean()
-        self.shutdown()
+        self.shutdown(wait=True)
         if snapshot_name is None:
             snapshot_name = '{}-snapshot'.format(self.name)
         cmd = ['lxc', 'publish', self.name, '--alias', snapshot_name]
@@ -272,3 +324,42 @@ class LXDInstance(BaseInstance):
 
         Not used for LXD.
         """
+
+    def _wait_for_cloudinit(self, *, raise_on_failure: bool):
+        """Wait until cloud-init has finished.
+
+        If the instance is a virtual machine, we need to wait for the
+        lxd-agent to be ready before getting the cloud-init status.
+        To do that, we retry on vm instances if raise_on_failure
+        is specified.
+
+        :param raise_on_failure:
+            When `True`, if the process waiting for cloud-init exits non-zero
+            then this method will raise an `OSError`.
+        """
+        if self.is_vm and raise_on_failure:
+            retries = [30, 45, 60, 75, 90, 105]
+
+            for sleep_time in retries:
+                try:
+                    super()._wait_for_cloudinit(
+                        raise_on_failure=raise_on_failure)
+                    break
+                except OSError as e:
+                    if "Failed to connect to lxd-agent" in str(e):
+                        time.sleep(sleep_time)
+                        continue
+
+                    # We are getting those types of messages when booting
+                    # lxd vms. However, if we wait a moment before trying
+                    # again, the error fades away. That's why we are treating
+                    # it here.
+                    print("cloud-init failed to start: out: ......." in str(e))
+                    if "cloud-init failed to start: out: ......." in str(e):
+                        time.sleep(sleep_time)
+                        continue
+
+                    raise e
+        else:
+            super()._wait_for_cloudinit(
+                raise_on_failure=raise_on_failure)

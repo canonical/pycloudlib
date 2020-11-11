@@ -83,7 +83,7 @@ class OciInstance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def restart(self, wait=True):
+    def restart(self, wait=True, **kwargs):
         """Restart the instance.
 
         Args:
@@ -93,7 +93,7 @@ class OciInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
 
         Args:

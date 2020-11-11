@@ -124,7 +124,7 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def restart(self, wait=True):
+    def restart(self, wait=True, **kwargs):
         """Restart the instance."""
         self._log.debug('restarting instance %s', self._instance.id)
 
@@ -183,7 +183,7 @@ class EC2Instance(BaseInstance):
         if current_boot_id == pre_reboot_boot_id:
             raise RuntimeError("Reboot failed (boot_id didn't change)")
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
 
         Args:

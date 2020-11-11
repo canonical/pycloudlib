@@ -26,6 +26,16 @@ class KVMInstance(BaseInstance):
         """Create string representation for class."""
         return '{}(name={})'.format(self.__class__.__name__, self.name)
 
+    def _run_command(self, command, stdin):
+        """Run command in the instance."""
+        # multipass handling of redirects is buggy, so we don't bind
+        # stdin to /dev/null for the moment (shortcircuit_stdin=False).
+        # See: https://github.com/CanonicalLtd/multipass/issues/667
+        base_cmd = ['multipass', 'exec', self.name, '--']
+        return subp(
+            base_cmd + list(command), rcs=None, shortcircuit_stdin=False
+        )
+
     @property
     def name(self):
         """Return instance name."""
@@ -103,12 +113,12 @@ class KVMInstance(BaseInstance):
         if result.failed:
             raise RuntimeError(result.stderr)
 
-    def restart(self, wait=True):
+    def restart(self, wait=True, **kwargs):
         """Restart an instance."""
         self._log.debug('restarting %s', self.name)
         subp(['multipass', 'restart', self.name])
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait=True, **kwargs):
         """Shutdown instance.
 
         Args:
