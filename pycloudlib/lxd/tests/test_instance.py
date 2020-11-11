@@ -22,6 +22,8 @@ class TestWaitForCloudinit:
         m_wait_for_cloudinit.side_effect = [
             OSError("Failed to connect to lxd-agent"),
             OSError("Failed to connect to lxd-agent"),
+            OSError(
+                "cloud-init failed to start: out: ................... error"),
             OSError("cloud-init error")
         ]
 
@@ -31,8 +33,9 @@ class TestWaitForCloudinit:
         assert m_wait_for_cloudinit.call_args_list == [
             mock.call(raise_on_failure=True),
             mock.call(raise_on_failure=True),
+            mock.call(raise_on_failure=True),
             mock.call(raise_on_failure=True)
         ]
-        assert m_sleep.call_count == 2
-        assert m_wait_for_cloudinit.call_count == 3
+        assert m_wait_for_cloudinit.call_count == 4
+        assert m_sleep.call_count == 3
         assert "cloud-init error" == str(excinfo.value)
