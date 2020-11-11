@@ -125,7 +125,21 @@ class LXD(BaseCloud):
             The existing instance as a LXD instance object
 
         """
-        return LXDInstance(instance_id)
+        instance = LXDInstance(instance_id)
+
+        if self.key_pair:
+            local_path = "/tmp/{}-authorized-keys".format(instance_id)
+
+            instance.pull_file(
+                remote_path="/home/ubuntu/.ssh/authorized_keys",
+                local_path=local_path
+            )
+
+            with open(local_path, "r") as f:
+                if self.key_pair.public_key_content in f.read():
+                    instance.key_pair = self.key_pair
+
+        return instance
 
     def create_key_pair(self):
         """Create and set a ssh key pair to be used by the lxd instance.
