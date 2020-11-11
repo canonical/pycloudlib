@@ -206,9 +206,9 @@ def launch_virtual_machine():
     inst_2 = lxd.get_instance(name)
     print(inst_2.execute("lsb_release -a"))
 
-    inst.shutdown(force=False)
+    inst.shutdown()
     inst.start()
-    inst.restart(force=False)
+    inst.restart()
     inst.delete()
 
 
