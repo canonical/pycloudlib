@@ -354,7 +354,6 @@ class LXDInstance(BaseInstance):
                     # lxd vms. However, if we wait a moment before trying
                     # again, the error fades away. That's why we are treating
                     # it here.
-                    print("cloud-init failed to start: out: ......." in str(e))
                     if "cloud-init failed to start: out: ......." in str(e):
                         time.sleep(sleep_time)
                         continue
