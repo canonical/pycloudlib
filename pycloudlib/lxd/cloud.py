@@ -36,7 +36,7 @@ class LXD(BaseCloud):
     _daily_remote = 'ubuntu-daily'
     _releases_remote = 'ubuntu'
 
-    XENIAL_VM_IMAGE = "images:ubuntu/16.04/cloud"
+    XENIAL_IMAGE_VSOCK_SUPPORT = "images:ubuntu/16.04/cloud"
     VM_HASH_KEY = "combined_disk1-img_sha256"
     TRUSTY_CONTAINER_HASH_KEY = "combined_rootxz_sha256"
     CONTAINER_HASH_KEY = "combined_squashfs_sha256"
@@ -388,10 +388,10 @@ class LXD(BaseCloud):
             string, LXD fingerprint of latest image
 
         """
-        if is_vm and release == "xenial":
+        if release == "xenial":
             # xenial needs to launch images:ubuntu/16.04/cloud
             # because it contains the HWE kernel which has vhost-vsock support
-            return self.XENIAL_VM_IMAGE
+            return self.XENIAL_IMAGE_VSOCK_SUPPORT
 
         if is_vm and release == "trusty":
             # trusty is not supported on LXD vms
