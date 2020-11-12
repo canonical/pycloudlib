@@ -67,6 +67,7 @@ class TestWait:
         with mock.patch.multiple(
             instance,
             _wait_for_instance_start=mock.DEFAULT,
+            _wait_for_execute=mock.DEFAULT,
             _wait_for_cloudinit=mock.DEFAULT,
         ) as mocks:
             if raise_on_cloudinit_failure is not None:
@@ -77,12 +78,33 @@ class TestWait:
                 instance.wait()
 
         assert 1 == mocks["_wait_for_instance_start"].call_count
+        assert 1 == mocks["_wait_for_execute"].call_count
         assert 1 == mocks["_wait_for_cloudinit"].call_count
         kwargs = mocks["_wait_for_cloudinit"].call_args[1]
         if raise_on_cloudinit_failure is None:
             # We expect True by default
             raise_on_cloudinit_failure = True
         assert kwargs["raise_on_failure"] == raise_on_cloudinit_failure
+
+    @mock.patch.object(BaseInstance, "execute")
+    @mock.patch("pycloudlib.instance.time.sleep")
+    def test_wait_execute_failure(
+        self, m_sleep, m_execute, concrete_instance_cls
+    ):
+        """Test wait calls when execute command fails."""
+        instance = concrete_instance_cls(key_pair=None)
+        m_execute.return_value = Result(stdout="", stderr="", return_code=1)
+        expected_msg = "{}\n{}".format(
+            "Instance can't be reached", "Failed to execute whoami command"
+        )
+        expected_call_args = [mock.call("whoami")] * 11
+
+        with pytest.raises(OSError) as excinfo:
+            instance.wait()
+
+        assert expected_msg == str(excinfo.value)
+        assert expected_call_args == m_execute.call_args_list
+        assert m_sleep.call_count == 10
 
 
 class TestWaitForCloudinit:
@@ -162,6 +184,11 @@ class TestWaitForCloudinit:
 
         def side_effect(cmd, *_args, **_kwargs):
             stdout = ""
+            if "whoami" == cmd:
+                # The whoami call should be successful and inform us
+                # that the instance can be reached
+                return Result(stdout=stdout, stderr="", return_code=0)
+
             if "--help" in cmd:
                 # The --help call should contain the appropriate output to
                 # select --wait or not, and is unsuccessful if it doesn't (to

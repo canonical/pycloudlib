@@ -99,6 +99,7 @@ class BaseInstance(ABC):
             complete successfully.
         """
         self._wait_for_instance_start()
+        self._wait_for_execute()
         self._wait_for_cloudinit(raise_on_failure=raise_on_cloudinit_failure)
 
     @abstractmethod
@@ -365,6 +366,32 @@ class BaseInstance(ABC):
         self._tmp_count += 1
         return path
 
+    def _wait_for_execute(self):
+        """Wait until we can execute a command in the instance."""
+        self._log.debug('_wait_for_execute to complete')
+
+        test_instance_command = "whoami"
+        result = self.execute(test_instance_command)
+        if result.failed:
+            retries = 10
+            while retries:
+                result = self.execute(test_instance_command)
+
+                if result.ok:
+                    break
+
+                retries -= 1
+                time.sleep(10)
+
+        if result.failed:
+            raise OSError(
+                "{}\n{}".format(
+                    "Instance can't be reached",
+                    "Failed to execute {} command".format(
+                        test_instance_command)
+                )
+            )
+
     def _wait_for_cloudinit(self, *, raise_on_failure: bool):
         """Wait until cloud-init has finished.
 
@@ -373,7 +400,9 @@ class BaseInstance(ABC):
             then this method will raise an `OSError`.
         """
         self._log.debug('_wait_for_cloudinit to complete')
-        has_wait = "--wait" in self.execute("cloud-init status --help").stdout
+
+        result = self.execute("cloud-init status --help")
+        has_wait = "--wait" in result.stdout
 
         if has_wait:
             cmd = ["cloud-init", "status", "--wait", "--long"]
