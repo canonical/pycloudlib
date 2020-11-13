@@ -238,11 +238,19 @@ class LXD(BaseCloud):
                 profile_list = [profile_name]
 
         if self.key_pair:
+            pub_key = self.key_pair.public_key_content
+
+            # When we create keys through paramiko, we end up not
+            # having the key type on the public key content. Because
+            # of that, we are manually adding the ssh-rsa type into it
+            if "ssh-" not in pub_key:
+                pub_key = "ssh-rsa {}".format(pub_key)
+
             ssh_user_data = textwrap.dedent(
                 """\
                 ssh_authorized_keys:
                     - {}
-                """.format(self.key_pair.public_key_content)
+                """.format(pub_key)
             )
 
             if user_data:
