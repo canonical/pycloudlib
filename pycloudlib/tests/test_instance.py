@@ -123,9 +123,12 @@ class TestWaitForCloudinit:
 
         def side_effect(cmd, *_args, **_kwargs):
             stdout = ""
+            return_code = 0
             if "--help" in cmd:
+                # `cloud-init status --help` on trusty returns non-zero
+                return_code = 2
                 stdout = "help content without wait"
-            return Result(stdout=stdout, stderr="", return_code=0)
+            return Result(stdout=stdout, stderr="", return_code=return_code)
 
         instance = concrete_instance_cls(key_pair=None)
         with mock.patch.object(instance, "execute") as m_execute:
@@ -160,11 +163,16 @@ class TestWaitForCloudinit:
         def side_effect(cmd, *_args, **_kwargs):
             stdout = ""
             if "--help" in cmd:
-                # The --help call should be successful, and contain the
-                # appropriate output to select --wait or not
+                # The --help call should contain the appropriate output to
+                # select --wait or not, and is unsuccessful if it doesn't (to
+                # mirror trusty's behaviour)
+                return_code = 2
                 if has_wait:
+                    return_code = 0
                     stdout = "help content containing --wait"
-                return Result(stdout=stdout, stderr="", return_code=0)
+                return Result(
+                    stdout=stdout, stderr="", return_code=return_code
+                )
             # Any other call should fail
             return Result(stdout="fail_out", stderr="fail_err", return_code=1)
 
