@@ -241,7 +241,7 @@ class LXD(BaseCloud):
             ssh_user_data = textwrap.dedent(
                 """\
                 ssh_authorized_keys:
-                    - ssh-rsa {}
+                    - {}
                 """.format(self.key_pair.public_key_content)
             )
 
