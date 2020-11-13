@@ -1,0 +1,30 @@
+language: python
+dist: bionic
+
+
+install:
+  # Required so `git describe` will definitely find a tag; see
+  # https://github.com/travis-ci/travis-ci/issues/7422
+  - git fetch --unshallow
+
+matrix:
+  fast_finish: true
+  include:
+    - name: run-lxd-example
+      install:
+          - pip install -r requirements.txt
+      script:
+          - sudo apt-get remove --yes --purge lxd lxd-client
+          - sudo rm -Rf /var/lib/lxd
+          - sudo snap install lxd
+          - sudo lxd init --auto
+          - sudo usermod -a -G lxd $USER
+          - sg lxd -c "python examples/lxd.py"
+    - name: run-cloudinit-integration-tests
+      install:
+          - pip install -r requirements.txt
+          - pip install pytest
+      script:
+          - git clone https://github.com/canonical/cloud-init.git
+          - cd cloud-init
+          - pytest tests/integration_tests/
