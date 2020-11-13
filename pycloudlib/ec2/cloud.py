@@ -103,7 +103,7 @@ class EC2(BaseCloud):
         image = self._find_image(release, arch, root_store)
         return image['id']
 
-    def image_serial(self, image_id):
+    def image_serial(self, image_id, **kwargs):
         """Find the image serial of a given EC2 image ID.
 
         Args:

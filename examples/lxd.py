@@ -192,6 +192,8 @@ def launch_virtual_machine():
     )
 
     image_id = lxd.released_image(release=RELEASE, is_vm=True)
+    image_serial = lxd.image_serial(image_id, is_vm=True)
+    print("Image serial: {}".format(image_serial))
     name = 'pycloudlib-vm'
     inst = lxd.launch(
         name=name, image_id=image_id, is_vm=True)

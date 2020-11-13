@@ -448,11 +448,13 @@ class LXD(BaseCloud):
 
         return image_info
 
-    def image_serial(self, image_id):
+    def image_serial(self, image_id, is_vm=False, **kwargs):
         """Find the image serial of a given LXD image.
 
         Args:
             image_id: string, LXD image fingerprint
+            is_vm: boolean, specify if the image_id represents a
+                   virtual machine
 
         Returns:
             string, serial of latest image
@@ -461,7 +463,7 @@ class LXD(BaseCloud):
         self._log.debug(
             'finding image serial for LXD Ubuntu image %s', image_id)
 
-        image_info = self._image_info(image_id)
+        image_info = self._image_info(image_id, is_vm=is_vm)
 
         return image_info[0]['version_name']
 

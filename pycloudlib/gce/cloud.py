@@ -92,7 +92,7 @@ class GCE(BaseCloud):
         self._log.debug('finding daily Ubuntu image for %s', release)
         return self._find_image(release, daily=True, arch=arch)
 
-    def image_serial(self, image_id):
+    def image_serial(self, image_id, **kwargs):
         """Find the image serial of the latest daily image for a particular release.
 
         Args:
