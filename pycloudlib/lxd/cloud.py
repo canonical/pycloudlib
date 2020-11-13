@@ -399,7 +399,7 @@ class LXD(BaseCloud):
             string, LXD fingerprint of latest image
 
         """
-        if release == "xenial":
+        if is_vm and release == "xenial":
             # xenial needs to launch images:ubuntu/16.04/cloud
             # because it contains the HWE kernel which has vhost-vsock support
             return self.XENIAL_IMAGE_VSOCK_SUPPORT
