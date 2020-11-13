@@ -149,6 +149,9 @@ def launch_options():
 def basic_lifecycle():
     """Demonstrate basic set of lifecycle operations with LXD."""
     lxd = pycloudlib.LXD('example-basic')
+    inst = lxd.launch(image_id=RELEASE)
+    inst.delete()
+
     name = 'pycloudlib-daily'
     inst = lxd.launch(name=name, image_id=RELEASE)
     inst.console_log()

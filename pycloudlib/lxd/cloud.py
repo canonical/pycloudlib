@@ -221,7 +221,10 @@ class LXD(BaseCloud):
             release = self._daily_remote + ':' + release
 
         self._log.debug("Full release to launch: '%s'", release)
-        cmd = ['lxc', 'init', release, name]
+        cmd = ['lxc', 'init', release]
+
+        if name:
+            cmd.append(name)
 
         if is_vm:
             cmd.append('--vm')
