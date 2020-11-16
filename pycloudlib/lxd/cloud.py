@@ -3,6 +3,7 @@
 import io
 import re
 import textwrap
+from abc import abstractmethod
 import paramiko
 
 from pycloudlib.cloud import BaseCloud
@@ -29,17 +30,12 @@ class UnsupportedReleaseException(Exception):
         )
 
 
-class LXD(BaseCloud):
-    """LXD Cloud Class."""
+class BaseLXD(BaseCloud):
+    """LXD Base Cloud Class."""
 
     _type = 'lxd'
     _daily_remote = 'ubuntu-daily'
     _releases_remote = 'ubuntu'
-
-    XENIAL_IMAGE_VSOCK_SUPPORT = "images:ubuntu/16.04/cloud"
-    VM_HASH_KEY = "combined_disk1-img_sha256"
-    TRUSTY_CONTAINER_HASH_KEY = "combined_rootxz_sha256"
-    CONTAINER_HASH_KEY = "combined_squashfs_sha256"
 
     def __init__(self, tag, timestamp_suffix=True):
         """Initialize LXD cloud class.
@@ -156,45 +152,14 @@ class LXD(BaseCloud):
         pub_key = key.get_base64()
         key.write_private_key(priv_str, password=None)
 
-        return pub_key, priv_str.getvalue()
-
-    def _extract_release_from_image_id(self, image_id, is_vm=False):
-        """Extract the base release from the image_id.
-
-        Args:
-            image_id: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
-
-        Returns:
-            A string contaning the base release from the image_id that is used
-            to launch the image.
-        """
-        release_regex = (
-            "(.*ubuntu.*(?P<release>(" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP) + "|" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP.values()) +
-            ")).*)"
-        )
-        ubuntu_match = re.match(release_regex, image_id)
-        if ubuntu_match:
-            release = ubuntu_match.groupdict()["release"]
-            for codename, version in UBUNTU_RELEASE_VERSION_MAP.items():
-                if release in (codename, version):
-                    return codename
-
-        # If we have a hash in the image_id we need to query simplestreams to
-        # identify the release.
-        return self._image_info(image_id, is_vm)[0]["release"]
+        return "ssh-rsa {}".format(pub_key), priv_str.getvalue()
 
     # pylint: disable=R0914,R0912,R0915
-    def init(
+    def _prepare_command(
             self, name, release, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
-            config_dict=None, is_vm=False):
-        """Init a container.
-
-        This will initialize a container, but not launch or start it.
-        If no remote is specified pycloudlib default to daily images.
+            config_dict=None):
+        """Build a the command to be used to launch the LXD instance.
 
         Args:
             name: string, what to call the instance
@@ -207,12 +172,10 @@ class LXD(BaseCloud):
             profile_list: list, optional, profile(s) to use
             user_data: used by cloud-init to run custom scripts/configuration
             config_dict: dict, optional, configuration values to pass
-            is_vm: boolean, optional, defines if a virtual machine will
-                   be created
 
         Returns:
-            The created LXD instance object
-
+            A list of string representing the command to be run to
+            launch the LXD instance.
         """
         profile_list = profile_list if profile_list else []
         config_dict = config_dict if config_dict else {}
@@ -226,34 +189,12 @@ class LXD(BaseCloud):
         if name:
             cmd.append(name)
 
-        if is_vm:
-            cmd.append('--vm')
-            base_release = self._extract_release_from_image_id(release, is_vm)
-
-            if not profile_list:
-                profile_name = "pycloudlib-vm-{}".format(base_release)
-
-                self.create_profile(
-                    profile_name=profile_name,
-                    profile_config=base_vm_profiles[base_release]
-                )
-
-                profile_list = [profile_name]
-
         if self.key_pair:
-            pub_key = self.key_pair.public_key_content
-
-            # When we create keys through paramiko, we end up not
-            # having the key type on the public key content. Because
-            # of that, we are manually adding the ssh-rsa type into it
-            if "ssh-" not in pub_key:
-                pub_key = "ssh-rsa {}".format(pub_key)
-
             ssh_user_data = textwrap.dedent(
                 """\
                 ssh_authorized_keys:
                     - {}
-                """.format(pub_key)
+                """.format(self.key_pair.public_key_content)
             )
 
             if user_data:
@@ -297,18 +238,58 @@ class LXD(BaseCloud):
             cmd.append('--config')
             cmd.append('user.user-data=%s' % user_data)
 
-        self._log.debug('Creating new instance...')
+        return cmd
+
+    def init(
+            self, name, release, ephemeral=False, network=None, storage=None,
+            inst_type=None, profile_list=None, user_data=None,
+            config_dict=None):
+        """Init a container.
+
+        This will initialize a container, but not launch or start it.
+        If no remote is specified pycloudlib default to daily images.
+
+        Args:
+            name: string, what to call the instance
+            release: string, [<remote>:]<release>, what release to launch
+                     (default remote: )
+            ephemeral: boolean, ephemeral, otherwise persistent
+            network: string, optional, network name to use
+            storage: string, optional, storage name to use
+            inst_type: string, optional, type to use
+            profile_list: list, optional, profile(s) to use
+            user_data: used by cloud-init to run custom scripts/configuration
+            config_dict: dict, optional, configuration values to pass
+
+        Returns:
+            The created LXD instance object
+
+        """
+        cmd = self._prepare_command(
+            name=name,
+            release=release,
+            ephemeral=ephemeral,
+            network=network,
+            storage=storage,
+            inst_type=inst_type,
+            profile_list=profile_list,
+            user_data=user_data,
+            config_dict=config_dict
+        )
+
         print(cmd)
         result = subp(cmd)
+
         if not name:
             name = result.split('Instance name is: ')[1]
+
         self._log.debug('Created %s', name)
 
         return LXDInstance(name, self.key_pair)
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
                name=None, ephemeral=False, network=None, storage=None,
-               profile_list=None, config_dict=None, is_vm=False, **kwargs):
+               profile_list=None, config_dict=None, **kwargs):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
@@ -325,27 +306,32 @@ class LXD(BaseCloud):
             storage: string, storage name to use
             profile_list: list, profile(s) to use
             config_dict: dict, configuration values to pass
-            is_vm: boolean, optional, defines if a virtual machine will
-                   be created
 
         Returns:
             The created LXD instance object
 
         """
-        instance = self.init(name, image_id, ephemeral, network,
-                             storage, instance_type, profile_list, user_data,
-                             config_dict, is_vm)
+        instance = self.init(
+            name=name,
+            release=image_id,
+            ephemeral=ephemeral,
+            network=network,
+            storage=storage,
+            inst_type=instance_type,
+            profile_list=profile_list,
+            user_data=user_data,
+            config_dict=config_dict
+        )
         instance.start(wait)
+
         return instance
 
-    def released_image(self, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False):
+    def released_image(self, release, arch=LOCAL_UBUNTU_ARCH):
         """Find the LXD fingerprint of the latest released image.
 
         Args:
             release: string, Ubuntu release to look for
             arch: string, architecture to use
-            is_vm: boolean, specify if the image_id represents a
-                   virtual machine
 
         Returns:
             string, LXD fingerprint of latest image
@@ -356,18 +342,15 @@ class LXD(BaseCloud):
             remote=self._releases_remote,
             daily=False,
             release=release,
-            arch=arch,
-            is_vm=is_vm
+            arch=arch
         )
 
-    def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False):
+    def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH):
         """Find the LXD fingerprint of the latest daily image.
 
         Args:
             release: string, Ubuntu release to look for
             arch: string, architecture to use
-            is_vm: boolean, specify if the image_id represents a
-                   virtual machine
 
         Returns:
             string, LXD fingerprint of latest image
@@ -378,12 +361,30 @@ class LXD(BaseCloud):
             remote=self._daily_remote,
             daily=True,
             release=release,
-            arch=arch,
-            is_vm=is_vm
+            arch=arch
         )
 
+    @abstractmethod
+    def _get_image_hash_key(self, release=None):
+        """Get the correct hash key to be used to launch LXD instance.
+
+        When query simplestreams for image information, we receive a
+        dictionary of metadata. In that metadata we have the necessary
+        information to allows us to launch the required image. However,
+        we must know which key to use in the metadata dict to allows
+        to launch the image.
+
+        Args:
+            release: string, optional, Ubuntu release
+
+        Returns
+            A string specifying which key of the metadata dictionary
+            should be used to launch the image.
+        """
+        raise NotImplementedError
+
     def _search_for_image(
-        self, remote, daily, release, arch=LOCAL_UBUNTU_ARCH, is_vm=False
+        self, remote, daily, release, arch=LOCAL_UBUNTU_ARCH
     ):
         """Find the LXD fingerprint in a given remote.
 
@@ -392,43 +393,22 @@ class LXD(BaseCloud):
             daily: boolean, search on daily remote
             release: string, Ubuntu release to look for
             arch: string, architecture to use
-            is_vm: boolean, specify if the image_id represents a
-                   virtual machine
 
         Returns:
             string, LXD fingerprint of latest image
 
         """
-        if is_vm and release == "xenial":
-            # xenial needs to launch images:ubuntu/16.04/cloud
-            # because it contains the HWE kernel which has vhost-vsock support
-            return self.XENIAL_IMAGE_VSOCK_SUPPORT
-
-        if is_vm and release == "trusty":
-            # trusty is not supported on LXD vms
-            raise UnsupportedReleaseException(
-                release="trusty",
-                is_vm=is_vm
-            )
-
         image_data = self._find_image(release, arch, daily=daily)
-
-        if is_vm:
-            image_hash_key = self.VM_HASH_KEY
-        elif release == "trusty":
-            image_hash_key = self.TRUSTY_CONTAINER_HASH_KEY
-        else:
-            image_hash_key = self.CONTAINER_HASH_KEY
+        image_hash_key = self._get_image_hash_key(release)
 
         return '%s:%s' % (remote, image_data[image_hash_key])
 
-    def _image_info(self, image_id, is_vm=False):
+    def _image_info(self, image_id, image_hash_key=None):
         """Find the image serial of a given LXD image.
 
         Args:
             image_id: string, LXD image fingerprint
-            is_vm: boolean, specify if the image_id represents a
-                   virtual machine
+            image_hash_key: string, the metadata key used to launch the image
 
         Returns:
             dict, image info available for the image_id
@@ -443,29 +423,19 @@ class LXD(BaseCloud):
             elif remote != self._daily_remote:
                 raise RuntimeError('Unknown remote: %s' % remote)
 
-        if is_vm:
-            image_hash_key = self.VM_HASH_KEY
-        else:
-            image_hash_key = self.CONTAINER_HASH_KEY
+        if not image_hash_key:
+            image_hash_key = self._get_image_hash_key()
 
         filters = ['%s=%s' % (image_hash_key, image_id)]
         image_info = self._streams_query(filters, daily=daily)
 
-        if not image_info:
-            # If this is a trusty image, the hash key for it is different.
-            # We will perform a second query for this situation.
-            filters = ['%s=%s' % (self.TRUSTY_CONTAINER_HASH_KEY, image_id)]
-            image_info = self._streams_query(filters, daily=daily)
-
         return image_info
 
-    def image_serial(self, image_id, is_vm=False, **kwargs):
+    def image_serial(self, image_id):
         """Find the image serial of a given LXD image.
 
         Args:
             image_id: string, LXD image fingerprint
-            is_vm: boolean, specify if the image_id represents a
-                   virtual machine
 
         Returns:
             string, serial of latest image
@@ -474,7 +444,7 @@ class LXD(BaseCloud):
         self._log.debug(
             'finding image serial for LXD Ubuntu image %s', image_id)
 
-        image_info = self._image_info(image_id, is_vm=is_vm)
+        image_info = self._image_info(image_id)
 
         return image_info[0]['version_name']
 
@@ -524,3 +494,220 @@ class LXD(BaseCloud):
         ]
 
         return self._streams_query(filters, daily)[0]
+
+
+class LXD(BaseLXD):
+    """LXD Containers Cloud Class."""
+
+    TRUSTY_CONTAINER_HASH_KEY = "combined_rootxz_sha256"
+    CONTAINER_HASH_KEY = "combined_squashfs_sha256"
+
+    def _get_image_hash_key(self, release=None):
+        """Get the correct hash key to be used to launch LXD instance.
+
+        When query simplestreams for image information, we receive a
+        dictionary of metadata. In that metadata we have the necessary
+        information to allows us to launch the required image. However,
+        we must know which key to use in the metadata dict to allows
+        to launch the image.
+
+        Args:
+            release: string, optional, Ubuntu release
+
+        Returns
+            A string specifying which key of the metadata dictionary
+            should be used to launch the image.
+        """
+        if release == "trusty":
+            return self.TRUSTY_CONTAINER_HASH_KEY
+
+        return self.CONTAINER_HASH_KEY
+
+    def _image_info(self, image_id, image_hash_key=None):
+        """Find the image serial of a given LXD image.
+
+        Args:
+            image_id: string, LXD image fingerprint
+            image_hash_key: string, the metadata key used to launch the image
+
+        Returns:
+            dict, image info available for the image_id
+
+        """
+        image_info = super()._image_info(
+            image_id=image_id,
+            image_hash_key=self.CONTAINER_HASH_KEY
+        )
+
+        if not image_info:
+            # If this is a trusty image, the hash key for it is different.
+            # We will perform a second query for this situation.
+            image_info = super()._image_info(
+                image_id=image_id,
+                image_hash_key=self.TRUSTY_CONTAINER_HASH_KEY
+            )
+
+        return image_info
+
+
+class LXDVirtualMachine(BaseLXD):
+    """LXD Virtual Machine Cloud Class."""
+
+    XENIAL_IMAGE_VSOCK_SUPPORT = "images:ubuntu/16.04/cloud"
+    VM_HASH_KEY = "combined_disk1-img_sha256"
+
+    def _extract_release_from_image_id(self, image_id):
+        """Extract the base release from the image_id.
+
+        Args:
+            image_id: string, [<remote>:]<release>, what release to launch
+                     (default remote: )
+
+        Returns:
+            A string containing the base release from the image_id that is used
+            to launch the image.
+        """
+        release_regex = (
+            "(.*ubuntu.*(?P<release>(" +
+            "|".join(UBUNTU_RELEASE_VERSION_MAP) + "|" +
+            "|".join(UBUNTU_RELEASE_VERSION_MAP.values()) +
+            ")).*)"
+        )
+        ubuntu_match = re.match(release_regex, image_id)
+        if ubuntu_match:
+            release = ubuntu_match.groupdict()["release"]
+            for codename, version in UBUNTU_RELEASE_VERSION_MAP.items():
+                if release in (codename, version):
+                    return codename
+
+        # If we have a hash in the image_id we need to query simplestreams to
+        # identify the release.
+        return self._image_info(image_id)[0]["release"]
+
+    def _build_necessary_profiles(self, release=None):
+        """Build necessary profiles to launch the LXD instance.
+
+        Args:
+            release: string, [<remote>:]<release>, what release to launch
+                     (default remote: )
+
+        Returns:
+            A list containing the profiles created
+        """
+        base_release = self._extract_release_from_image_id(release)
+        profile_name = "pycloudlib-vm-{}".format(base_release)
+
+        self.create_profile(
+            profile_name=profile_name,
+            profile_config=base_vm_profiles[base_release]
+        )
+
+        return [profile_name]
+
+    def _prepare_command(
+            self, name, release, ephemeral=False, network=None, storage=None,
+            inst_type=None, profile_list=None, user_data=None,
+            config_dict=None):
+        """Build a the command to be used to launch the LXD instance.
+
+        Args:
+            name: string, what to call the instance
+            release: string, [<remote>:]<release>, what release to launch
+                     (default remote: )
+            ephemeral: boolean, ephemeral, otherwise persistent
+            network: string, optional, network name to use
+            storage: string, optional, storage name to use
+            inst_type: string, optional, type to use
+            profile_list: list, optional, profile(s) to use
+            user_data: used by cloud-init to run custom scripts/configuration
+            config_dict: dict, optional, configuration values to pass
+
+        Returns:
+            A list of string representing the command to be run to
+            launch the LXD instance.
+        """
+        if not profile_list:
+            profile_list = self._build_necessary_profiles(release=release)
+
+        cmd = super()._prepare_command(
+            name=name,
+            release=release,
+            ephemeral=ephemeral,
+            network=network,
+            storage=storage,
+            inst_type=inst_type,
+            profile_list=profile_list,
+            user_data=user_data,
+            config_dict=config_dict
+        )
+
+        cmd.append("--vm")
+
+        return cmd
+
+    def _get_image_hash_key(self, release=None):
+        """Get the correct hash key to be used to launch LXD instance.
+
+        When query simplestreams for image information, we receive a
+        dictionary of metadata. In that metadata we have the necessary
+        information to allows us to launch the required image. However,
+        we must know which key to use in the metadata dict to allows
+        to launch the image.
+
+        Args:
+            release: string, optional, Ubuntu release
+
+        Returns
+            A string specifying which key of the metadata dictionary
+            should be used to launch the image.
+        """
+        return self.VM_HASH_KEY
+
+    def _search_for_image(
+        self, remote, daily, release, arch=LOCAL_UBUNTU_ARCH
+    ):
+        """Find the LXD fingerprint in a given remote.
+
+        Args:
+            remote: string, remote to prepend to image_id
+            daily: boolean, search on daily remote
+            release: string, Ubuntu release to look for
+            arch: string, architecture to use
+
+        Returns:
+            string, LXD fingerprint of latest image
+
+        """
+        if release == "xenial":
+            # xenial needs to launch images:ubuntu/16.04/cloud
+            # because it contains the HWE kernel which has vhost-vsock support
+            return self.XENIAL_IMAGE_VSOCK_SUPPORT
+
+        if release == "trusty":
+            # trusty is not supported on LXD vms
+            raise UnsupportedReleaseException(
+                release="trusty",
+                is_vm=True
+            )
+
+        return super()._search_for_image(
+            remote=remote,
+            daily=daily,
+            release=release,
+            arch=arch
+        )
+
+    def image_serial(self, image_id):
+        """Find the image serial of a given LXD image.
+
+        Args:
+            image_id: string, LXD image fingerprint
+
+        Returns:
+            string, serial of latest image
+
+        """
+        if image_id == self.XENIAL_IMAGE_VSOCK_SUPPORT:
+            return ""
+
+        return super().image_serial(image_id=image_id)

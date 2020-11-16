@@ -109,7 +109,7 @@ class OCI(BaseCloud):
         image_id = image_response.data[0].id
         return image_id
 
-    def image_serial(self, image_id, **kwargs):
+    def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
 
         Args:

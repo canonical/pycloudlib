@@ -156,7 +156,7 @@ class KVM(BaseCloud):  # pylint: disable=W0223
                            image_data['sha256'])
         return image
 
-    def image_serial(self, image_id, **kwargs):
+    def image_serial(self, image_id):
         """Find the image serial of a given LXD image.
 
         Args:

@@ -71,7 +71,7 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def image_serial(self, image_id, **kwargs):
+    def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
 
         Args:
