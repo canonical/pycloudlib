@@ -4,7 +4,8 @@ import io
 from unittest import mock
 import pytest
 
-from pycloudlib.lxd.cloud import (LXD, LXDVirtualMachine,
+from pycloudlib.lxd.cloud import (LXDContainer,
+                                  LXDVirtualMachine,
                                   UnsupportedReleaseException)
 
 
@@ -15,7 +16,7 @@ class TestProfileCreation:
     def test_create_profile_that_already_exists(self, m_subp):
         """Tests creating a profile that already exists."""
         m_subp.return_value = ["test_profile"]
-        cloud = LXD(tag="test")
+        cloud = LXDContainer(tag="test")
 
         fake_stdout = io.StringIO()
         with contextlib.redirect_stdout(fake_stdout):
@@ -36,7 +37,7 @@ class TestProfileCreation:
     ):
         """Tests creating an existing profile with force parameter."""
         m_subp.return_value = ["test_profile"]
-        cloud = LXD(tag="test")
+        cloud = LXDContainer(tag="test")
         profile_name = "test_profile"
         profile_config = "profile_config"
 
@@ -62,7 +63,7 @@ class TestProfileCreation:
     ):
         """Tests creating a new profile."""
         m_subp.return_value = ["other_profile"]
-        cloud = LXD(tag="test")
+        cloud = LXDContainer(tag="test")
         profile_name = "test_profile"
         profile_config = "profile_config"
 
@@ -82,7 +83,10 @@ class TestProfileCreation:
 
 
 class TestExtractReleaseFromImageId:
-    """Test LXDVirtualMachine _extract_release_from_image_id method."""
+    """Test LXDVirtualMachine _extract_release_from_image_id method.
+
+    This method should only be executed by LXDVirtualMachine instances.
+    """
 
     @pytest.mark.parametrize(
         "image_id, expected_release",

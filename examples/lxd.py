@@ -19,7 +19,7 @@ def snapshot_instance():
     instance to the snapshot level.
     Finally, launch another instance from the snapshot of the instance.
     """
-    lxd = pycloudlib.LXD('example-snapshot')
+    lxd = pycloudlib.LXDContainer('example-snapshot')
     inst = lxd.launch(name='pycloudlib-snapshot-base', image_id=RELEASE)
 
     snapshot_name = 'snapshot'
@@ -43,7 +43,7 @@ def modify_instance():
     Once started the instance demonstrates some interactions with the
     instance.
     """
-    lxd = pycloudlib.LXD('example-modify')
+    lxd = pycloudlib.LXDContainer('example-modify')
 
     inst = lxd.init('pycloudlib-modify-inst', RELEASE)
     inst.edit('limits.memory', '3GB')
@@ -64,7 +64,7 @@ def launch_multiple():
     waiting for the instance to start each time. Note that the
     wait_for_delete method is not used, as LXD does not do any waiting.
     """
-    lxd = pycloudlib.LXD('example-multiple')
+    lxd = pycloudlib.LXDContainer('example-multiple')
 
     instances = []
     for num in range(3):
@@ -97,7 +97,7 @@ def launch_options():
 
     Finally, an instance with custom configurations options.
     """
-    lxd = pycloudlib.LXD('example-launch')
+    lxd = pycloudlib.LXDContainer('example-launch')
     kvm_profile = textwrap.dedent(
         """\
         devices:
@@ -148,7 +148,7 @@ def launch_options():
 
 def basic_lifecycle():
     """Demonstrate basic set of lifecycle operations with LXD."""
-    lxd = pycloudlib.LXD('example-basic')
+    lxd = pycloudlib.LXDContainer('example-basic')
     inst = lxd.launch(image_id=RELEASE)
     inst.delete()
 

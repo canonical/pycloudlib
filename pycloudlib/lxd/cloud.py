@@ -4,6 +4,7 @@ import io
 import re
 import textwrap
 from abc import abstractmethod
+import warnings
 import paramiko
 
 from pycloudlib.cloud import BaseCloud
@@ -30,7 +31,7 @@ class UnsupportedReleaseException(Exception):
         )
 
 
-class BaseLXD(BaseCloud):
+class _BaseLXD(BaseCloud):
     """LXD Base Cloud Class."""
 
     _type = 'lxd'
@@ -149,10 +150,10 @@ class BaseLXD(BaseCloud):
         key = paramiko.RSAKey.generate(4096)
         priv_str = io.StringIO()
 
-        pub_key = key.get_base64()
+        pub_key = "{} {}".format(key.get_name(), key.get_base64())
         key.write_private_key(priv_str, password=None)
 
-        return "ssh-rsa {}".format(pub_key), priv_str.getvalue()
+        return pub_key, priv_str.getvalue()
 
     # pylint: disable=R0914,R0912,R0915
     def _prepare_command(
@@ -496,7 +497,7 @@ class BaseLXD(BaseCloud):
         return self._streams_query(filters, daily)[0]
 
 
-class LXD(BaseLXD):
+class LXDContainer(_BaseLXD):
     """LXD Containers Cloud Class."""
 
     TRUSTY_CONTAINER_HASH_KEY = "combined_rootxz_sha256"
@@ -550,7 +551,16 @@ class LXD(BaseLXD):
         return image_info
 
 
-class LXDVirtualMachine(BaseLXD):
+class LXD(LXDContainer):
+    """Old LXD Container Cloud Class (Kept for compatibility issues)."""
+
+    def __init__(self, *args, **kwargs):
+        """Run LXDContainer constructor."""
+        warnings.warn("LXD class is deprecated; use LXDContainer instead.")
+        super().__init__(*args, **kwargs)
+
+
+class LXDVirtualMachine(_BaseLXD):
     """LXD Virtual Machine Cloud Class."""
 
     XENIAL_IMAGE_VSOCK_SUPPORT = "images:ubuntu/16.04/cloud"
@@ -681,6 +691,10 @@ class LXDVirtualMachine(BaseLXD):
         if release == "xenial":
             # xenial needs to launch images:ubuntu/16.04/cloud
             # because it contains the HWE kernel which has vhost-vsock support
+            self._log.debug(
+                "Xenial needs to use %s image because of lxd-agent support",
+                self.XENIAL_IMAGE_VSOCK_SUPPORT
+            )
             return self.XENIAL_IMAGE_VSOCK_SUPPORT
 
         if release == "trusty":
@@ -708,6 +722,6 @@ class LXDVirtualMachine(BaseLXD):
 
         """
         if image_id == self.XENIAL_IMAGE_VSOCK_SUPPORT:
-            return ""
+            return None
 
         return super().image_serial(image_id=image_id)
