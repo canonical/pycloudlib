@@ -138,7 +138,8 @@ class BaseInstance(ABC):
         """Run command in the instance."""
         return self._ssh(list(command), stdin=stdin)
 
-    def execute(self, command, stdin=None, description=None, **kwargs):
+    def execute(self, command, stdin=None, description=None, *, use_sudo=False,
+                **kwargs):
         """Execute command in instance, recording output, error and exit code.
 
         Assumes functional networking and execution with the target filesystem
@@ -150,6 +151,7 @@ class BaseInstance(ABC):
                      `['sh', '-c', command]`
             stdin: bytes content for standard in
             description: purpose of command
+            use_sudo: boolean to run the command as sudo
 
         Returns:
             Result object
@@ -157,6 +159,8 @@ class BaseInstance(ABC):
         """
         if isinstance(command, str):
             command = ['sh', '-c', command]
+        if use_sudo:
+            command = ['sudo', '--'] + command
 
         self._log.info('executing: %s', shell_quote(command))
         if description:
