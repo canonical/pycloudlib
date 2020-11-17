@@ -160,7 +160,7 @@ class BaseInstance(ABC):
         if isinstance(command, str):
             command = ['sh', '-c', command]
         if use_sudo:
-            command.insert(0, 'sudo')
+            command = ['sudo', '--'] + command
 
         self._log.info('executing: %s', shell_quote(command))
         if description:
