@@ -4,7 +4,9 @@ import io
 from unittest import mock
 import pytest
 
-from pycloudlib.lxd.cloud import LXD, UnsupportedReleaseException
+from pycloudlib.lxd.cloud import (LXDContainer,
+                                  LXDVirtualMachine,
+                                  UnsupportedReleaseException)
 
 
 class TestProfileCreation:
@@ -14,7 +16,7 @@ class TestProfileCreation:
     def test_create_profile_that_already_exists(self, m_subp):
         """Tests creating a profile that already exists."""
         m_subp.return_value = ["test_profile"]
-        cloud = LXD(tag="test")
+        cloud = LXDContainer(tag="test")
 
         fake_stdout = io.StringIO()
         with contextlib.redirect_stdout(fake_stdout):
@@ -35,7 +37,7 @@ class TestProfileCreation:
     ):
         """Tests creating an existing profile with force parameter."""
         m_subp.return_value = ["test_profile"]
-        cloud = LXD(tag="test")
+        cloud = LXDContainer(tag="test")
         profile_name = "test_profile"
         profile_config = "profile_config"
 
@@ -61,7 +63,7 @@ class TestProfileCreation:
     ):
         """Tests creating a new profile."""
         m_subp.return_value = ["other_profile"]
-        cloud = LXD(tag="test")
+        cloud = LXDContainer(tag="test")
         profile_name = "test_profile"
         profile_config = "profile_config"
 
@@ -81,7 +83,10 @@ class TestProfileCreation:
 
 
 class TestExtractReleaseFromImageId:
-    """Test pycloudlib.lxd.cloud._extract_release_from_image_id method."""
+    """Test LXDVirtualMachine _extract_release_from_image_id method.
+
+    This method should only be executed by LXDVirtualMachine instances.
+    """
 
     @pytest.mark.parametrize(
         "image_id, expected_release",
@@ -95,16 +100,16 @@ class TestExtractReleaseFromImageId:
         self, image_id, expected_release
     ):  # pylint: disable=W0212
         """Tests extracting release from non hashed image id."""
-        cloud = LXD(tag="test")
+        cloud = LXDVirtualMachine(tag="test")
         assert expected_release == cloud._extract_release_from_image_id(
             image_id)
 
-    @mock.patch.object(LXD, "_image_info")
+    @mock.patch.object(LXDVirtualMachine, "_image_info")
     def test_extract_release_from_hashed_image_id(
         self, m_image_info
     ):  # pylint: disable=W0212
         """Tests extracting release from a non hashed image id."""
-        cloud = LXD(tag="test")
+        cloud = LXDVirtualMachine(tag="test")
 
         m_image_info.return_value = [
             {
@@ -118,25 +123,24 @@ class TestExtractReleaseFromImageId:
             image_id)
 
         assert m_image_info.call_args_list == [
-            mock.call(image_id, False)
+            mock.call(image_id)
         ]
 
 
 class TestSearchForImage:
-    """Tests covering pycloudlib.lxd.cloud._search_for_image method."""
+    """Tests pycloudlib.lxd.cloud._search_for_image method."""
 
     def test_trusty_image_not_supported_when_launching_vms(
         self
     ):  # pylint: disable=W0212
         """Tests searching for trusty image for launching LXD vms."""
-        cloud = LXD(tag="test")
+        cloud = LXDVirtualMachine(tag="test")
 
         with pytest.raises(UnsupportedReleaseException) as excinfo:
             cloud._search_for_image(
                 remote="remote",
                 daily=False,
                 release="trusty",
-                is_vm=True
             )
 
         assert "Release trusty is not supported for LXD vms" == str(

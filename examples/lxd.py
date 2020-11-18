@@ -19,7 +19,7 @@ def snapshot_instance():
     instance to the snapshot level.
     Finally, launch another instance from the snapshot of the instance.
     """
-    lxd = pycloudlib.LXD('example-snapshot')
+    lxd = pycloudlib.LXDContainer('example-snapshot')
     inst = lxd.launch(name='pycloudlib-snapshot-base', image_id=RELEASE)
 
     snapshot_name = 'snapshot'
@@ -43,7 +43,7 @@ def modify_instance():
     Once started the instance demonstrates some interactions with the
     instance.
     """
-    lxd = pycloudlib.LXD('example-modify')
+    lxd = pycloudlib.LXDContainer('example-modify')
 
     inst = lxd.init('pycloudlib-modify-inst', RELEASE)
     inst.edit('limits.memory', '3GB')
@@ -64,7 +64,7 @@ def launch_multiple():
     waiting for the instance to start each time. Note that the
     wait_for_delete method is not used, as LXD does not do any waiting.
     """
-    lxd = pycloudlib.LXD('example-multiple')
+    lxd = pycloudlib.LXDContainer('example-multiple')
 
     instances = []
     for num in range(3):
@@ -97,7 +97,7 @@ def launch_options():
 
     Finally, an instance with custom configurations options.
     """
-    lxd = pycloudlib.LXD('example-launch')
+    lxd = pycloudlib.LXDContainer('example-launch')
     kvm_profile = textwrap.dedent(
         """\
         devices:
@@ -148,7 +148,10 @@ def launch_options():
 
 def basic_lifecycle():
     """Demonstrate basic set of lifecycle operations with LXD."""
-    lxd = pycloudlib.LXD('example-basic')
+    lxd = pycloudlib.LXDContainer('example-basic')
+    inst = lxd.launch(image_id=RELEASE)
+    inst.delete()
+
     name = 'pycloudlib-daily'
     inst = lxd.launch(name=name, image_id=RELEASE)
     inst.console_log()
@@ -174,7 +177,7 @@ def basic_lifecycle():
 
 def launch_virtual_machine():
     """Demonstrate launching virtual machine scenario."""
-    lxd = pycloudlib.LXD('example-vm')
+    lxd = pycloudlib.LXDVirtualMachine('example-vm')
 
     pub_key_path = "lxd-pubkey"
     priv_key_path = "lxd-privkey"
@@ -191,10 +194,12 @@ def launch_virtual_machine():
         private_key_path=priv_key_path
     )
 
-    image_id = lxd.released_image(release=RELEASE, is_vm=True)
+    image_id = lxd.released_image(release=RELEASE)
+    image_serial = lxd.image_serial(image_id)
+    print("Image serial: {}".format(image_serial))
     name = 'pycloudlib-vm'
     inst = lxd.launch(
-        name=name, image_id=image_id, is_vm=True)
+        name=name, image_id=image_id)
     print("Is vm: {}".format(inst.is_vm))
     result = inst.execute("lsb_release -a")
     print(result)

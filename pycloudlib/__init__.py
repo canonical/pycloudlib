@@ -6,7 +6,7 @@ import logging
 from pycloudlib.azure.cloud import Azure
 from pycloudlib.ec2.cloud import EC2
 from pycloudlib.gce.cloud import GCE
-from pycloudlib.lxd.cloud import LXD
+from pycloudlib.lxd.cloud import LXD, LXDContainer, LXDVirtualMachine
 from pycloudlib.kvm.cloud import KVM
 from pycloudlib.oci.cloud import OCI
 
@@ -15,6 +15,8 @@ __all__ = [
     'EC2',
     'GCE',
     'LXD',
+    'LXDContainer',
+    'LXDVirtualMachine',
     'KVM',
     'OCI',
 ]
