@@ -23,6 +23,7 @@ class LXDInstance(BaseInstance):
         super().__init__(key_pair=key_pair)
 
         self._name = name
+        self._user_id = None
 
     def __repr__(self):
         """Create string representation for class."""
@@ -33,7 +34,9 @@ class LXDInstance(BaseInstance):
         if self.key_pair:
             return super()._run_command(command, stdin)
 
-        base_cmd = ['lxc', 'exec', self.name, '--']
+        base_cmd = [
+            'lxc', 'exec', self.name, '--', 'sudo', '-u', self.username, '--'
+        ]
         return subp(base_cmd + list(command), rcs=None)
 
     @property
