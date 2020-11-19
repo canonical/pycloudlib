@@ -337,28 +337,29 @@ class LXDInstance(BaseInstance):
             When `True`, if the process waiting for cloud-init exits non-zero
             then this method will raise an `OSError`.
         """
-        if self.is_vm and raise_on_failure:
+        if self.is_vm:
             retries = [30, 45, 60, 75, 90, 105]
 
             for sleep_time in retries:
                 try:
                     super()._wait_for_cloudinit(
-                        raise_on_failure=raise_on_failure)
+                        raise_on_failure=True)
                     break
                 except OSError as e:
-                    if "Failed to connect to lxd-agent" in str(e):
-                        time.sleep(sleep_time)
-                        continue
-
                     # We are getting those types of messages when booting
                     # lxd vms. However, if we wait a moment before trying
                     # again, the error fades away. That's why we are treating
                     # it here.
-                    if "cloud-init failed to start: out: ......." in str(e):
+                    lxd_errors = [
+                        "Failed to connect to lxd-agent",
+                        "cloud-init failed to start: out: .......",
+                        "Error: Instance is not running",
+                    ]
+                    if any([x in str(e) for x in lxd_errors]):
                         time.sleep(sleep_time)
                         continue
-
-                    raise e
+                    if raise_on_failure:
+                        raise e
         else:
             super()._wait_for_cloudinit(
                 raise_on_failure=raise_on_failure)
