@@ -594,7 +594,7 @@ class LXDVirtualMachine(_BaseLXD):
         # identify the release.
         return self._image_info(image_id)[0]["release"]
 
-    def _build_necessary_profiles(self, release=None):
+    def build_necessary_profiles(self, release=None):
         """Build necessary profiles to launch the LXD instance.
 
         Args:
@@ -637,7 +637,7 @@ class LXDVirtualMachine(_BaseLXD):
             launch the LXD instance.
         """
         if not profile_list:
-            profile_list = self._build_necessary_profiles(release=release)
+            profile_list = self.build_necessary_profiles(release=release)
 
         cmd = super()._prepare_command(
             name=name,
