@@ -5,7 +5,6 @@ from unittest import mock
 import pytest
 
 from pycloudlib.instance import BaseInstance
-from pycloudlib.kvm.instance import KVMInstance
 from pycloudlib.lxd.instance import LXDInstance
 from pycloudlib.result import Result
 
@@ -35,7 +34,6 @@ class TestExecute:
         "instance_cls,cloud_name",
         (
             (LXDInstance, "lxd"),
-            (KVMInstance, "kvm"),
         ),
     )
     def test_all_rcs_acceptable(self, instance_cls, cloud_name):

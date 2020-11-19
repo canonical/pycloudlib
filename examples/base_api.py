@@ -81,7 +81,6 @@ clouds = {
     pycloudlib.OCI: {
         'compartment_id': os.environ.get('COMPARTMENT_ID')
     },
-    pycloudlib.KVM: {},
     pycloudlib.LXD: {},
 }
 
