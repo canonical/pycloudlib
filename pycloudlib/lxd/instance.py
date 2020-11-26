@@ -23,7 +23,6 @@ class LXDInstance(BaseInstance):
         super().__init__(key_pair=key_pair)
 
         self._name = name
-        self._user_id = None
 
     def __repr__(self):
         """Create string representation for class."""
