@@ -33,7 +33,9 @@ class LXDInstance(BaseInstance):
         if self.key_pair:
             return super()._run_command(command, stdin)
 
-        base_cmd = ['lxc', 'exec', self.name, '--']
+        base_cmd = [
+            'lxc', 'exec', self.name, '--', 'sudo', '-u', self.username, '--'
+        ]
         return subp(base_cmd + list(command), rcs=None)
 
     @property
