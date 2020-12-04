@@ -322,10 +322,16 @@ class LXDInstance(BaseInstance):
         """
 
     def wait_for_stop(self):
-        """Wait for stop.
-
-        Not used for LXD.
-        """
+        """Wait for instance stop."""
+        self._log.debug('waiting for stop: %s', self.name)
+        for _ in range(100):
+            result = subp(
+                'lxc list {} -c s --format csv'.format(self.name).split()
+            )
+            if result == 'STOPPED':
+                return
+            time.sleep(1)
+        raise TimeoutError
 
     def _wait_for_cloudinit(self, *, raise_on_failure: bool):
         """Wait until cloud-init has finished.

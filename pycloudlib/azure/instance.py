@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Azure instance."""
 
+import time
 from pycloudlib.instance import BaseInstance
 
 
@@ -30,7 +31,16 @@ class AzureInstance(BaseInstance):
 
     def wait_for_stop(self):
         """Wait for instance stop."""
-        raise NotImplementedError
+        for _ in range(100):
+            power_state = self._client.virtual_machines.get(
+                resource_group_name=self._instance['rg_name'],
+                vm_name=self.name,
+                expand='instanceView'
+            ).instance_view.statuses[1].display_status
+            if power_state == 'VM stopped':
+                return
+            time.sleep(1)
+        raise TimeoutError
 
     @property
     def image_id(self):
