@@ -46,18 +46,19 @@ VM_PROFILE_TMPL = textwrap.dedent(
     """
 )
 
+
+def _make_vm_profile(
+    series: str, *, install_agent: bool, install_ssh: bool = False
+) -> str:
+    vendordata = "config: {}"
+    if install_agent:
+        custom_cfg = "packages: [openssh-server]" if install_ssh else ""
+        vendordata = LXC_SETUP_VENDORDATA.format(custom_cfg=custom_cfg)
+    return VM_PROFILE_TMPL.format(series=series, vendordata=vendordata)
+
+
 base_vm_profiles = {
-    "xenial": VM_PROFILE_TMPL.format(
-        vendordata=LXC_SETUP_VENDORDATA.format(
-            custom_cfg="packages: [openssh-server]"),
-        series="xenial"
-    ),
-    "bionic": VM_PROFILE_TMPL.format(
-        vendordata=LXC_SETUP_VENDORDATA.format(custom_cfg=""),
-        series="bionic"
-    ),
-    "focal": VM_PROFILE_TMPL.format(
-        vendordata="config: {}",
-        series="focal"
-    )
+    "xenial": _make_vm_profile("xenial", install_agent=True, install_ssh=True),
+    "bionic": _make_vm_profile("bionic", install_agent=True),
+    "focal": _make_vm_profile("focal", install_agent=False),
 }
