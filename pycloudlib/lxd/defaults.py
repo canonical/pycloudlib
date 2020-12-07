@@ -31,9 +31,7 @@ VM_PROFILE_TMPL = textwrap.dedent(
     {vendordata}
     description: Default LXD profile for {series} VMs
     devices:
-      config:
-        source: cloud-init:config
-        type: disk
+      {config_device}
       eth0:
         name: eth0
         network: lxdbr0
@@ -50,11 +48,17 @@ VM_PROFILE_TMPL = textwrap.dedent(
 def _make_vm_profile(
     series: str, *, install_agent: bool, install_ssh: bool = False
 ) -> str:
+    config_device = ""
     vendordata = "config: {}"
     if install_agent:
+        # We need to mount the config drive so that cloud-init finds the
+        # vendor-data instructing it to install the agent
+        config_device = "config: {source: cloud-init:config, type: disk}"
         custom_cfg = "packages: [openssh-server]" if install_ssh else ""
         vendordata = LXC_SETUP_VENDORDATA.format(custom_cfg=custom_cfg)
-    return VM_PROFILE_TMPL.format(series=series, vendordata=vendordata)
+    return VM_PROFILE_TMPL.format(
+        config_device=config_device, series=series, vendordata=vendordata
+    )
 
 
 base_vm_profiles = {
