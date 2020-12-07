@@ -564,7 +564,27 @@ class LXDVirtualMachine(_BaseLXD):
     """LXD Virtual Machine Cloud Class."""
 
     XENIAL_IMAGE_VSOCK_SUPPORT = "images:ubuntu/16.04/cloud"
-    VM_HASH_KEY = "combined_disk1-img_sha256"
+    DISK1_HASH_KEY = "combined_disk1-img_sha256"
+    DISK_KVM_HASH_KEY = "combined_disk-kvm-img_sha256"
+
+    def _image_info(self, image_id, image_hash_key=None):
+        """Return image info for the given ID.
+
+        With LXD VMs, there are two possible keys that image_id could refer to;
+        we try the more recent one first, followed by the older key.
+
+        (If image_hash_key is passed, then that is used unambiguously.)
+        """
+        if image_hash_key is not None:
+            return super()._image_info(image_id, image_hash_key=image_hash_key)
+        kvm_image_info = super()._image_info(
+            image_id, image_hash_key=self.DISK_KVM_HASH_KEY
+        )
+        if kvm_image_info:
+            return kvm_image_info
+        return super()._image_info(
+            image_id, image_hash_key=self.DISK1_HASH_KEY
+        )
 
     def _extract_release_from_image_id(self, image_id):
         """Extract the base release from the image_id.
@@ -671,7 +691,10 @@ class LXDVirtualMachine(_BaseLXD):
             A string specifying which key of the metadata dictionary
             should be used to launch the image.
         """
-        return self.VM_HASH_KEY
+        if release in ["trusty", "xenial", "bionic"]:
+            # Older releases do not have disk-kvm.img
+            return self.DISK1_HASH_KEY
+        return self.DISK_KVM_HASH_KEY
 
     def _search_for_image(
         self, remote, daily, release, arch=LOCAL_UBUNTU_ARCH
