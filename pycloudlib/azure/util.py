@@ -179,7 +179,7 @@ def is_pro_image(image_id, registered_image):
     if img_dict.get("publisher") == "Canonical":
         offer = img_dict["offer"]
     elif registered_image is not None:
-        offer = registered_image["offer"]
+        offer = registered_image["offer"] or ""
 
     return bool("-pro-" in offer)
 

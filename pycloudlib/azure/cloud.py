@@ -11,7 +11,7 @@ import pycloudlib.azure.util as util
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.azure.instance import AzureInstance
 from pycloudlib.key import KeyPair
-from pycloudlib.util import get_timestamped_tag
+from pycloudlib.util import get_timestamped_tag, update_nested
 
 
 class Azure(BaseCloud):
@@ -376,7 +376,7 @@ class Azure(BaseCloud):
         return vm_parameters
 
     def _create_virtual_machine(
-            self, image_id, nic_id, user_data, name, **kwargs
+        self, image_id, nic_id, user_data, name, vm_params=None
     ):
         """Create a virtual machine.
 
@@ -391,7 +391,7 @@ class Azure(BaseCloud):
             user_data: string, user data used by cloud-init when
                        booting the virtual machine.
             name: string, optional name to provide when creating the vm.
-            kwargs: dict of key value pairs to provide to
+            vm_params: dict containing values as vm_params to send to
                     virtual_machines.create_or_update.
 
         Returns:
@@ -401,7 +401,8 @@ class Azure(BaseCloud):
         if not name:
             name = "{}-vm".format(self.tag)
         params = self._create_vm_parameters(name, image_id, nic_id, user_data)
-        params.update(**kwargs)
+        if vm_params:
+            update_nested(params, vm_params)
         self._log.debug('Creating Azure virtual machine: %s', name)
         vm_call = self.compute_client.virtual_machines.create_or_update(
             self.resource_group.name,
@@ -574,7 +575,7 @@ class Azure(BaseCloud):
             nic_id=nic.id,
             user_data=user_data,
             name=name,
-            **kwargs
+            vm_params=kwargs.get('vm_params', None),
         )
 
         instance_info = {
@@ -794,12 +795,14 @@ class Azure(BaseCloud):
             "Could not find {}".format(instance_id)
         )
 
-    def snapshot(self, instance, clean=True, **kwargs):
+    def snapshot(self, instance, clean=True, delete_provisioned_user=True,
+                 **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: Run instance clean method before taking snapshot
+            delete_provisioned_user: Deletes the last provisioned user
             kwargs: Other named arguments specific to this implementation
 
         Returns:
@@ -808,7 +811,8 @@ class Azure(BaseCloud):
         """
         if clean:
             instance.clean()
-        instance.execute("sudo waagent -deprovision+user -force")
+        user = '+user' if delete_provisioned_user else ''
+        instance.execute("sudo waagent -deprovision{} -force".format(user))
         instance.shutdown(wait=True)
         instance.generalize()
 
