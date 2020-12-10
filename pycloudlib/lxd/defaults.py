@@ -65,4 +65,6 @@ base_vm_profiles = {
     "xenial": _make_vm_profile("xenial", install_agent=True, install_ssh=True),
     "bionic": _make_vm_profile("bionic", install_agent=True),
     "focal": _make_vm_profile("focal", install_agent=False),
+    "groovy": _make_vm_profile("groovy", install_agent=False),
+    "hirsute": _make_vm_profile("hirsute", install_agent=False),
 }
