@@ -32,4 +32,4 @@ matrix:
           - sudo usermod -a -G lxd $USER
           - git clone https://github.com/canonical/cloud-init.git
           - cd cloud-init
-          - sg lxd -c "CLOUD_INIT_CLOUD_INIT_SOURCE=ppa:cloud-init-dev/daily pytest tests/integration_tests/"
+          - sg lxd -c "CLOUD_INIT_CLOUD_INIT_SOURCE=ppa:cloud-init-dev/daily pytest -m ci tests/integration_tests/"
