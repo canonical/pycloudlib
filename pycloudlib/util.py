@@ -2,6 +2,7 @@
 """Helpers for shell string and processing."""
 
 import base64
+import collections.abc
 import datetime
 from errno import ENOENT
 import platform
@@ -321,3 +322,20 @@ def validate_tag(tag):
             'Tag  : {}'.format(regex, tag)
         )
     return tag
+
+
+def update_nested(mapping, update):
+    """Update mapping with update value at given update key.
+
+    Example:
+      original_dict = {'a': {'b': {'c': 'd'}}}
+      update = {'a': {'b': {'c': 'e'}}}
+      update_nested(original_dict, update)
+      original_dict == {'a': {'b': {'c': 'e'}}}
+    """
+    for key, value in update.items():
+        if isinstance(value, collections.abc.Mapping):
+            mapping[key] = update_nested(mapping.get(key, {}), value)
+        else:
+            mapping[key] = value
+    return mapping
