@@ -23,7 +23,8 @@ class Azure(BaseCloud):
         "trusty": "Canonical:UbuntuServer:14.04.0-LTS",
         "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS",
         "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS",
-        "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts"
+        "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts",  # noqa: E501
+        "groovy": "Canonical:0001-com-ubuntu-server-groovy-daily:20_10-daily",
     }
 
     def __init__(
