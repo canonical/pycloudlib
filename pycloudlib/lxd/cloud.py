@@ -1,11 +1,9 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
-import io
 import re
 import textwrap
 from abc import abstractmethod
 import warnings
-import paramiko
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
@@ -137,23 +135,6 @@ class _BaseLXD(BaseCloud):
                     instance.key_pair = self.key_pair
 
         return instance
-
-    def create_key_pair(self):
-        """Create and set a ssh key pair to be used by the lxd instance.
-
-        Args:
-            name: The name of the pycloudlib instance
-
-        Returns:
-            A tuple containing the public and private key created
-        """
-        key = paramiko.RSAKey.generate(4096)
-        priv_str = io.StringIO()
-
-        pub_key = "{} {}".format(key.get_name(), key.get_base64())
-        key.write_private_key(priv_str, password=None)
-
-        return pub_key, priv_str.getvalue()
 
     # pylint: disable=R0914,R0912,R0915
     def _prepare_command(
