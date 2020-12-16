@@ -168,7 +168,7 @@ class GCE(BaseCloud):
             "metadata": {
                 "items": [{
                     "key": "ssh-keys",
-                    "value": "admin:%s" % self.key_pair.public_key_content,
+                    "value": "ubuntu:%s" % self.key_pair.public_key_content,
                 }]
             },
         }

@@ -3,6 +3,7 @@
 """Basic examples of various lifecycle with an GCE instance."""
 
 import logging
+import os
 
 import pycloudlib
 
@@ -15,12 +16,32 @@ def demo():
     """
     gce = pycloudlib.GCE(
         tag='examples',
-        project='my_project_name',
+        project='canonical-dev',
         region='us-west2',
         zone='a'
     )
     daily = gce.daily_image('bionic')
-    gce.launch(daily)
+
+    pub_key_path = "gce-pubkey"
+    priv_key_path = "gce-privkey"
+    pub_key, priv_key = gce.create_key_pair()
+
+    with open(pub_key_path, "w") as f:
+        f.write(pub_key)
+
+    with open(priv_key_path, "w") as f:
+        f.write(priv_key)
+
+    os.chmod(pub_key_path, 0o600)
+    os.chmod(priv_key_path, 0o600)
+
+    gce.use_key(
+        public_key_path=pub_key_path,
+        private_key_path=priv_key_path
+    )
+
+    inst = gce.launch(daily)
+    print(inst.execute("lsb_release -a"))
 
 
 if __name__ == '__main__':

@@ -1,9 +1,11 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+import io
 import getpass
 import logging
 from abc import ABC, abstractmethod
+import paramiko
 
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
@@ -136,6 +138,20 @@ class BaseCloud(ABC):
 
         """
         raise NotImplementedError
+
+    def create_key_pair(self):
+        """Create and set a ssh key pair for a cloud instance.
+
+        Returns:
+            A tuple containing the public and private key created
+        """
+        key = paramiko.RSAKey.generate(4096)
+        priv_str = io.StringIO()
+
+        pub_key = "{} {}".format(key.get_name(), key.get_base64())
+        key.write_private_key(priv_str, password=None)
+
+        return pub_key, priv_str.getvalue()
 
     def use_key(self, public_key_path, private_key_path=None, name=None):
         """Use an existing key.
