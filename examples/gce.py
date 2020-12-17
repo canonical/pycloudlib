@@ -16,7 +16,8 @@ def demo():
     """
     gce = pycloudlib.GCE(
         tag='examples',
-        project='canonical-dev',
+        credentials_path='MY-GCE-CREDENTIALS-PATH',
+        project='PROJECT-ID',
         region='us-west2',
         zone='a'
     )
