@@ -27,7 +27,8 @@ class GCE(BaseCloud):
     _type = 'gce'
 
     def __init__(
-        self, tag, timestamp_suffix=True, project=None, region=None, zone=None
+        self, tag, timestamp_suffix=True, credentials_path=None, project=None,
+        region="us-west2", zone="a"
     ):
         """Initialize the connection to GCE.
 
@@ -35,6 +36,7 @@ class GCE(BaseCloud):
             tag: string used to name and tag resources with
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
+            credentials_path: path to credentials file for GCE
             project: GCE project
             region: GCE region
             zone: GCE zone
@@ -42,13 +44,18 @@ class GCE(BaseCloud):
         super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into GCE')
 
+        if credentials_path:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
+                credentials_path)
+
+        if project:
+            os.environ["GOOGLE_CLOUD_PROJECT"] = str(project)
+
         # disable cache_discovery due to:
         # https://github.com/google/google-api-python-client/issues/299
         self.compute = googleapiclient.discovery.build(
             'compute', 'v1', cache_discovery=False
         )
-        if not all([project, region, zone]):
-            raise ValueError('project, region, and zone are required!')
         self.project = project
         self.region = region
         self.zone = '%s-%s' % (region, zone)
