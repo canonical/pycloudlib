@@ -7,7 +7,6 @@ from pycloudlib.cloud import BaseCloud
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
-from pycloudlib.key import KeyPair
 
 
 class EC2(BaseCloud):
@@ -279,9 +278,7 @@ class EC2(BaseCloud):
         """
         if not name:
             name = self.tag
-
-        self._log.debug('using SSH key %s', name)
-        self.key_pair = KeyPair(public_key_path, private_key_path, name)
+        super().use_key(public_key_path, private_key_path, name)
 
     def _find_image(self, release, arch='amd64', root_store='ssd', daily=True):
         """Find the latest image for a given release.
