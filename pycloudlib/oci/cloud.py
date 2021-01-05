@@ -168,10 +168,8 @@ class OCI(BaseCloud):
         subnet_id = subnet.id
         availability_domain = subnet.availability_domain
 
-        with open(self.key_pair.public_key_path) as f:
-            key_data = f.read()
         metadata = {
-            'ssh_authorized_keys': key_data,
+            'ssh_authorized_keys': self.key_pair.public_key_content,
         }
         if user_data:
             metadata['user_data'] = base64.b64encode(
