@@ -10,7 +10,6 @@ import pycloudlib.azure.util as util
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.azure.instance import AzureInstance
-from pycloudlib.key import KeyPair
 from pycloudlib.util import get_timestamped_tag, update_nested
 
 
@@ -670,9 +669,7 @@ class Azure(BaseCloud):
         """
         if not name:
             name = self.tag
-
-        self._log.debug('using SSH key %s', name)
-        self.key_pair = KeyPair(public_key_path, private_key_path, name)
+        super().use_key(public_key_path, private_key_path, name)
 
     def _get_instances(self):
         """Return an iterable of Azure instances related to a subscription id.

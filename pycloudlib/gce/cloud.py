@@ -16,7 +16,6 @@ import googleapiclient.discovery
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.gce.util import raise_on_error
 from pycloudlib.gce.instance import GceInstance
-from pycloudlib.key import KeyPair
 
 logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 
@@ -246,17 +245,6 @@ class GCE(BaseCloud):
 
         return 'projects/{}/global/images/{}'.format(
             self.project, snapshot_name)
-
-    def use_key(self, public_key_path, private_key_path=None, name=None):
-        """Use an existing already uploaded key.
-
-        Args:
-            public_key_path: path to the public key to upload
-            private_key_path: path to the private key to upload
-            name: name to reference key by
-        """
-        self._log.debug('using SSH key from %s', public_key_path)
-        self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
     def _image_list(self, release, daily, arch='amd64'):
         """Find list of images with a filter.
