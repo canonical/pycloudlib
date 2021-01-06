@@ -26,6 +26,8 @@ matrix:
           - pip install pytest
       script:
           - sudo apt-get remove --yes --purge lxd lxd-client
+          - sudo apt-get update -q
+          - sudo apt-get install -qqy distro-info
           - sudo rm -Rf /var/lib/lxd
           - sudo snap install lxd
           - sudo lxd init --auto
