@@ -308,8 +308,12 @@ class BaseInstance(ABC):
             paramiko.RSAKey.from_private_key_file(
                 self.key_pair.private_key_path)
         except PasswordRequiredException:
-            self._log.error('RSA Key requires password!')
-            raise
+            self._log.warning(
+                "The specified key (%s) requires a passphrase. If you have not"
+                " added this key to a running SSH agent, you will see failures"
+                " to connect after a long timeout.",
+                self.key_pair.private_key_path,
+            )
         except SSHException:
             pass
 
