@@ -3,6 +3,7 @@
 """OCI Cloud type."""
 
 import base64
+import json
 import os
 import re
 import oci
@@ -10,7 +11,7 @@ import oci
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.oci.instance import OciInstance
 from pycloudlib.oci.utils import wait_till_ready
-from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP
+from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
 
 class OCI(BaseCloud):
@@ -37,6 +38,19 @@ class OCI(BaseCloud):
             config_path: Path of OCI config file
         """
         super().__init__(tag, timestamp_suffix)
+        if not compartment_id:
+            command = ['oci', 'iam', 'compartment', 'get']
+            exception = Exception(
+                "Could not obtain OCI compartment id. Has the CLI client been "
+                "setup?\nCommand attempted: '{}'".format(' '.join(command))
+            )
+            try:
+                result = subp(command)
+            except FileNotFoundError as e:
+                raise exception from e
+            if not result.ok:
+                raise exception
+            compartment_id = json.loads(result.stdout)['data']['id']
         self.compartment_id = compartment_id
 
         if not os.path.isfile(os.path.expanduser(config_path)):

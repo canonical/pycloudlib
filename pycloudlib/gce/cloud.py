@@ -6,10 +6,12 @@ authentication into the cloud, finding an image, and launching an
 instance. It however, does not allow any further actions from occuring.
 """
 
+import json
 import logging
 import os
 import time
 from itertools import count
+from pathlib import Path
 
 import googleapiclient.discovery
 
@@ -19,6 +21,9 @@ from pycloudlib.gce.instance import GceInstance
 
 logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 
+DEFAULT_CREDENTIALS_PATH = Path.home() / '.config' / 'gcloud' / \
+    'application_default_credentials.json'
+
 
 class GCE(BaseCloud):
     """GCE Cloud Class."""
@@ -26,7 +31,8 @@ class GCE(BaseCloud):
     _type = 'gce'
 
     def __init__(
-        self, tag, timestamp_suffix=True, credentials_path=None, project=None,
+        self, tag, timestamp_suffix=True,
+        credentials_path=DEFAULT_CREDENTIALS_PATH, project=None,
         region="us-west2", zone="a"
     ):
         """Initialize the connection to GCE.
@@ -36,16 +42,26 @@ class GCE(BaseCloud):
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
             credentials_path: path to credentials file for GCE
+                Defaults to default gcloud path.
             project: GCE project
+                Defaults to project supplied in 'credentials_path'
             region: GCE region
             zone: GCE zone
         """
         super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into GCE')
 
-        if credentials_path:
+        credentials_path = Path(credentials_path)
+        if credentials_path.exists():
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
                 credentials_path)
+            if project is None:
+                with credentials_path.open() as f:
+                    config = json.load(f)
+                if 'project_id' in config:
+                    project = config['project_id']
+                elif 'quota_project_id' in config:
+                    project = config['quota_project_id']
 
         if project:
             os.environ["GOOGLE_CLOUD_PROJECT"] = str(project)
@@ -55,6 +71,7 @@ class GCE(BaseCloud):
         self.compute = googleapiclient.discovery.build(
             'compute', 'v1', cache_discovery=False
         )
+
         self.project = project
         self.region = region
         self.zone = '%s-%s' % (region, zone)
