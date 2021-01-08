@@ -58,7 +58,7 @@ class GCE(BaseCloud):
                 "setup?\nCommand attempted: '{}'".format(' '.join(command))
             )
             try:
-                result = subp(command)
+                result = subp(command, rcs=())
             except FileNotFoundError as e:
                 raise Exception(exception_text) from e
             if not result.ok:
