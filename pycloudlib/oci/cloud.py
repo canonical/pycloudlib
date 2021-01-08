@@ -40,16 +40,18 @@ class OCI(BaseCloud):
         super().__init__(tag, timestamp_suffix)
         if not compartment_id:
             command = ['oci', 'iam', 'compartment', 'get']
-            exception = Exception(
+            exception_text = (
                 "Could not obtain OCI compartment id. Has the CLI client been "
                 "setup?\nCommand attempted: '{}'".format(' '.join(command))
             )
             try:
                 result = subp(command)
             except FileNotFoundError as e:
-                raise exception from e
+                raise Exception(exception_text) from e
             if not result.ok:
-                raise exception
+                exception_text += '\nstdout: {}\nstderr: {}'.format(
+                    result.stdout, result.stderr)
+                raise Exception(exception_text)
             compartment_id = json.loads(result.stdout)['data']['id']
         self.compartment_id = compartment_id
 
