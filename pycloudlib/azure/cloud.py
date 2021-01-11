@@ -633,7 +633,10 @@ class Azure(BaseCloud):
             resource_group_name=self.resource_group.name,
             ssh_public_key_name=key_name)
 
-        return ssh_call.public_key, ssh_call.private_key
+        # Azure's SDK returns multi-line DOS format for pubkeys.
+        # OpenSSH doesn't like this format and ignores it resulting in
+        # Unauthorized key errors. Issue: #88
+        return ssh_call.public_key.replace('\r\n', ''), ssh_call.private_key
 
     def list_keys(self):
         """List all ssh keys in the class resource group."""

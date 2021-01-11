@@ -57,5 +57,6 @@ def demo():
 if __name__ == '__main__':
     # Avoid polluting the log with azure info
     logging.getLogger("adal-python").setLevel(logging.WARNING)
+    logging.getLogger("cli.azure.cli.core").setLevel(logging.WARNING)
     logging.basicConfig(level=logging.DEBUG)
     demo()
