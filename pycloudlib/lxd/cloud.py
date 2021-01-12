@@ -581,7 +581,7 @@ class LXDVirtualMachine(_BaseLXD):
         release_regex = (
             "(.*ubuntu.*(?P<release>(" +
             "|".join(UBUNTU_RELEASE_VERSION_MAP) + "|" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP.values()) +
+            "|".join(UBUNTU_RELEASE_VERSION_MAP.values()).replace(".", "\\.") +
             ")).*)"
         )
         ubuntu_match = re.match(release_regex, image_id)

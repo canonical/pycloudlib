@@ -94,6 +94,10 @@ class TestExtractReleaseFromImageId:
             ("images:ubuntu/16.04/cloud", "xenial"),
             ("ubuntu-daily:bionic", "bionic"),
             ("ubuntu:focal", "focal"),
+            (
+                "local:ubuntu-behave-image-build--vm-focal1610458-snapshot",
+                "focal"
+            ),
         ),
     )
     def test_extract_release_from_non_hashed_image_id(
