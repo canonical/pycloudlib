@@ -35,6 +35,7 @@ class BaseInstance(ABC):
         self.port = '22'
         self.username = 'ubuntu'
         self.connect_timeout = 60
+        self.boot_id = ''
 
     @property
     @abstractmethod
@@ -99,7 +100,7 @@ class BaseInstance(ABC):
             complete successfully.
         """
         self._wait_for_instance_start()
-        self._wait_for_execute()
+        self._wait_for_boot_id()
         self._wait_for_cloudinit(raise_on_failure=raise_on_cloudinit_failure)
 
     @abstractmethod
@@ -370,29 +371,28 @@ class BaseInstance(ABC):
         self._tmp_count += 1
         return path
 
-    def _wait_for_execute(self):
+    def _wait_for_boot_id(self):
         """Wait until we can execute a command in the instance."""
-        self._log.debug('_wait_for_execute to complete')
+        self._log.debug('_wait_for_boot_id to complete')
 
-        test_instance_command = "whoami"
-        result = self.execute(test_instance_command)
-        if result.failed:
-            retries = 10
-            while retries:
-                result = self.execute(test_instance_command)
-
-                if result.ok:
+        boot_id_command = "cat /proc/sys/kernel/random/boot_id"
+        retries = 300
+        while retries:
+            result = self.execute(boot_id_command)
+            if result.ok:
+                boot_id = result.stdout.strip()
+                if boot_id != self.boot_id:
+                    self.boot_id = boot_id
                     break
 
-                retries -= 1
-                time.sleep(10)
-
-        if result.failed:
+            retries -= 1
+            time.sleep(1)
+        else:
             raise OSError(
                 "{}\n{}".format(
                     "Instance can't be reached",
                     "Failed to execute {} command".format(
-                        test_instance_command)
+                        boot_id_command)
                 )
             )
 

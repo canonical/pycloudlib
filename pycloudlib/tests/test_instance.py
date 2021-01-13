@@ -65,7 +65,7 @@ class TestWait:
         with mock.patch.multiple(
             instance,
             _wait_for_instance_start=mock.DEFAULT,
-            _wait_for_execute=mock.DEFAULT,
+            _wait_for_boot_id=mock.DEFAULT,
             _wait_for_cloudinit=mock.DEFAULT,
         ) as mocks:
             if raise_on_cloudinit_failure is not None:
@@ -76,7 +76,7 @@ class TestWait:
                 instance.wait()
 
         assert 1 == mocks["_wait_for_instance_start"].call_count
-        assert 1 == mocks["_wait_for_execute"].call_count
+        assert 1 == mocks["_wait_for_boot_id"].call_count
         assert 1 == mocks["_wait_for_cloudinit"].call_count
         kwargs = mocks["_wait_for_cloudinit"].call_args[1]
         if raise_on_cloudinit_failure is None:
