@@ -91,16 +91,11 @@ class BaseInstance(ABC):
         detecting when an instance has started through their API.
         """
 
-    def wait(self, *, raise_on_cloudinit_failure: bool = True):
-        """Wait for instance to be up and cloud-init to be complete.
-
-        :param raise_on_cloudinit_failure:
-            If True (the default), raise an `OSError` if cloud-init does not
-            complete successfully.
-        """
+    def wait(self):
+        """Wait for instance to be up and cloud-init to be complete."""
         self._wait_for_instance_start()
         self._wait_for_execute()
-        self._wait_for_cloudinit(raise_on_failure=raise_on_cloudinit_failure)
+        self._wait_for_cloudinit()
 
     @abstractmethod
     def wait_for_delete(self):
@@ -396,13 +391,8 @@ class BaseInstance(ABC):
                 )
             )
 
-    def _wait_for_cloudinit(self, *, raise_on_failure: bool):
-        """Wait until cloud-init has finished.
-
-        :param raise_on_failure:
-            When `True`, if the process waiting for cloud-init exits non-zero
-            then this method will raise an `OSError`.
-        """
+    def _wait_for_cloudinit(self):
+        """Wait until cloud-init has finished."""
         self._log.debug('_wait_for_cloudinit to complete')
 
         result = self.execute("cloud-init status --help")
@@ -424,10 +414,3 @@ class BaseInstance(ABC):
                 )
             )
         result = self.execute(cmd, description='waiting for start')
-
-        if raise_on_failure and result.failed:
-            raise OSError(
-                'cloud-init failed to start: out: %s error: %s' % (
-                     result.stdout, result.stderr
-                )
-            )
