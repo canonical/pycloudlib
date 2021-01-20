@@ -27,7 +27,7 @@ class GCE(BaseCloud):
 
     def __init__(
         self, tag, timestamp_suffix=True, credentials_path=None, project=None,
-        region="us-west2", zone="a"
+        region="us-west2", zone="a", service_account_email=None
     ):
         """Initialize the connection to GCE.
 
@@ -39,6 +39,8 @@ class GCE(BaseCloud):
             project: GCE project
             region: GCE region
             zone: GCE zone
+            service_account_email: service account to bind launched
+                                   instances to
         """
         super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into GCE')
@@ -59,6 +61,7 @@ class GCE(BaseCloud):
         self.region = region
         self.zone = '%s-%s' % (region, zone)
         self.instance_counter = count()
+        self.service_account_email = service_account_email
 
     def _find_image(self, release, daily, arch='amd64'):
         images = self._image_list(release, daily, arch)
@@ -178,6 +181,13 @@ class GCE(BaseCloud):
                 }]
             },
         }
+
+        if self.service_account_email:
+            config["serviceAccounts"] = [
+                {
+                    "email": self.service_account_email
+                }
+            ]
 
         if user_data:
             user_metadata = {
