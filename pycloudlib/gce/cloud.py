@@ -16,6 +16,8 @@ import googleapiclient.discovery
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.gce.util import raise_on_error
 from pycloudlib.gce.instance import GceInstance
+from pycloudlib.util import subp
+
 
 logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 
@@ -49,6 +51,21 @@ class GCE(BaseCloud):
 
         if project:
             os.environ["GOOGLE_CLOUD_PROJECT"] = str(project)
+        else:
+            command = ['gcloud', 'config', 'get-value', 'project']
+            exception_text = (
+                "Could not obtain GCE project id. Has the CLI client been "
+                "setup?\nCommand attempted: '{}'".format(' '.join(command))
+            )
+            try:
+                result = subp(command, rcs=())
+            except FileNotFoundError as e:
+                raise Exception(exception_text) from e
+            if not result.ok:
+                exception_text += '\nstdout: {}\nstderr: {}'.format(
+                    result.stdout, result.stderr)
+                raise Exception(exception_text)
+            project = result.stdout
 
         # disable cache_discovery due to:
         # https://github.com/google/google-api-python-client/issues/299
