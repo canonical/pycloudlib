@@ -6,6 +6,7 @@ authentication into the cloud, finding an image, and launching an
 instance. It however, does not allow any further actions from occuring.
 """
 
+import json
 import logging
 import os
 import time
@@ -42,10 +43,11 @@ class GCE(BaseCloud):
         """
         super().__init__(tag, timestamp_suffix)
         self._log.debug('logging into GCE')
+        self.credentials_path = credentials_path
 
-        if credentials_path:
+        if self.credentials_path:
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
-                credentials_path)
+                self.credentials_path)
 
         if project:
             os.environ["GOOGLE_CLOUD_PROJECT"] = str(project)
@@ -59,6 +61,17 @@ class GCE(BaseCloud):
         self.region = region
         self.zone = '%s-%s' % (region, zone)
         self.instance_counter = count()
+        self._set_service_account_email()
+
+    def _set_service_account_email(self):
+        """Set service account email if credentials provided."""
+        json_credentials = {}
+
+        if self.credentials_path:
+            with open(self.credentials_path, 'r') as f:
+                json_credentials = json.load(f)
+
+        self._service_account_email = json_credentials.get("client_email")
 
     def _find_image(self, release, daily, arch='amd64'):
         images = self._image_list(release, daily, arch)
@@ -178,6 +191,13 @@ class GCE(BaseCloud):
                 }]
             },
         }
+
+        if self._service_account_email:
+            config["serviceAccounts"] = [
+                {
+                    "email": self._service_account_email
+                }
+            ]
 
         if user_data:
             user_metadata = {
