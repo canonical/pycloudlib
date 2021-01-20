@@ -138,15 +138,15 @@ class _BaseLXD(BaseCloud):
 
     # pylint: disable=R0914,R0912,R0915
     def _prepare_command(
-            self, name, release, ephemeral=False, network=None, storage=None,
+            self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
             config_dict=None):
         """Build a the command to be used to launch the LXD instance.
 
         Args:
             name: string, what to call the instance
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      launch
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
             storage: string, optional, storage name to use
@@ -162,11 +162,11 @@ class _BaseLXD(BaseCloud):
         profile_list = profile_list if profile_list else []
         config_dict = config_dict if config_dict else {}
 
-        if ':' not in release:
-            release = self._daily_remote + ':' + release
+        if ':' not in image_id:
+            image_id = self._daily_remote + ':' + image_id
 
-        self._log.debug("Full release to launch: '%s'", release)
-        cmd = ['lxc', 'init', release]
+        self._log.debug("Full image ID to launch: '%s'", image_id)
+        cmd = ['lxc', 'init', image_id]
 
         if name:
             cmd.append(name)
@@ -223,7 +223,7 @@ class _BaseLXD(BaseCloud):
         return cmd
 
     def init(
-            self, name, release, ephemeral=False, network=None, storage=None,
+            self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
             config_dict=None):
         """Init a container.
@@ -233,8 +233,8 @@ class _BaseLXD(BaseCloud):
 
         Args:
             name: string, what to call the instance
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      launch
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
             storage: string, optional, storage name to use
@@ -249,7 +249,7 @@ class _BaseLXD(BaseCloud):
         """
         cmd = self._prepare_command(
             name=name,
-            release=release,
+            image_id=image_id,
             ephemeral=ephemeral,
             network=network,
             storage=storage,
@@ -278,7 +278,7 @@ class _BaseLXD(BaseCloud):
         If no remote is specified pycloudlib defaults to daily images.
 
         Args:
-            image_id: string, [<remote>:]<image>, what release to launch
+            image_id: string, [<remote>:]<image>, the image to launch
             instance_type: string, type to use
             user_data: used by cloud-init to run custom scripts/configuration
             wait: boolean, wait for instance to start
@@ -295,7 +295,7 @@ class _BaseLXD(BaseCloud):
         """
         instance = self.init(
             name=name,
-            release=image_id,
+            image_id=image_id,
             ephemeral=ephemeral,
             network=network,
             storage=storage,
@@ -571,8 +571,8 @@ class LXDVirtualMachine(_BaseLXD):
         """Extract the base release from the image_id.
 
         Args:
-            image_id: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      determine the release of
 
         Returns:
             A string containing the base release from the image_id that is used
@@ -595,17 +595,17 @@ class LXDVirtualMachine(_BaseLXD):
         # identify the release.
         return self._image_info(image_id)[0]["release"]
 
-    def build_necessary_profiles(self, release=None):
+    def build_necessary_profiles(self, image_id):
         """Build necessary profiles to launch the LXD instance.
 
         Args:
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<release>, the image to build profiles
+                      for
 
         Returns:
             A list containing the profiles created
         """
-        base_release = self._extract_release_from_image_id(release)
+        base_release = self._extract_release_from_image_id(image_id)
         profile_name = "pycloudlib-vm-{}".format(base_release)
 
         self.create_profile(
@@ -616,15 +616,15 @@ class LXDVirtualMachine(_BaseLXD):
         return [profile_name]
 
     def _prepare_command(
-            self, name, release, ephemeral=False, network=None, storage=None,
+            self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
             config_dict=None):
         """Build a the command to be used to launch the LXD instance.
 
         Args:
             name: string, what to call the instance
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      launch
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
             storage: string, optional, storage name to use
@@ -638,11 +638,11 @@ class LXDVirtualMachine(_BaseLXD):
             launch the LXD instance.
         """
         if not profile_list:
-            profile_list = self.build_necessary_profiles(release=release)
+            profile_list = self.build_necessary_profiles(image_id)
 
         cmd = super()._prepare_command(
             name=name,
-            release=release,
+            image_id=image_id,
             ephemeral=ephemeral,
             network=network,
             storage=storage,
