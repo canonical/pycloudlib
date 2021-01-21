@@ -1,13 +1,14 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
-import re
 import textwrap
 from abc import abstractmethod
 import warnings
 
+import yaml
+
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
-from pycloudlib.util import subp, UBUNTU_RELEASE_VERSION_MAP
+from pycloudlib.util import subp
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 from pycloudlib.lxd.defaults import base_vm_profiles
 
@@ -571,6 +572,26 @@ class LXDVirtualMachine(_BaseLXD):
             image_id, image_hash_key=self.DISK1_HASH_KEY
         )
 
+    def _lxc_image_info(self, image_id: str) -> dict:
+        """Return a dict of the output of ``lxc image info <image_id>``.
+
+        Args:
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      return the image info dict for
+
+        Returns:
+            A dict produced by loading the YAML emitted by ``lxc image info
+            <image_id>``, or the empty dict if either the command or YAML load
+            fails.
+        """
+        raw_image_info = subp(["lxc", "image", "info", image_id], rcs=())
+        if raw_image_info.ok:
+            try:
+                return yaml.safe_load(raw_image_info)
+            except yaml.YAMLError:
+                pass
+        return {}
+
     def _extract_release_from_image_id(self, image_id):
         """Extract the base release from the image_id.
 
@@ -582,18 +603,20 @@ class LXDVirtualMachine(_BaseLXD):
             A string containing the base release from the image_id that is used
             to launch the image.
         """
-        release_regex = (
-            "(.*ubuntu.*(?P<release>(" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP) + "|" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP.values()).replace(".", "\\.") +
-            ")).*)"
-        )
-        ubuntu_match = re.match(release_regex, image_id)
-        if ubuntu_match:
-            release = ubuntu_match.groupdict()["release"]
-            for codename, version in UBUNTU_RELEASE_VERSION_MAP.items():
-                if release in (codename, version):
-                    return codename
+        image_info = self._lxc_image_info(image_id)
+        release = None
+        try:
+            properties = image_info["Properties"]
+            os = properties["os"]
+            # images: images have "Ubuntu", ubuntu: images have "ubuntu"
+            if os.lower() == "ubuntu":
+                release = properties["release"]
+        except KeyError:
+            # Image info doesn't have the info we need, so fallthrough
+            pass
+        else:
+            if release is not None:
+                return release
 
         # If we have a hash in the image_id we need to query simplestreams to
         # identify the release.
