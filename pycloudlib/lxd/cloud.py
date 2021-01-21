@@ -609,6 +609,7 @@ class LXDVirtualMachine(_BaseLXD):
         Returns:
             A list containing the profiles created
         """
+        image_id = self._normalize_image_id(image_id)
         base_release = self._extract_release_from_image_id(image_id)
         profile_name = "pycloudlib-vm-{}".format(base_release)
 
