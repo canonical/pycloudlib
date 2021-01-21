@@ -136,6 +136,11 @@ class _BaseLXD(BaseCloud):
 
         return instance
 
+    def _normalize_image_id(self, image_id: str) -> str:
+        if ':' not in image_id:
+            return self._daily_remote + ':' + image_id
+        return image_id
+
     # pylint: disable=R0914,R0912,R0915
     def _prepare_command(
             self, name, image_id, ephemeral=False, network=None, storage=None,
@@ -244,8 +249,7 @@ class _BaseLXD(BaseCloud):
             The created LXD instance object
 
         """
-        if ':' not in image_id:
-            image_id = self._daily_remote + ':' + image_id
+        image_id = self._normalize_image_id(image_id)
 
         cmd = self._prepare_command(
             name=name,
