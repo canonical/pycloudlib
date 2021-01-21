@@ -162,9 +162,6 @@ class _BaseLXD(BaseCloud):
         profile_list = profile_list if profile_list else []
         config_dict = config_dict if config_dict else {}
 
-        if ':' not in image_id:
-            image_id = self._daily_remote + ':' + image_id
-
         self._log.debug("Full image ID to launch: '%s'", image_id)
         cmd = ['lxc', 'init', image_id]
 
@@ -247,6 +244,9 @@ class _BaseLXD(BaseCloud):
             The created LXD instance object
 
         """
+        if ':' not in image_id:
+            image_id = self._daily_remote + ':' + image_id
+
         cmd = self._prepare_command(
             name=name,
             image_id=image_id,
