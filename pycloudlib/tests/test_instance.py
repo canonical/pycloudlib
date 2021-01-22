@@ -1,5 +1,4 @@
 """Tests related to pycloudlib.instance module."""
-from contextlib import suppress as noop
 from unittest import mock
 
 import pytest
@@ -55,8 +54,7 @@ class TestExecute:
 class TestWait:
     """Tests covering pycloudlib.instance.Instance.wait."""
 
-    @pytest.mark.parametrize("raise_on_cloudinit_failure", [True, False, None])
-    def test_wait(self, raise_on_cloudinit_failure, concrete_instance_cls):
+    def test_wait(self, concrete_instance_cls):
         """Test wait calls the two methods it should with correct passthrough.
 
         (`None` is used to test the default.)
@@ -68,21 +66,11 @@ class TestWait:
             _wait_for_execute=mock.DEFAULT,
             _wait_for_cloudinit=mock.DEFAULT,
         ) as mocks:
-            if raise_on_cloudinit_failure is not None:
-                instance.wait(
-                    raise_on_cloudinit_failure=raise_on_cloudinit_failure
-                )
-            else:
-                instance.wait()
+            instance.wait()
 
         assert 1 == mocks["_wait_for_instance_start"].call_count
         assert 1 == mocks["_wait_for_execute"].call_count
         assert 1 == mocks["_wait_for_cloudinit"].call_count
-        kwargs = mocks["_wait_for_cloudinit"].call_args[1]
-        if raise_on_cloudinit_failure is None:
-            # We expect True by default
-            raise_on_cloudinit_failure = True
-        assert kwargs["raise_on_failure"] == raise_on_cloudinit_failure
 
     @mock.patch.object(BaseInstance, "execute")
     @mock.patch("pycloudlib.instance.time.sleep")
@@ -123,7 +111,7 @@ class TestWaitForCloudinit:
         instance = concrete_instance_cls(key_pair=None)
         with mock.patch.object(instance, "execute") as m_execute:
             m_execute.side_effect = side_effect
-            instance._wait_for_cloudinit(raise_on_failure=True)
+            instance._wait_for_cloudinit()
 
         assert 2 == m_execute.call_count
         assert (
@@ -153,7 +141,7 @@ class TestWaitForCloudinit:
         instance = concrete_instance_cls(key_pair=None)
         with mock.patch.object(instance, "execute") as m_execute:
             m_execute.side_effect = side_effect
-            instance._wait_for_cloudinit(raise_on_failure=True)
+            instance._wait_for_cloudinit()
 
         assert 2 == m_execute.call_count
         assert (
@@ -166,16 +154,10 @@ class TestWaitForCloudinit:
         assert "runlevel" in first_arg
         assert "result.json" in first_arg
 
-    @pytest.mark.parametrize(
-        "raise_on_failure,expectation",
-        [(True, pytest.raises(OSError)), (False, noop())],
-    )
     @pytest.mark.parametrize("has_wait", [True, False])
     def test_failure_path(
         self,
         has_wait,
-        raise_on_failure,
-        expectation,
         concrete_instance_cls,
     ):
         """Test failure for both has_wait and !has_wait cases."""
@@ -204,8 +186,4 @@ class TestWaitForCloudinit:
         instance = concrete_instance_cls(key_pair=None)
         with mock.patch.object(instance, "execute") as m_execute:
             m_execute.side_effect = side_effect
-            with expectation as excinfo:
-                instance._wait_for_cloudinit(raise_on_failure=raise_on_failure)
-
-        if raise_on_failure:
-            assert "out: fail_out error: fail_err" in str(excinfo.value)
+            instance._wait_for_cloudinit()
