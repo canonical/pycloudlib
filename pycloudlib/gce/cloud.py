@@ -307,9 +307,17 @@ class GCE(BaseCloud):
         else:
             api = self.compute.globalOperations()
         for _ in range(sleep_seconds):
-            response = api.get(**kwargs).execute()
-            if response['status'] == 'DONE':
-                break
+            try:
+                response = api.get(**kwargs).execute()
+            except ConnectionResetError:
+                # This exception is known to be raised by GCE every so often:
+                # https://github.com/canonical/pycloudlib/issues/101.
+                response = {
+                    "status": "ConnectionResetError", "statusMessage": "n/a",
+                }
+            else:
+                if response['status'] == 'DONE':
+                    break
             time.sleep(1)
         else:
             raise Exception(
