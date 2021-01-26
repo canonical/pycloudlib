@@ -1,13 +1,14 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
-import re
 import textwrap
 from abc import abstractmethod
 import warnings
 
+import yaml
+
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
-from pycloudlib.util import subp, UBUNTU_RELEASE_VERSION_MAP
+from pycloudlib.util import subp
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 from pycloudlib.lxd.defaults import base_vm_profiles
 
@@ -136,17 +137,22 @@ class _BaseLXD(BaseCloud):
 
         return instance
 
+    def _normalize_image_id(self, image_id: str) -> str:
+        if ':' not in image_id:
+            return self._daily_remote + ':' + image_id
+        return image_id
+
     # pylint: disable=R0914,R0912,R0915
     def _prepare_command(
-            self, name, release, ephemeral=False, network=None, storage=None,
+            self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
             config_dict=None):
         """Build a the command to be used to launch the LXD instance.
 
         Args:
             name: string, what to call the instance
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      launch
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
             storage: string, optional, storage name to use
@@ -162,11 +168,8 @@ class _BaseLXD(BaseCloud):
         profile_list = profile_list if profile_list else []
         config_dict = config_dict if config_dict else {}
 
-        if ':' not in release:
-            release = self._daily_remote + ':' + release
-
-        self._log.debug("Full release to launch: '%s'", release)
-        cmd = ['lxc', 'init', release]
+        self._log.debug("Full image ID to launch: '%s'", image_id)
+        cmd = ['lxc', 'init', image_id]
 
         if name:
             cmd.append(name)
@@ -223,7 +226,7 @@ class _BaseLXD(BaseCloud):
         return cmd
 
     def init(
-            self, name, release, ephemeral=False, network=None, storage=None,
+            self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
             config_dict=None):
         """Init a container.
@@ -233,8 +236,8 @@ class _BaseLXD(BaseCloud):
 
         Args:
             name: string, what to call the instance
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      launch
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
             storage: string, optional, storage name to use
@@ -247,9 +250,11 @@ class _BaseLXD(BaseCloud):
             The created LXD instance object
 
         """
+        image_id = self._normalize_image_id(image_id)
+
         cmd = self._prepare_command(
             name=name,
-            release=release,
+            image_id=image_id,
             ephemeral=ephemeral,
             network=network,
             storage=storage,
@@ -278,7 +283,7 @@ class _BaseLXD(BaseCloud):
         If no remote is specified pycloudlib defaults to daily images.
 
         Args:
-            image_id: string, [<remote>:]<image>, what release to launch
+            image_id: string, [<remote>:]<image>, the image to launch
             instance_type: string, type to use
             user_data: used by cloud-init to run custom scripts/configuration
             wait: boolean, wait for instance to start
@@ -295,7 +300,7 @@ class _BaseLXD(BaseCloud):
         """
         instance = self.init(
             name=name,
-            release=image_id,
+            image_id=image_id,
             ephemeral=ephemeral,
             network=network,
             storage=storage,
@@ -567,45 +572,68 @@ class LXDVirtualMachine(_BaseLXD):
             image_id, image_hash_key=self.DISK1_HASH_KEY
         )
 
+    def _lxc_image_info(self, image_id: str) -> dict:
+        """Return a dict of the output of ``lxc image info <image_id>``.
+
+        Args:
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      return the image info dict for
+
+        Returns:
+            A dict produced by loading the YAML emitted by ``lxc image info
+            <image_id>``, or the empty dict if either the command or YAML load
+            fails.
+        """
+        raw_image_info = subp(["lxc", "image", "info", image_id], rcs=())
+        if raw_image_info.ok:
+            try:
+                return yaml.safe_load(raw_image_info)
+            except yaml.YAMLError:
+                pass
+        return {}
+
     def _extract_release_from_image_id(self, image_id):
         """Extract the base release from the image_id.
 
         Args:
-            image_id: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      determine the release of
 
         Returns:
             A string containing the base release from the image_id that is used
             to launch the image.
         """
-        release_regex = (
-            "(.*ubuntu.*(?P<release>(" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP) + "|" +
-            "|".join(UBUNTU_RELEASE_VERSION_MAP.values()).replace(".", "\\.") +
-            ")).*)"
-        )
-        ubuntu_match = re.match(release_regex, image_id)
-        if ubuntu_match:
-            release = ubuntu_match.groupdict()["release"]
-            for codename, version in UBUNTU_RELEASE_VERSION_MAP.items():
-                if release in (codename, version):
-                    return codename
+        image_info = self._lxc_image_info(image_id)
+        release = None
+        try:
+            properties = image_info["Properties"]
+            os = properties["os"]
+            # images: images have "Ubuntu", ubuntu: images have "ubuntu"
+            if os.lower() == "ubuntu":
+                release = properties["release"]
+        except KeyError:
+            # Image info doesn't have the info we need, so fallthrough
+            pass
+        else:
+            if release is not None:
+                return release
 
         # If we have a hash in the image_id we need to query simplestreams to
         # identify the release.
         return self._image_info(image_id)[0]["release"]
 
-    def build_necessary_profiles(self, release=None):
+    def build_necessary_profiles(self, image_id):
         """Build necessary profiles to launch the LXD instance.
 
         Args:
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<release>, the image to build profiles
+                      for
 
         Returns:
             A list containing the profiles created
         """
-        base_release = self._extract_release_from_image_id(release)
+        image_id = self._normalize_image_id(image_id)
+        base_release = self._extract_release_from_image_id(image_id)
         profile_name = "pycloudlib-vm-{}".format(base_release)
 
         self.create_profile(
@@ -616,15 +644,15 @@ class LXDVirtualMachine(_BaseLXD):
         return [profile_name]
 
     def _prepare_command(
-            self, name, release, ephemeral=False, network=None, storage=None,
+            self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
             config_dict=None):
         """Build a the command to be used to launch the LXD instance.
 
         Args:
             name: string, what to call the instance
-            release: string, [<remote>:]<release>, what release to launch
-                     (default remote: )
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      launch
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, optional, network name to use
             storage: string, optional, storage name to use
@@ -638,11 +666,11 @@ class LXDVirtualMachine(_BaseLXD):
             launch the LXD instance.
         """
         if not profile_list:
-            profile_list = self.build_necessary_profiles(release=release)
+            profile_list = self.build_necessary_profiles(image_id)
 
         cmd = super()._prepare_command(
             name=name,
-            release=release,
+            image_id=image_id,
             ephemeral=ephemeral,
             network=network,
             storage=storage,

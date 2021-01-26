@@ -2,11 +2,14 @@
 import contextlib
 import io
 from unittest import mock
+
 import pytest
+import yaml
 
 from pycloudlib.lxd.cloud import (LXDContainer,
                                   LXDVirtualMachine,
                                   UnsupportedReleaseException)
+from pycloudlib.result import Result
 
 
 class TestProfileCreation:
@@ -82,6 +85,36 @@ class TestProfileCreation:
         ]
 
 
+@mock.patch("pycloudlib.lxd.cloud.subp")
+class Test_LxcImageInfo:  # pylint: disable=W0212
+    """Tests LXDVirtualMachine._lxc_image_info."""
+
+    def test_happy_path(self, m_subp):
+        """Command succeeds and returns valid YAML."""
+        image_id = "my:image_id"
+        content = {"my": "data"}
+        m_subp.return_value = Result(yaml.dump(content), "", 0)
+
+        ret = LXDVirtualMachine(tag="test")._lxc_image_info(image_id)
+
+        assert content == ret
+        expected_call = mock.call(["lxc", "image", "info", image_id], rcs=())
+        assert [expected_call] == m_subp.call_args_list
+
+    def test_command_failure_returns_empty_dict(self, m_subp):
+        """Command failure even with valid YAML returns empty dict."""
+        content = {"my": "data"}
+        m_subp.return_value = Result(yaml.dump(content), "", 1)
+
+        assert {} == LXDVirtualMachine(tag="test")._lxc_image_info("image_id")
+
+    def test_invalid_yaml_returns_empty_dict(self, m_subp):
+        """Invalid YAML even with command success returns empty dict."""
+        m_subp.return_value = Result("{:a}", "", 0)
+
+        assert {} == LXDVirtualMachine(tag="test")._lxc_image_info("image_id")
+
+
 class TestExtractReleaseFromImageId:
     """Test LXDVirtualMachine _extract_release_from_image_id method.
 
@@ -89,46 +122,52 @@ class TestExtractReleaseFromImageId:
     """
 
     @pytest.mark.parametrize(
-        "image_id, expected_release",
-        (
-            ("images:ubuntu/16.04/cloud", "xenial"),
-            ("ubuntu-daily:bionic", "bionic"),
-            ("ubuntu:focal", "focal"),
+        "expected_release,lxc_image_info",
+        [
+            # Test the various cases in which we expect to fallthrough
+            ("fallthrough", {}),
+            ("fallthrough", {"Properties": {}}),
+            ("fallthrough", {"Properties": {"os": "ubuntu"}}),
+            ("fallthrough", {"Properties": {"os": "Ubuntu"}}),
+            ("fallthrough", {"Properties": {"release": "bionic"}}),
             (
-                "local:ubuntu-behave-image-build--vm-focal1610458-snapshot",
-                "focal"
+                "fallthrough",
+                {"Properties": {"os": "notubuntu", "release": "bionic"}},
             ),
-        ),
+            # Test the two spelling of Ubuntu which we accept
+            (
+                "our_release",
+                {"Properties": {"os": "ubuntu", "release": "our_release"}},
+            ),
+            (
+                "our_release",
+                {"Properties": {"os": "Ubuntu", "release": "our_release"}},
+            ),
+        ],
     )
-    def test_extract_release_from_non_hashed_image_id(
-        self, image_id, expected_release
-    ):  # pylint: disable=W0212
-        """Tests extracting release from non hashed image id."""
+    @mock.patch.object(
+        LXDVirtualMachine,
+        "_image_info",
+        return_value=[{"release": "fallthrough"}],
+    )
+    def test_correct_paths_taken(
+        self, m__image_info, expected_release, lxc_image_info
+    ):
+        """Test that we fallthrough when the image is missing required info."""
+        image_id = mock.sentinel.image_id
         cloud = LXDVirtualMachine(tag="test")
-        assert expected_release == cloud._extract_release_from_image_id(
-            image_id)
+        with mock.patch.object(
+            cloud, "_lxc_image_info", return_value=lxc_image_info
+        ) as m__lxc_image_info:
+            # pylint: disable=W0212
+            assert expected_release == cloud._extract_release_from_image_id(
+                image_id
+            )
 
-    @mock.patch.object(LXDVirtualMachine, "_image_info")
-    def test_extract_release_from_hashed_image_id(
-        self, m_image_info
-    ):  # pylint: disable=W0212
-        """Tests extracting release from a non hashed image id."""
-        cloud = LXDVirtualMachine(tag="test")
+        assert [mock.call(image_id)] == m__lxc_image_info.call_args_list
 
-        m_image_info.return_value = [
-            {
-                "release": "focal"
-            }
-        ]
-
-        expected_release = "focal"
-        image_id = "ubuntu:ef539de92ef7b12cc1967bc0dbbe0ad8a231e9295aeab1b953"
-        assert expected_release == cloud._extract_release_from_image_id(
-            image_id)
-
-        assert m_image_info.call_args_list == [
-            mock.call(image_id)
-        ]
+        if expected_release == "fallthrough":
+            assert [mock.call(image_id)] == m__image_info.call_args_list
 
 
 class TestSearchForImage:
