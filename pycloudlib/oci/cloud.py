@@ -204,13 +204,13 @@ class OCI(BaseCloud):
 
         instance_data = self.compute_client.launch_instance(
             instance_details).data
-        instance_data = wait_till_ready(
-            func=self.compute_client.get_instance,
-            current_data=instance_data,
-            desired_state='RUNNING',
-        )
         instance = self.get_instance(instance_data.id)
         if wait:
+            wait_till_ready(
+                func=self.compute_client.get_instance,
+                current_data=instance_data,
+                desired_state='RUNNING',
+            )
             instance.wait()
         return instance
 

@@ -220,8 +220,6 @@ class GCE(BaseCloud):
         ).execute()
         raise_on_error(operation)
 
-        self._wait_for_operation(operation, operation_type='zone')
-
         result = self.compute.instances().get(
             project=self.project,
             zone=self.zone,
@@ -229,12 +227,9 @@ class GCE(BaseCloud):
         ).execute()
         raise_on_error(result)
 
-        self._log.info(
-            result['networkInterfaces'][0]['accessConfigs'][0]['natIP']
-        )
-
         instance = self.get_instance(result['id'], name=result['name'])
         if wait:
+            self._wait_for_operation(operation, operation_type='zone')
             instance.wait()
 
         return instance
