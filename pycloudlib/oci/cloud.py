@@ -180,7 +180,7 @@ class OCI(BaseCloud):
         vcn_id = self.network_client.list_vcns(
             self.compartment_id).data[0].id
         subnet = self.network_client.list_subnets(
-            self.compartment_id, vcn_id).data[0]
+            self.compartment_id, vcn_id=vcn_id).data[0]
         subnet_id = subnet.id
         availability_domain = subnet.availability_domain
 
