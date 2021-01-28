@@ -233,7 +233,11 @@ class GCE(BaseCloud):
             result['networkInterfaces'][0]['accessConfigs'][0]['natIP']
         )
 
-        return self.get_instance(result['id'], name=result['name'])
+        instance = self.get_instance(result['id'], name=result['name'])
+        if wait:
+            instance.wait()
+
+        return instance
 
     def snapshot(self, instance: GceInstance, clean=True, **kwargs):
         """Snapshot an instance and generate an image from it.
