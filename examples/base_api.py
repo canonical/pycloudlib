@@ -81,6 +81,9 @@ clouds = {
     pycloudlib.OCI: {
         'compartment_id': os.environ.get('COMPARTMENT_ID')
     },
+    pycloudlib.Openstack: {
+        'network': os.environ.get('OPENSTACK_NETWORK'),
+    },
     pycloudlib.LXD: {},
 }
 
