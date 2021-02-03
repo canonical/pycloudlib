@@ -39,40 +39,20 @@ class Openstack(BaseCloud):
         self.conn.delete_image(image_id, wait=True)
 
     def released_image(self, release, **kwargs):
-        """Find the id of the latest released image for a particular release.
-
-        Args:
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-            root_store: string, root store to use
-
-        Returns:
-            string, id of latest image
-
-        """
-        self._log.warning('Released images NOT supported for openstack')
-        return self.daily_image(release)
+        """Not supported for openstack."""
+        raise Exception(
+            'Obtaining released image for a release is not supported on '
+            'Openstack because we have no guarantee of what images will be '
+            'available for any particular openstack setup.'
+        )
 
     def daily_image(self, release, **kwargs):
-        """Find the id of the latest daily image for a particular release.
-
-        Args:
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-            root_store: string, root store to use
-
-        Returns:
-            string, id of latest image
-
-        """
-        self._log.debug('finding daily Ubuntu image for %s', release)
-        images = self.conn.compute.images(details=True)
-        images = [image for image in self.conn.compute.images()
-                  if release in image['name']]
-        sorted_images = sorted(images, key=itemgetter('updated_at'))
-        if not sorted_images:
-            raise ValueError('No image found for release {}'.format(release))
-        return sorted_images[-1]['id']
+        """Not supported for openstack."""
+        raise Exception(
+            'Obtaining daily image for a release is not supported on '
+            'Openstack because we have no guarantee of what images will be '
+            'available for any particular openstack setup.'
+        )
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.

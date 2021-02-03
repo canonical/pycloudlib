@@ -83,6 +83,7 @@ clouds = {
     },
     pycloudlib.Openstack: {
         'network': os.environ.get('OPENSTACK_NETWORK'),
+        'image_id': os.environ.get('OPENSTACK_IMAGE_ID'),
     },
     pycloudlib.LXD: {},
 }
