@@ -312,9 +312,10 @@ class BaseInstance(ABC):
         except SSHException:
             pass
 
-        retries = 60
+        start = time.time()
+        end = start + 600
         last_exception = None
-        while retries:
+        while True:
             try:
                 client.connect(
                     username=self.username,
@@ -328,13 +329,15 @@ class BaseInstance(ABC):
             except (ConnectionRefusedError, AuthenticationException,
                     BadHostKeyException, ConnectionResetError, SSHException,
                     OSError) as e:
-                self._log.info(
-                    "%s\nRetrying ssh connection %d more time(s) to  %s@%s:%s",
-                    e, retries, self.username, self.ip, self.port
-                )
                 last_exception = e
-                retries -= 1
-                time.sleep(10)
+            if time.time() > end:
+                break
+            self._log.info(
+                "%s\nRetrying SSH connection to %s@%s:%s (%ds left)",
+                last_exception, self.username, self.ip, self.port,
+                end - time.time()
+            )
+            time.sleep(10)
 
         self._log.error('Failed ssh connection to %s@%s:%s after 10 minutes',
                         self.username, self.ip, self.port)
