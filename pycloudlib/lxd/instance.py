@@ -73,7 +73,7 @@ class LXDInstance(BaseInstance):
             IP address assigned to instance.
 
         """
-        retries = 5
+        retries = 150
 
         while retries != 0:
             command = 'lxc list {} -c 4 --format csv'.format(self.name)
@@ -83,7 +83,7 @@ class LXDInstance(BaseInstance):
                 break
 
             retries -= 1
-            time.sleep(20)
+            time.sleep(1)
 
         ip_address = result.split()[0]
         return ip_address
