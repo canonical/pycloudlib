@@ -375,7 +375,7 @@ class BaseInstance(ABC):
         test_instance_command = "whoami"
         result = self.execute(test_instance_command)
         if result.failed:
-            retries = 10
+            retries = 100
             while retries:
                 result = self.execute(test_instance_command)
 
@@ -383,7 +383,7 @@ class BaseInstance(ABC):
                     break
 
                 retries -= 1
-                time.sleep(10)
+                time.sleep(1)
 
         if result.failed:
             raise OSError(
