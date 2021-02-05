@@ -337,7 +337,7 @@ class BaseInstance(ABC):
                 last_exception, self.username, self.ip, self.port,
                 end - time.time()
             )
-            time.sleep(10)
+            time.sleep(1)
 
         self._log.error('Failed ssh connection to %s@%s:%s after 10 minutes',
                         self.username, self.ip, self.port)
