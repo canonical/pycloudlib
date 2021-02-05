@@ -1,6 +1,5 @@
 """Openstack cloud type."""
 import base64
-from operator import itemgetter
 
 import openstack
 
