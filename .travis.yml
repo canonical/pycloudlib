@@ -12,6 +12,8 @@ matrix:
   include:
     - name: run-lxd-example
       install:
+          # Generate an SSH key to connect to test instances
+          - ssh-keygen -N "" -f ~/.ssh/id_rsa
           - pip install -r requirements.txt
       script:
           - sudo apt-get remove --yes --purge lxd lxd-client
@@ -22,6 +24,8 @@ matrix:
           - sg lxd -c "python examples/lxd.py"
     - name: run-cloudinit-integration-tests
       install:
+          # Generate an SSH key to connect to test instances
+          - ssh-keygen -N "" -f ~/.ssh/id_rsa
           - pip install -r requirements.txt
           - pip install pytest
       script:
