@@ -1,6 +1,7 @@
 """A run through of base API operations on all supported clouds."""
 
 import os
+import sys
 from contextlib import suppress
 
 import pycloudlib
@@ -13,13 +14,14 @@ runcmd:
 """
 
 
-def exercise_api(client: BaseCloud):
+def exercise_api(client: BaseCloud, image_id=None):
     """Run through supported functions in the base API."""
-    try:
-        image_id = client.released_image('focal')
-    except NotImplementedError:
-        image_id = client.daily_image('focal')
-    print('focal image id: {}'.format(image_id))
+    if not image_id:
+        try:
+            image_id = client.released_image('focal')
+        except NotImplementedError:
+            image_id = client.daily_image('focal')
+    print('image id: {}'.format(image_id))
     print('launching instance...')
     instance = client.launch(
         image_id=image_id,
@@ -70,7 +72,7 @@ def exercise_api(client: BaseCloud):
     instance.delete()
 
 
-clouds = {
+ALL_CLOUDS = {
     pycloudlib.Azure: {},
     pycloudlib.EC2: {},
     pycloudlib.GCE: {
@@ -83,14 +85,20 @@ clouds = {
     },
     pycloudlib.Openstack: {
         'network': os.environ.get('OPENSTACK_NETWORK'),
-        'image_id': os.environ.get('OPENSTACK_IMAGE_ID'),
     },
     pycloudlib.LXD: {},
 }
 
 if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        clouds = ALL_CLOUDS
+    else:
+        clouds = {}
+        for cloud_name in sys.argv[1:]:
+            key = getattr(pycloudlib, cloud_name)
+            clouds[key] = ALL_CLOUDS[key]
     for cloud, cloud_kwargs in clouds.items():
         print('Using cloud: {}'.format(cloud.__name__))
         client_api = cloud(tag='base-api-test', **cloud_kwargs)
-        exercise_api(client_api)
+        exercise_api(client_api, image_id=os.environ.get('IMAGE_ID'))
         print()
