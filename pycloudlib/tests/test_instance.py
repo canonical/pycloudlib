@@ -52,14 +52,14 @@ class TestWait:
         expected_msg = "{}\n{}".format(
             "Instance can't be reached", "Failed to execute whoami command"
         )
-        expected_call_args = [mock.call("whoami")] * 11
+        expected_call_args = [mock.call("whoami")] * 101
 
         with pytest.raises(OSError) as excinfo:
             instance.wait()
 
         assert expected_msg == str(excinfo.value)
         assert expected_call_args == m_execute.call_args_list
-        assert m_sleep.call_count == 10
+        assert m_sleep.call_count == 100
 
 
 class TestWaitForCloudinit:
