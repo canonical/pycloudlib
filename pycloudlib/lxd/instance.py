@@ -13,7 +13,7 @@ class LXDInstance(BaseInstance):
     _type = 'lxd'
     _is_vm = None
 
-    def __init__(self, name, key_pair=None):
+    def __init__(self, name, key_pair=None, execute_via_ssh=True):
         """Set up instance.
 
         Args:
@@ -23,6 +23,7 @@ class LXDInstance(BaseInstance):
         super().__init__(key_pair=key_pair)
 
         self._name = name
+        self.execute_via_ssh = execute_via_ssh
 
     def __repr__(self):
         """Create string representation for class."""
@@ -30,7 +31,7 @@ class LXDInstance(BaseInstance):
 
     def _run_command(self, command, stdin):
         """Run command in the instance."""
-        if self.key_pair:
+        if self.execute_via_ssh:
             return super()._run_command(command, stdin)
 
         base_cmd = [

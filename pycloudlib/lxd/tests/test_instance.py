@@ -13,7 +13,7 @@ class TestExecute:
         rcs=None means that we will get a Result object back for all return
         codes, rather than an exception for non-zero return codes.
         """
-        instance = LXDInstance(None)
+        instance = LXDInstance(None, execute_via_ssh=False)
         with mock.patch("pycloudlib.lxd.instance.subp") as m_subp:
             instance.execute("some_command")
         assert 1 == m_subp.call_count

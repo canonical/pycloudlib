@@ -37,18 +37,6 @@ class _BaseLXD(BaseCloud):
     _daily_remote = 'ubuntu-daily'
     _releases_remote = 'ubuntu'
 
-    def __init__(self, tag, timestamp_suffix=True):
-        """Initialize LXD cloud class.
-
-        Args:
-            tag: string used to name and tag resources with
-            timestamp_suffic: Append a timestamped suffix to the tag string.
-        """
-        super().__init__(tag, timestamp_suffix)
-
-        # User must manually specify the key pair to be used
-        self.key_pair = None
-
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
 
@@ -121,21 +109,7 @@ class _BaseLXD(BaseCloud):
             The existing instance as a LXD instance object
 
         """
-        instance = LXDInstance(instance_id)
-
-        if self.key_pair:
-            local_path = "/tmp/{}-authorized-keys".format(instance_id)
-
-            instance.pull_file(
-                remote_path="/home/ubuntu/.ssh/authorized_keys",
-                local_path=local_path
-            )
-
-            with open(local_path, "r") as f:
-                if self.key_pair.public_key_content in f.read():
-                    instance.key_pair = self.key_pair
-
-        return instance
+        return LXDInstance(instance_id, key_pair=self.key_pair)
 
     def _normalize_image_id(self, image_id: str) -> str:
         if ':' not in image_id:
@@ -228,7 +202,7 @@ class _BaseLXD(BaseCloud):
     def init(
             self, name, image_id, ephemeral=False, network=None, storage=None,
             inst_type=None, profile_list=None, user_data=None,
-            config_dict=None):
+            config_dict=None, execute_via_ssh=True):
         """Init a container.
 
         This will initialize a container, but not launch or start it.
@@ -245,6 +219,8 @@ class _BaseLXD(BaseCloud):
             profile_list: list, optional, profile(s) to use
             user_data: used by cloud-init to run custom scripts/configuration
             config_dict: dict, optional, configuration values to pass
+            execute_via_ssh: bool, optional, execute commands on the instance
+                             via SSH if True (the default)
 
         Returns:
             The created LXD instance object
@@ -272,11 +248,14 @@ class _BaseLXD(BaseCloud):
 
         self._log.debug('Created %s', name)
 
-        return LXDInstance(name, self.key_pair)
+        return LXDInstance(
+            name, self.key_pair, execute_via_ssh=execute_via_ssh
+        )
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
                name=None, ephemeral=False, network=None, storage=None,
-               profile_list=None, config_dict=None, **kwargs):
+               profile_list=None, config_dict=None, execute_via_ssh=True,
+               **kwargs):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
@@ -293,6 +272,8 @@ class _BaseLXD(BaseCloud):
             storage: string, storage name to use
             profile_list: list, profile(s) to use
             config_dict: dict, configuration values to pass
+            execute_via_ssh: bool, optional, execute commands on the instance
+                             via SSH if True (the default)
 
         Returns:
             The created LXD instance object
@@ -307,7 +288,8 @@ class _BaseLXD(BaseCloud):
             inst_type=instance_type,
             profile_list=profile_list,
             user_data=user_data,
-            config_dict=config_dict
+            config_dict=config_dict,
+            execute_via_ssh=execute_via_ssh,
         )
         instance.start(wait)
 
