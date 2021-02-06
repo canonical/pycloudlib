@@ -80,7 +80,7 @@ class Openstack(BaseCloud):
             instance_id,
         )
 
-    def launch(self, image_id, instance_type='m1.small', user_data=None,
+    def launch(self, image_id, instance_type='m1.small', user_data='',
                wait=True, **kwargs) -> OpenstackInstance:
         """Launch an instance.
 
@@ -99,13 +99,18 @@ class Openstack(BaseCloud):
         networks = [{'uuid': net.id}]
         if not self._openstack_keypair:
             self._openstack_keypair = self._get_openstack_keypair()
+        if user_data:
+            user_data = base64.b64encode(user_data.encode()).decode()
+        else:
+            user_data = ''
+
         instance = self.conn.compute.create_server(
             name=self.tag,
             image_id=image_id,
             flavor_id=self.conn.compute.find_flavor(instance_type).id,
             networks=networks,
             key_name=self._openstack_keypair.name,
-            user_data=base64.b64encode(user_data.encode()).decode(),
+            user_data=user_data,
             wait=wait,
             **kwargs,
         )
@@ -132,11 +137,12 @@ class Openstack(BaseCloud):
         if clean:
             instance.clean()
         instance.shutdown()
-        self.conn.create_image_snapshot(
+        image = self.conn.create_image_snapshot(
             '{}-snapshot'.format(self.tag),
             instance.server.id,
             wait=True
         )
+        return image.id
 
     def use_key(self, public_key_path, private_key_path=None, name=None):
         """Use an existing key.
