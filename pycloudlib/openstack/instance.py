@@ -33,7 +33,6 @@ class OpenstackInstance(BaseInstance):
         self.floating_ip = self.conn.create_floating_ip(
             wait=True,
         )
-        # TODO: Is there no blocking call for this?
         tries = 30
         while tries:
             try:

@@ -187,23 +187,3 @@ class Openstack(BaseCloud):
                     passed_key=public_key_content
                 )
             )
-        # TODO: Figure out if I want to incorporate this...
-        # If you don't specify a keypair to pycloudlib, the default keypair
-        # uses your username as the default name. It's possible somebody
-        # already created an openstack keypair with their username, but
-        # using a public key that isn't ~/.ssh/id_rsa.pub. In that case,
-        # they'll hit the exception we raise above. Is that case likely /
-        # do we care about it? Meh...?
-
-        # # First check to see if we already have this public key under
-        # # an existing name
-        # openstack_keypairs = self.conn.list_keypairs()
-        # for openstack_keypair in openstack_keypairs:
-        #     if openstack_keypair.public_key == public_key_content:
-        #         return openstack_keypair
-        # else:
-        #     # Create a 'default' one
-        #     return self.conn.create_keypair(
-        #         'pycloudlib_default',
-        #         self.key_pair.public_key_path
-        #     )
