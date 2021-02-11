@@ -1,6 +1,5 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
-import textwrap
 from abc import abstractmethod
 import warnings
 
@@ -149,21 +148,10 @@ class _BaseLXD(BaseCloud):
             cmd.append(name)
 
         if self.key_pair:
-            ssh_user_data = textwrap.dedent(
-                """\
-                ssh_authorized_keys:
-                    - {}
-                """.format(self.key_pair.public_key_content)
+            metadata = "public-keys: {}".format(
+                self.key_pair.public_key_content
             )
-
-            if user_data:
-                user_data += "\n{}".format(ssh_user_data)
-
-            if "user.user-data" in config_dict:
-                config_dict["user.user-data"] += "\n{}".format(ssh_user_data)
-
-            if not user_data and "user.user-data" not in config_dict:
-                user_data = "#cloud-config\n{}".format(ssh_user_data)
+            config_dict["user.meta-data"] = metadata
 
         if ephemeral:
             cmd.append('--ephemeral')
