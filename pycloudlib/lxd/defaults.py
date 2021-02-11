@@ -21,8 +21,7 @@ LXC_SETUP_VENDORDATA = textwrap.dedent(
               ICAgIFZJUlQ9JChzeXN0ZW1kLWRldGVjdC12aXJ0KQogICAgY2FzZSAkVklSVCBpbgogICAgICAg
               IHFlbXV8a3ZtKQogICAgICAgICAgICAoY2QgL3J1bi9seGRhZ2VudC8gJiYgLi9pbnN0YWxsLnNo
               KQogICAgICAgICAgICB1bW91bnQgL3J1bi9seGRhZ2VudAogICAgICAgICAgICBzeXN0ZW1jdGwg
-              c3RhcnQgbHhkLWFnZW50LTlwIGx4ZC1hZ2VudAogICAgICAgICAgICA7OwogICAgICAgICopCiAg
-              ICBlc2FjCmZpCg==
+              c3RhcnQgbHhkLWFnZW50CiAgICAgICAgICAgIDs7CiAgICAgICAgKikKICAgIGVzYWMKZmkK
    """
 )
 
