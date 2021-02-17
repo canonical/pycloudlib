@@ -68,7 +68,7 @@ class OpenstackInstance(BaseInstance):
     def console_log(self):
         """Return the instance console log."""
         # Returning nothing for me but might work in other contexts?
-        self.conn.compute.get_server_console_output(self.server)
+        return self.conn.compute.get_server_console_output(self.server)
 
     def delete(self, wait=True):
         """Delete the instance.
