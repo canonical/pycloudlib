@@ -2,7 +2,7 @@
 
 ## Credentials
 
-No connection information is directly passed to pycloudlib but rather relies **clouds.yaml** or **OS_** environment variables. See [the openstack configuration docs](https://docs.openstack.org/python-openstackclient/victoria/configuration/index.html) for more information.
+No connection information is directly passed to pycloudlib but rather relies on **clouds.yaml** or **OS_** environment variables. See [the openstack configuration docs](https://docs.openstack.org/python-openstackclient/victoria/configuration/index.html) for more information.
 
 ## SSH Keys
 
