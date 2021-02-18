@@ -12,5 +12,11 @@ venv
 .noseids
 cover
 
+# Editors/tools
+.idea/
+.vscode/
+.mypy_cache/
+.pytest_cache/
+
 # Docs
 docs/_build
