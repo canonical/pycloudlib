@@ -35,12 +35,14 @@ NETWORK_IPS = [
     {'floating_ip_address': '10.0.0.3'},
 ]
 
+
 @mock.patch(
     'pycloudlib.openstack.instance.OpenstackInstance.'
     '_create_and_attach_floating_id'
 )
 class TestAttachFloatingIp:
     """Ensure we create/use floating IPs accordingly."""
+
     def test_existing_floating_ip(self, m_create):
         """Test that if a server has an existing floating IP, we use it."""
         m_connection = mock.Mock()
