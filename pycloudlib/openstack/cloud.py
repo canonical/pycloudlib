@@ -69,15 +69,15 @@ class Openstack(BaseCloud):
         """Get an instance by id.
 
         Args:
-            instance_id:
+            instance_id: ID of instance to get
 
         Returns:
             An instance object to use to manipulate the instance further.
 
         """
         return OpenstackInstance(
-            self.key_pair,
-            instance_id,
+            key_pair=self.key_pair,
+            instance_id=instance_id,
         )
 
     def launch(self, image_id, instance_type='m1.small', user_data='',
@@ -104,10 +104,18 @@ class Openstack(BaseCloud):
         else:
             user_data = ''
 
+        flavor = self.conn.compute.find_flavor(instance_type)
+        if flavor is None:
+            raise Exception(
+                'No Openstack flavor found named {}. Please pass a valid '
+                'Openstack flavor as the `instance_type` when calling '
+                'launch.'.format(instance_type)
+            )
+
         instance = self.conn.compute.create_server(
             name=self.tag,
             image_id=image_id,
-            flavor_id=self.conn.compute.find_flavor(instance_type).id,
+            flavor_id=flavor.id,
             networks=networks,
             key_name=self._openstack_keypair.name,
             user_data=user_data,
@@ -115,9 +123,9 @@ class Openstack(BaseCloud):
             **kwargs,
         )
         instance = OpenstackInstance(
-            self.key_pair,
-            instance.id,
-            self.conn
+            key_pair=self.key_pair,
+            instance_id=instance.id,
+            connection=self.conn,
         )
         if wait:
             instance.wait()
