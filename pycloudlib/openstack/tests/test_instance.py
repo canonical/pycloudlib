@@ -31,8 +31,8 @@ SERVER_ADDRESSES = {
 # While the actual results from openstack will have a lot more values
 # in the dict, 'floating_ip_address' is all we care about
 NETWORK_IPS = [
-    {'floating_ip_address': '10.0.0.4'},
-    {'floating_ip_address': '10.0.0.3'},
+    {'floating_ip_address': '10.0.0.4', 'unrelated': 'field'},
+    {'floating_ip_address': '10.0.0.3', 'dont': 'care'},
 ]
 
 
@@ -46,12 +46,12 @@ class TestAttachFloatingIp:
     def test_existing_floating_ip(self, m_create):
         """Test that if a server has an existing floating IP, we use it."""
         m_connection = mock.Mock()
-        m_server = m_connection.compute.get_server.return_value = mock.Mock()
+        m_server = m_connection.compute.get_server.return_value
         m_server.addresses = SERVER_ADDRESSES
         m_connection.network.ips.return_value = NETWORK_IPS
 
         instance = OpenstackInstance(None, None, connection=m_connection)
-        assert {'floating_ip_address': '10.0.0.3'} == instance.floating_ip
+        assert '10.0.0.3' == instance.floating_ip['floating_ip_address']
         assert 0 == m_create.call_count
 
     def test_no_matching_floating_ip(self, m_create):
@@ -62,5 +62,5 @@ class TestAttachFloatingIp:
         m_connection.network.ips.return_value = []
 
         instance = OpenstackInstance(None, None, connection=m_connection)
-        assert instance.floating_ip is None
+        assert instance.floating_ip is m_create.return_value
         assert 1 == m_create.call_count

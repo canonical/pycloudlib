@@ -37,7 +37,7 @@ class OpenstackInstance(BaseInstance):
         self.delete_floating_ip = False
         self.floating_ip = self._get_existing_floating_ip()
         if self.floating_ip is None:
-            self._create_and_attach_floating_id()
+            self.floating_ip = self._create_and_attach_floating_id()
             self.delete_floating_ip = True
 
     def _get_existing_floating_ip(self):
@@ -49,13 +49,13 @@ class OpenstackInstance(BaseInstance):
         return None
 
     def _create_and_attach_floating_id(self):
-        self.floating_ip = self.conn.create_floating_ip(wait=True)
+        floating_ip = self.conn.create_floating_ip(wait=True)
         tries = 30
         for _ in range(tries):
             try:
                 self.conn.compute.add_floating_ip_to_server(
                     self.server,
-                    self.floating_ip.floating_ip_address
+                    floating_ip.floating_ip_address
                 )
                 break
             except BadRequestException as e:
@@ -63,6 +63,7 @@ class OpenstackInstance(BaseInstance):
                     time.sleep(1)
                     continue
                 raise e
+        return floating_ip
 
     def __repr__(self):
         """Create string representation of class."""
