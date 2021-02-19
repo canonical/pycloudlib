@@ -302,7 +302,8 @@ class Azure(BaseCloud):
 
         return nic_call.result()
 
-    def _create_vm_parameters(self, name, image_id, nic_id, user_data):
+    def _create_vm_parameters(self, name, image_id, instance_type, nic_id,
+                              user_data):
         """Create the virtual machine parameters to be used for provision.
 
         Composes the dict that will be used to provision an Azure virtual
@@ -312,6 +313,7 @@ class Azure(BaseCloud):
         Args:
             name: string, The name of the virtual machine.
             image_id: string, The identifier of an image.
+            instance_type: string, Type of instance to create.
             nic_id: string, The network interface id.
             user_data: string, The user data to be passed to the
                        virtual machine.
@@ -323,7 +325,7 @@ class Azure(BaseCloud):
         vm_parameters = {
             "location": self.location,
             "hardware_profile": {
-                "vm_size": "Standard_DS1_v2"
+                "vm_size": instance_type
             },
             "storage_profile": {
                 "image_reference": {}
@@ -377,7 +379,7 @@ class Azure(BaseCloud):
         return vm_parameters
 
     def _create_virtual_machine(
-        self, image_id, nic_id, user_data, name, vm_params=None
+        self, image_id, instance_type, nic_id, user_data, name, vm_params=None
     ):
         """Create a virtual machine.
 
@@ -387,6 +389,7 @@ class Azure(BaseCloud):
         Args:
             image_id: string, The image to be used when provisiong
                       a virtual machine.
+            instance_type: string, Type of instance to create
             nic_id: string, The network interface to used for this
                     virtual machine.
             user_data: string, user data used by cloud-init when
@@ -401,7 +404,9 @@ class Azure(BaseCloud):
         """
         if not name:
             name = "{}-vm".format(self.tag)
-        params = self._create_vm_parameters(name, image_id, nic_id, user_data)
+        params = self._create_vm_parameters(
+            name, image_id, instance_type, nic_id, user_data
+        )
         if vm_params:
             update_nested(params, vm_params)
         self._log.debug('Creating Azure virtual machine: %s', name)
@@ -497,7 +502,8 @@ class Azure(BaseCloud):
 
         return None
 
-    def launch(self, image_id, user_data=None, wait=True, name=None, **kwargs):
+    def launch(self, image_id, instance_type='Standard_DS1_v2',
+               user_data=None, wait=True, name=None, **kwargs):
         """Launch virtual machine on Azure.
 
         Args:
@@ -513,6 +519,8 @@ class Azure(BaseCloud):
             Azure Instance object
 
         """
+        # pylint: disable-msg=too-many-locals
+
         self._log.debug(
             'Launching Azure virtual machine: %s', image_id)
 
@@ -573,6 +581,7 @@ class Azure(BaseCloud):
 
         vm = self._create_virtual_machine(
             image_id=image_id,
+            instance_type=instance_type,
             nic_id=nic.id,
             user_data=user_data,
             name=name,

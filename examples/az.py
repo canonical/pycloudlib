@@ -40,6 +40,7 @@ def demo():
 
     instance = client.launch(
         image_id=image_id,
+        instance_type='Standard_DS2_v2',  # default is Standard_DS1_v2
         user_data=cloud_config
     )
 
