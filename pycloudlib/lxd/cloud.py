@@ -6,7 +6,7 @@ import warnings
 import yaml
 
 from pycloudlib.cloud import BaseCloud
-from pycloudlib.lxd.instance import LXDInstance
+from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 from pycloudlib.lxd.defaults import base_vm_profiles, LXC_PROFILE_VERSION
@@ -35,6 +35,7 @@ class _BaseLXD(BaseCloud):
     _type = 'lxd'
     _daily_remote = 'ubuntu-daily'
     _releases_remote = 'ubuntu'
+    _lxd_instance_cls = LXDInstance
 
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
@@ -111,7 +112,57 @@ class _BaseLXD(BaseCloud):
             The existing instance as a LXD instance object
 
         """
-        return LXDInstance(instance_id, key_pair=self.key_pair)
+        return self._lxd_instance_cls(instance_id, key_pair=self.key_pair)
+
+    def _lxc_image_info(self, image_id: str) -> dict:
+        """Return a dict of the output of ``lxc image info <image_id>``.
+
+        Args:
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      return the image info dict for
+
+        Returns:
+            A dict produced by loading the YAML emitted by ``lxc image info
+            <image_id>``, or the empty dict if either the command or YAML load
+            fails.
+        """
+        raw_image_info = subp(["lxc", "image", "info", image_id], rcs=())
+        if raw_image_info.ok:
+            try:
+                return yaml.safe_load(raw_image_info)
+            except yaml.YAMLError:
+                pass
+        return {}
+
+    def _extract_release_from_image_id(self, image_id):
+        """Extract the base release from the image_id.
+
+        Args:
+            image_id: string, [<remote>:]<image identifier>, the image to
+                      determine the release of
+
+        Returns:
+            A string containing the base release from the image_id that is used
+            to launch the image.
+        """
+        image_info = self._lxc_image_info(image_id)
+        release = None
+        try:
+            properties = image_info["Properties"]
+            os = properties["os"]
+            # images: images have "Ubuntu", ubuntu: images have "ubuntu"
+            if os.lower() == "ubuntu":
+                release = properties["release"]
+        except KeyError:
+            # Image info doesn't have the info we need, so fallthrough
+            pass
+        else:
+            if release is not None:
+                return release
+
+        # If we have a hash in the image_id we need to query simplestreams to
+        # identify the release.
+        return self._image_info(image_id)[0]["release"]
 
     def _normalize_image_id(self, image_id: str) -> str:
         if ':' not in image_id:
@@ -218,6 +269,7 @@ class _BaseLXD(BaseCloud):
 
         """
         image_id = self._normalize_image_id(image_id)
+        series = self._extract_release_from_image_id(image_id)
 
         cmd = self._prepare_command(
             name=name,
@@ -238,9 +290,11 @@ class _BaseLXD(BaseCloud):
             name = result.split('Instance name is: ')[1]
 
         self._log.debug('Created %s', name)
-
-        return LXDInstance(
-            name, self.key_pair, execute_via_ssh=execute_via_ssh
+        return self._lxd_instance_cls(
+            name=name,
+            key_pair=self.key_pair,
+            execute_via_ssh=execute_via_ssh,
+            series=series,
         )
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
@@ -522,9 +576,10 @@ class LXD(LXDContainer):
 class LXDVirtualMachine(_BaseLXD):
     """LXD Virtual Machine Cloud Class."""
 
-    XENIAL_IMAGE_VSOCK_SUPPORT = "images:ubuntu/16.04/cloud"
     DISK1_HASH_KEY = "combined_disk1-img_sha256"
+    DISK_UEFI1_KEY = "combined_uefi1-img_sha256"
     DISK_KVM_HASH_KEY = "combined_disk-kvm-img_sha256"
+    _lxd_instance_cls = LXDVirtualMachineInstance
 
     def _image_info(self, image_id, image_hash_key=None):
         """Return image info for the given ID.
@@ -541,59 +596,15 @@ class LXDVirtualMachine(_BaseLXD):
         )
         if kvm_image_info:
             return kvm_image_info
+
+        uefi1_image_info = super()._image_info(
+            image_id, image_hash_key=self.DISK_UEFI1_KEY)
+        if uefi1_image_info:
+            return uefi1_image_info
+
         return super()._image_info(
             image_id, image_hash_key=self.DISK1_HASH_KEY
         )
-
-    def _lxc_image_info(self, image_id: str) -> dict:
-        """Return a dict of the output of ``lxc image info <image_id>``.
-
-        Args:
-            image_id: string, [<remote>:]<image identifier>, the image to
-                      return the image info dict for
-
-        Returns:
-            A dict produced by loading the YAML emitted by ``lxc image info
-            <image_id>``, or the empty dict if either the command or YAML load
-            fails.
-        """
-        raw_image_info = subp(["lxc", "image", "info", image_id], rcs=())
-        if raw_image_info.ok:
-            try:
-                return yaml.safe_load(raw_image_info)
-            except yaml.YAMLError:
-                pass
-        return {}
-
-    def _extract_release_from_image_id(self, image_id):
-        """Extract the base release from the image_id.
-
-        Args:
-            image_id: string, [<remote>:]<image identifier>, the image to
-                      determine the release of
-
-        Returns:
-            A string containing the base release from the image_id that is used
-            to launch the image.
-        """
-        image_info = self._lxc_image_info(image_id)
-        release = None
-        try:
-            properties = image_info["Properties"]
-            os = properties["os"]
-            # images: images have "Ubuntu", ubuntu: images have "ubuntu"
-            if os.lower() == "ubuntu":
-                release = properties["release"]
-        except KeyError:
-            # Image info doesn't have the info we need, so fallthrough
-            pass
-        else:
-            if release is not None:
-                return release
-
-        # If we have a hash in the image_id we need to query simplestreams to
-        # identify the release.
-        return self._image_info(image_id)[0]["release"]
 
     def build_necessary_profiles(self, image_id):
         """Build necessary profiles to launch the LXD instance.
@@ -674,9 +685,13 @@ class LXDVirtualMachine(_BaseLXD):
             A string specifying which key of the metadata dictionary
             should be used to launch the image.
         """
-        if release in ["trusty", "xenial", "bionic"]:
+        if release in ["trusty", "bionic"]:
             # Older releases do not have disk-kvm.img
             return self.DISK1_HASH_KEY
+
+        if release == "xenial":
+            return self.DISK_UEFI1_KEY
+
         return self.DISK_KVM_HASH_KEY
 
     def _search_for_image(
@@ -694,15 +709,6 @@ class LXDVirtualMachine(_BaseLXD):
             string, LXD fingerprint of latest image
 
         """
-        if release == "xenial":
-            # xenial needs to launch images:ubuntu/16.04/cloud
-            # because it contains the HWE kernel which has vhost-vsock support
-            self._log.debug(
-                "Xenial needs to use %s image because of lxd-agent support",
-                self.XENIAL_IMAGE_VSOCK_SUPPORT
-            )
-            return self.XENIAL_IMAGE_VSOCK_SUPPORT
-
         if release == "trusty":
             # trusty is not supported on LXD vms
             raise UnsupportedReleaseException(
@@ -716,18 +722,3 @@ class LXDVirtualMachine(_BaseLXD):
             release=release,
             arch=arch
         )
-
-    def image_serial(self, image_id):
-        """Find the image serial of a given LXD image.
-
-        Args:
-            image_id: string, LXD image fingerprint
-
-        Returns:
-            string, serial of latest image
-
-        """
-        if image_id == self.XENIAL_IMAGE_VSOCK_SUPPORT:
-            return None
-
-        return super().image_serial(image_id=image_id)

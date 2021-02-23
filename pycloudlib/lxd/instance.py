@@ -13,7 +13,9 @@ class LXDInstance(BaseInstance):
     _type = 'lxd'
     _is_vm = None
 
-    def __init__(self, name, key_pair=None, execute_via_ssh=True):
+    def __init__(
+        self, name, key_pair=None, execute_via_ssh=True, series=None
+    ):
         """Set up instance.
 
         Args:
@@ -24,6 +26,7 @@ class LXDInstance(BaseInstance):
 
         self._name = name
         self.execute_via_ssh = execute_via_ssh
+        self.series = series
 
     def __repr__(self):
         """Create string representation for class."""
@@ -339,3 +342,24 @@ class LXDInstance(BaseInstance):
                 return
             time.sleep(1)
         raise TimeoutError
+
+
+class LXDVirtualMachineInstance(LXDInstance):
+    """LXD Virtual Machine backed instance."""
+
+    def _run_command(self, command, stdin):
+        """Run command in the instance."""
+        if self.execute_via_ssh:
+            return super()._run_command(command, stdin)
+
+        if self.series == "xenial":
+            msg = (
+                "Many xenial images do not support executing commands"
+                " via exec due to missing kernel support: you may see"
+                " unavoidable failures.\nSee"
+                " https://github.com/canonical/pycloudlib/issues/132 for"
+                " details."
+            )
+            self._log.warning(msg)
+
+        return super()._run_command(command, stdin)
