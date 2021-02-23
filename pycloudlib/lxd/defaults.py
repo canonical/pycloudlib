@@ -3,7 +3,7 @@
 import textwrap
 
 
-LXC_PROFILE_VERSION = "v1"
+LXC_PROFILE_VERSION = "v2"
 
 
 # For Xenial and Bionic vendor-data required to setup lxd-agent in a vm
@@ -12,7 +12,6 @@ LXC_SETUP_VENDORDATA = textwrap.dedent(
     config:
       user.vendor-data: |
         #cloud-config
-        {custom_cfg}
         write_files:
         - path: /var/lib/cloud/scripts/per-once/setup-lxc.sh
           encoding: b64
@@ -48,7 +47,7 @@ VM_PROFILE_TMPL = textwrap.dedent(
 
 
 def _make_vm_profile(
-    series: str, *, install_agent: bool, install_ssh: bool = False
+    series: str, *, install_agent: bool
 ) -> str:
     config_device = ""
     vendordata = "config: {}"
@@ -56,15 +55,14 @@ def _make_vm_profile(
         # We need to mount the config drive so that cloud-init finds the
         # vendor-data instructing it to install the agent
         config_device = "config: {source: cloud-init:config, type: disk}"
-        custom_cfg = "packages: [openssh-server]" if install_ssh else ""
-        vendordata = LXC_SETUP_VENDORDATA.format(custom_cfg=custom_cfg)
+        vendordata = LXC_SETUP_VENDORDATA
     return VM_PROFILE_TMPL.format(
         config_device=config_device, series=series, vendordata=vendordata
     )
 
 
 base_vm_profiles = {
-    "xenial": _make_vm_profile("xenial", install_agent=True, install_ssh=True),
+    "xenial": _make_vm_profile("xenial", install_agent=True),
     "bionic": _make_vm_profile("bionic", install_agent=True),
     "focal": _make_vm_profile("focal", install_agent=False),
     "groovy": _make_vm_profile("groovy", install_agent=False),
