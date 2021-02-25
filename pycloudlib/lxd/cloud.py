@@ -9,7 +9,7 @@ from pycloudlib.cloud import BaseCloud
 from pycloudlib.lxd.instance import LXDInstance
 from pycloudlib.util import subp
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
-from pycloudlib.lxd.defaults import base_vm_profiles
+from pycloudlib.lxd.defaults import base_vm_profiles, LXC_PROFILE_VERSION
 
 
 class UnsupportedReleaseException(Exception):
@@ -604,7 +604,8 @@ class LXDVirtualMachine(_BaseLXD):
         """
         image_id = self._normalize_image_id(image_id)
         base_release = self._extract_release_from_image_id(image_id)
-        profile_name = "pycloudlib-vm-{}".format(base_release)
+        profile_name = "pycloudlib-vm-{}-{}".format(
+            base_release, LXC_PROFILE_VERSION)
 
         self.create_profile(
             profile_name=profile_name,
