@@ -3,6 +3,9 @@
 import textwrap
 
 
+LXC_PROFILE_VERSION = "v1"
+
+
 # For Xenial and Bionic vendor-data required to setup lxd-agent in a vm
 LXC_SETUP_VENDORDATA = textwrap.dedent(
     """\
