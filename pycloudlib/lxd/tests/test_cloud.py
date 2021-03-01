@@ -18,7 +18,9 @@ class TestProfileCreation:
     @mock.patch("pycloudlib.lxd.cloud.subp")
     def test_create_profile_that_already_exists(self, m_subp):
         """Tests creating a profile that already exists."""
-        m_subp.return_value = ["test_profile"]
+        m_subp.return_value = """
+            - name: test_profile
+        """
         cloud = LXDContainer(tag="test")
 
         fake_stdout = io.StringIO()
@@ -31,7 +33,7 @@ class TestProfileCreation:
         expected_msg = "The profile named test_profile already exists"
         assert expected_msg in fake_stdout.getvalue().strip()
         assert m_subp.call_args_list == [
-            mock.call(["lxc", "profile", "list"])
+            mock.call(["lxc", "profile", "list", "--format", "yaml"])
         ]
 
     @mock.patch("pycloudlib.lxd.cloud.subp")
@@ -39,7 +41,9 @@ class TestProfileCreation:
         self, m_subp
     ):
         """Tests creating an existing profile with force parameter."""
-        m_subp.return_value = ["test_profile"]
+        m_subp.return_value = """
+            - name: test_profile
+        """
         cloud = LXDContainer(tag="test")
         profile_name = "test_profile"
         profile_config = "profile_config"
@@ -51,7 +55,7 @@ class TestProfileCreation:
         )
 
         assert m_subp.call_args_list == [
-            mock.call(["lxc", "profile", "list"]),
+            mock.call(["lxc", "profile", "list", "--format", "yaml"]),
             mock.call(["lxc", "profile", "delete", profile_name]),
             mock.call(["lxc", "profile", "create", profile_name]),
             mock.call(
@@ -65,9 +69,11 @@ class TestProfileCreation:
         self, m_subp
     ):
         """Tests creating a new profile."""
-        m_subp.return_value = ["other_profile"]
+        m_subp.return_value = """
+            - name: other_profile
+        """
         cloud = LXDContainer(tag="test")
-        profile_name = "test_profile"
+        profile_name = "other_profile_v1"
         profile_config = "profile_config"
 
         cloud.create_profile(
@@ -76,7 +82,7 @@ class TestProfileCreation:
         )
 
         assert m_subp.call_args_list == [
-            mock.call(["lxc", "profile", "list"]),
+            mock.call(["lxc", "profile", "list", "--format", "yaml"]),
             mock.call(["lxc", "profile", "create", profile_name]),
             mock.call(
                 ["lxc", "profile", "edit", profile_name],

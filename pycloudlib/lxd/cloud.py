@@ -70,7 +70,10 @@ class _BaseLXD(BaseCloud):
             profile_config: Config to be added to the new profile
             force: Force the profile creation if it already exists
         """
-        profile_list = subp(["lxc", "profile", "list"])
+        profile_yaml = subp(["lxc", "profile", "list", "--format", "yaml"])
+        profile_list = [
+            profile["name"] for profile in yaml.safe_load(profile_yaml)
+        ]
 
         if profile_name in profile_list and not force:
             msg = "The profile named {} already exists".format(profile_name)
