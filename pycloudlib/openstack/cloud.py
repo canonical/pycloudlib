@@ -181,17 +181,15 @@ class Openstack(BaseCloud):
                 name,
                 public_key_content
             )
-        elif public_key_content == openstack_keypair.public_key:
+        if public_key_content == openstack_keypair.public_key:
             return openstack_keypair
-        else:
-            raise Exception(
-                "An openstack keypair with name {name} already exists, "
-                "but its public key doesn't match the public key passed "
-                "in.\n"
-                "{name} key: {openstack_key}\n"
-                "Passed in key: {passed_key}".format(
-                    name=name,
-                    openstack_key=openstack_keypair.public_key,
-                    passed_key=public_key_content
-                )
+        raise Exception(
+            "An openstack keypair with name {name} already exists, but its"
+            " public key doesn't match the public key passed in.\n"
+            "{name} key: {openstack_key}\n"
+            "Passed in key: {passed_key}".format(
+                name=name,
+                openstack_key=openstack_keypair.public_key,
+                passed_key=public_key_content,
             )
+        )
