@@ -35,6 +35,7 @@ class BaseInstance(ABC):
         self.port = '22'
         self.username = 'ubuntu'
         self.connect_timeout = 60
+        self.banner_timeout = 60
 
     @property
     @abstractmethod
@@ -322,6 +323,7 @@ class BaseInstance(ABC):
                     hostname=self.ip,
                     port=int(self.port),
                     timeout=self.connect_timeout,
+                    banner_timeout=self.banner_timeout,
                     key_filename=self.key_pair.private_key_path,
                 )
                 self._ssh_client = client
