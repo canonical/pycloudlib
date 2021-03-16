@@ -149,7 +149,3 @@ class AzureInstance(BaseInstance):
             delete.wait()
 
         self.status = "deleted"
-
-    def console_log(self):
-        """Return the instance console log."""
-        raise NotImplementedError

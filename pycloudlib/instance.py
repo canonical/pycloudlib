@@ -48,9 +48,12 @@ class BaseInstance(ABC):
         """Return IP address of instance."""
         raise NotImplementedError
 
-    @abstractmethod
     def console_log(self):
-        """Return the instance console log."""
+        """Return the instance console log.
+
+        Raises NotImplementedError if the cloud does not support fetching the
+        console log for this instance.
+        """
         raise NotImplementedError
 
     @abstractmethod
