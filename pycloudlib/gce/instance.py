@@ -77,10 +77,6 @@ class GceInstance(BaseInstance):
         ip = result['networkInterfaces'][0]['accessConfigs'][0]['natIP']
         return ip
 
-    def console_log(self):
-        """Not currently implemented."""
-        raise NotImplementedError
-
     def delete(self, wait=True):
         """Delete the instance.
 
