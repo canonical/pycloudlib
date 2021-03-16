@@ -134,8 +134,14 @@ class LXDInstance(BaseInstance):
 
         """
         self._log.debug('getting console log for %s', self.name)
-        result = subp(['lxc', 'console', self.name, '--show-log'])
-        return result
+        try:
+            return subp(["lxc", "console", self.name, "--show-log"])
+        except RuntimeError as exc:
+            if "Instance is not container type" not in str(exc):
+                raise
+            # "Instance is not container type" means we don't support console
+            # log for this instance: raise NotImplementedError
+            raise NotImplementedError from exc
 
     def delete(self, wait=True):
         """Delete the current instance.
