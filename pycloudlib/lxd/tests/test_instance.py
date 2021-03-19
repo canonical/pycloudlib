@@ -22,8 +22,11 @@ class TestExecute:
         assert kwargs.get("rcs", mock.sentinel.not_none) is None
 
 
-class TestVirtualMachineExecute:  # pylint: disable=W0212
+class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
     """Tests covering pycloudlib.lxd.instance.LXDVirtualMachineInstance."""
+
+    # Key information we want in the logs when using non-ssh Xenial instances.
+    _missing_agent_msg = "missing lxd-agent"
 
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_exec_with_run_command_on_xenial_machine(
@@ -36,12 +39,33 @@ class TestVirtualMachineExecute:  # pylint: disable=W0212
             None, execute_via_ssh=False, series="xenial")
 
         instance._run_command(["test"], None)
-        expected_msg = (
-            "Many xenial images do not support executing commands"
-            " via exec due to missing kernel support: you may see"
-            " unavoidable failures.\nSee"
-            " https://github.com/canonical/pycloudlib/issues/132 for"
-            " details."
-        )
-        assert expected_msg in caplog.messages
+        assert any(self._missing_agent_msg in L for L in caplog.messages)
+        assert _m_subp.call_count == 1
+
+    @mock.patch("pycloudlib.lxd.instance.subp")
+    def test_file_pull_with_agent_on_xenial_machine(
+        self,
+        _m_subp,
+        caplog
+    ):
+        """Test exec does not work with xenial vm."""
+        instance = LXDVirtualMachineInstance(
+            None, execute_via_ssh=False, series="xenial")
+
+        instance.pull_file("/some/file", "/some/local/file")
+        assert any(self._missing_agent_msg in L for L in caplog.messages)
+        assert _m_subp.call_count == 1
+
+    @mock.patch("pycloudlib.lxd.instance.subp")
+    def test_file_push_with_agent_on_xenial_machine(
+        self,
+        _m_subp,
+        caplog
+    ):
+        """Test exec does not work with xenial vm."""
+        instance = LXDVirtualMachineInstance(
+            None, execute_via_ssh=False, series="xenial")
+
+        instance.push_file("/some/file", "/some/local/file")
+        assert any(self._missing_agent_msg in L for L in caplog.messages)
         assert _m_subp.call_count == 1

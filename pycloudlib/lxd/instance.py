@@ -13,6 +13,12 @@ class LXDInstance(BaseInstance):
     _type = 'lxd'
     _is_vm = None
 
+    _missing_agent_msg = (
+        "Many Xenial images do not support `%s` due to missing lxd-agent:"
+        " you may see unavoidable failures.\n"
+        "See https://github.com/canonical/pycloudlib/issues/132 for details."
+    )
+
     def __init__(
         self, name, key_pair=None, execute_via_ssh=True, series=None
     ):
@@ -195,6 +201,13 @@ class LXDInstance(BaseInstance):
         """
         self._log.debug('pulling file %s to %s', remote_path, local_path)
 
+        if self.execute_via_ssh:
+            super().pull_file(remote_path, local_path)
+            return
+
+        if self.series == "xenial":
+            self._log.warning(self._missing_agent_msg, "lxc file pull")
+
         if remote_path[0] != '/':
             remote_pwd = self.execute('pwd')
             remote_path = remote_pwd + '/' + remote_path
@@ -215,6 +228,13 @@ class LXDInstance(BaseInstance):
             remote_path: path to push file
         """
         self._log.debug('pushing file %s to %s', local_path, remote_path)
+
+        if self.execute_via_ssh:
+            super().push_file(local_path, remote_path)
+            return
+
+        if self.series == "xenial":
+            self._log.warning(self._missing_agent_msg, "lxc file push")
 
         if remote_path[0] != '/':
             remote_pwd = self.execute('pwd')
@@ -353,13 +373,6 @@ class LXDVirtualMachineInstance(LXDInstance):
             return super()._run_command(command, stdin)
 
         if self.series == "xenial":
-            msg = (
-                "Many xenial images do not support executing commands"
-                " via exec due to missing kernel support: you may see"
-                " unavoidable failures.\nSee"
-                " https://github.com/canonical/pycloudlib/issues/132 for"
-                " details."
-            )
-            self._log.warning(msg)
+            self._log.warning(self._missing_agent_msg, "lxc exec")
 
         return super()._run_command(command, stdin)
