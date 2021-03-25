@@ -62,7 +62,7 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
         _m_subp,
         caplog
     ):
-        """Test exec does not work with xenial vm."""
+        """Test file push does not work with xenial vm."""
         instance = LXDVirtualMachineInstance(
             None, execute_via_ssh=False, series="xenial")
 
