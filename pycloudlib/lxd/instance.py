@@ -6,18 +6,18 @@ import time
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import subp
 
+MISSING_AGENT_MSG = (
+    "Many Xenial images do not support `%s` due to missing lxd-agent:"
+    " you may see unavoidable failures.\n"
+    "See https://github.com/canonical/pycloudlib/issues/132 for details."
+)
+
 
 class LXDInstance(BaseInstance):
     """LXD backed instance."""
 
     _type = 'lxd'
     _is_vm = None
-
-    _missing_agent_msg = (
-        "Many Xenial images do not support `%s` due to missing lxd-agent:"
-        " you may see unavoidable failures.\n"
-        "See https://github.com/canonical/pycloudlib/issues/132 for details."
-    )
 
     def __init__(
         self, name, key_pair=None, execute_via_ssh=True, series=None
@@ -206,7 +206,7 @@ class LXDInstance(BaseInstance):
             return
 
         if self.series == "xenial":
-            self._log.warning(self._missing_agent_msg, "lxc file pull")
+            self._log.warning(MISSING_AGENT_MSG, "lxc file pull")
 
         if remote_path[0] != '/':
             remote_pwd = self.execute('pwd')
@@ -234,7 +234,7 @@ class LXDInstance(BaseInstance):
             return
 
         if self.series == "xenial":
-            self._log.warning(self._missing_agent_msg, "lxc file push")
+            self._log.warning(MISSING_AGENT_MSG, "lxc file push")
 
         if remote_path[0] != '/':
             remote_pwd = self.execute('pwd')
@@ -373,6 +373,6 @@ class LXDVirtualMachineInstance(LXDInstance):
             return super()._run_command(command, stdin)
 
         if self.series == "xenial":
-            self._log.warning(self._missing_agent_msg, "lxc exec")
+            self._log.warning(MISSING_AGENT_MSG, "lxc exec")
 
         return super()._run_command(command, stdin)
