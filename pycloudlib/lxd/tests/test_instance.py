@@ -39,7 +39,7 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
             None, execute_via_ssh=False, series="xenial")
 
         instance._run_command(["test"], None)
-        assert any(self._missing_agent_msg in L for L in caplog.messages)
+        assert self._missing_agent_msg in caplog.text
         assert _m_subp.call_count == 1
 
     @mock.patch("pycloudlib.lxd.instance.subp")
@@ -53,7 +53,7 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
             None, execute_via_ssh=False, series="xenial")
 
         instance.pull_file("/some/file", "/some/local/file")
-        assert any(self._missing_agent_msg in L for L in caplog.messages)
+        assert self._missing_agent_msg in caplog.text
         assert _m_subp.call_count == 1
 
     @mock.patch("pycloudlib.lxd.instance.subp")
@@ -67,5 +67,5 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
             None, execute_via_ssh=False, series="xenial")
 
         instance.push_file("/some/file", "/some/local/file")
-        assert any(self._missing_agent_msg in L for L in caplog.messages)
+        assert self._missing_agent_msg in caplog.text
         assert _m_subp.call_count == 1
