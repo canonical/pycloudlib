@@ -81,21 +81,37 @@ class LXDInstance(BaseInstance):
         Returns:
             IP address assigned to instance.
 
+        Raises: TimeoutError when exhausting retries trying to parse lxc list
+            for ip addresses.
         """
         retries = 150
 
         while retries != 0:
-            command = 'lxc list {} -c 4 --format csv'.format(self.name)
-            result = subp(command.split()).stdout
-
-            if result != '':
-                break
-
+            command = [
+                 'lxc', 'list', '^{}$'.format(self.name), '-c4',
+                 '--format', 'csv'
+            ]
+            result = subp(command)
+            if result.ok and result.stdout:
+                ip_address = None
+                try:
+                    # Expect "<ip> (<interface>)" when network fully configured
+                    ip_address, _dev = result.stdout.split()
+                except ValueError:
+                    self._log.debug(
+                        "Unable to parse output of cmd: %s. Expected"
+                        " <ip> (<interface>), got: %s. Retrying %d time(s)...",
+                        command, result.stdout, retries
+                    )
+                if ip_address:
+                    return ip_address
             retries -= 1
             time.sleep(1)
-
-        ip_address = result.split()[0]
-        return ip_address
+        raise TimeoutError(
+            "Unable to determine IP address after 150 retries."
+            " exit:{} stdout: {} stderr: {}".format(
+                result.return_code, result.stdout, result.stderr)
+        )
 
     @property
     def ephemeral(self):
