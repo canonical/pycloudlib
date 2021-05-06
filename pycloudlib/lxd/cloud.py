@@ -12,23 +12,6 @@ from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 from pycloudlib.lxd.defaults import base_vm_profiles, LXC_PROFILE_VERSION
 
 
-class UnsupportedReleaseException(Exception):
-    """Unsupported release exception."""
-
-    msg_tmpl = "Release {} is not supported for LXD{}"
-
-    def __init__(self, release, is_vm):
-        """Prepare unsupported release message."""
-        vm_msg = ""
-
-        if is_vm:
-            vm_msg = " vms"
-
-        super().__init__(
-            self.msg_tmpl.format(release, vm_msg)
-        )
-
-
 class _BaseLXD(BaseCloud):
     """LXD Base Cloud Class."""
 
@@ -513,7 +496,6 @@ class _BaseLXD(BaseCloud):
 class LXDContainer(_BaseLXD):
     """LXD Containers Cloud Class."""
 
-    TRUSTY_CONTAINER_HASH_KEY = "combined_rootxz_sha256"
     CONTAINER_HASH_KEY = "combined_squashfs_sha256"
 
     def _get_image_hash_key(self, release=None):
@@ -532,9 +514,6 @@ class LXDContainer(_BaseLXD):
             A string specifying which key of the metadata dictionary
             should be used to launch the image.
         """
-        if release == "trusty":
-            return self.TRUSTY_CONTAINER_HASH_KEY
-
         return self.CONTAINER_HASH_KEY
 
     def _image_info(self, image_id, image_hash_key=None):
@@ -548,20 +527,10 @@ class LXDContainer(_BaseLXD):
             dict, image info available for the image_id
 
         """
-        image_info = super()._image_info(
+        return super()._image_info(
             image_id=image_id,
             image_hash_key=self.CONTAINER_HASH_KEY
         )
-
-        if not image_info:
-            # If this is a trusty image, the hash key for it is different.
-            # We will perform a second query for this situation.
-            image_info = super()._image_info(
-                image_id=image_id,
-                image_hash_key=self.TRUSTY_CONTAINER_HASH_KEY
-            )
-
-        return image_info
 
 
 class LXD(LXDContainer):
@@ -685,7 +654,7 @@ class LXDVirtualMachine(_BaseLXD):
             A string specifying which key of the metadata dictionary
             should be used to launch the image.
         """
-        if release in ["trusty", "bionic"]:
+        if release == "bionic":
             # Older releases do not have disk-kvm.img
             return self.DISK1_HASH_KEY
 
@@ -693,32 +662,3 @@ class LXDVirtualMachine(_BaseLXD):
             return self.DISK_UEFI1_KEY
 
         return self.DISK_KVM_HASH_KEY
-
-    def _search_for_image(
-        self, remote, daily, release, arch=LOCAL_UBUNTU_ARCH
-    ):
-        """Find the LXD fingerprint in a given remote.
-
-        Args:
-            remote: string, remote to prepend to image_id
-            daily: boolean, search on daily remote
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-
-        Returns:
-            string, LXD fingerprint of latest image
-
-        """
-        if release == "trusty":
-            # trusty is not supported on LXD vms
-            raise UnsupportedReleaseException(
-                release="trusty",
-                is_vm=True
-            )
-
-        return super()._search_for_image(
-            remote=remote,
-            daily=daily,
-            release=release,
-            arch=arch
-        )

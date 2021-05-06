@@ -47,8 +47,8 @@ Azure requires an SSH key to be uploaded before using it. See the SSH Key page f
 To find latest daily Azure image for a release of Ubuntu:
 
 ```python
-azure.daily_image('trusty')
-"Canonical:UbuntuServer:14.04.0-LTS",
+azure.daily_image('xenial')
+"Canonical:UbuntuServer:16.04-DAILY-LTS"
 ```
 
 The return Azure image can then be used for launching instances.
