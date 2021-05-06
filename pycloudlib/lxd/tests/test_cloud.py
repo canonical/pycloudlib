@@ -7,8 +7,7 @@ import pytest
 import yaml
 
 from pycloudlib.lxd.cloud import (LXDContainer,
-                                  LXDVirtualMachine,
-                                  UnsupportedReleaseException)
+                                  LXDVirtualMachine)
 from pycloudlib.result import Result
 
 
@@ -174,23 +173,3 @@ class TestExtractReleaseFromImageId:
 
         if expected_release == "fallthrough":
             assert [mock.call(image_id)] == m__image_info.call_args_list
-
-
-class TestSearchForImage:
-    """Tests pycloudlib.lxd.cloud._search_for_image method."""
-
-    def test_trusty_image_not_supported_when_launching_vms(
-        self
-    ):  # pylint: disable=W0212
-        """Tests searching for trusty image for launching LXD vms."""
-        cloud = LXDVirtualMachine(tag="test")
-
-        with pytest.raises(UnsupportedReleaseException) as excinfo:
-            cloud._search_for_image(
-                remote="remote",
-                daily=False,
-                release="trusty",
-            )
-
-        assert "Release trusty is not supported for LXD vms" == str(
-            excinfo.value)

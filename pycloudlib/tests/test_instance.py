@@ -82,51 +82,19 @@ class TestWaitForCloudinit:
             m_execute.side_effect = side_effect
             instance._wait_for_cloudinit()
 
-        assert 2 == m_execute.call_count
+        assert 1 == m_execute.call_count
         assert (
-            mock.call("cloud-init status --help")
-            == m_execute.call_args_list[0]
-        )
-        assert (
-            mock.call(
-                ["cloud-init", "status", "--wait", "--long"],
-                description="waiting for start",
-            )
-            == m_execute.call_args_list[1]
+            [
+                mock.call(
+                    ["cloud-init", "status", "--wait", "--long"],
+                    description="waiting for start",
+                )
+            ]
+            == m_execute.call_args_list
         )
 
-    def test_without_wait_available(self, concrete_instance_cls):
-        """Test the happy path for instances without `status --wait`."""
-
-        def side_effect(cmd, *_args, **_kwargs):
-            stdout = ""
-            return_code = 0
-            if "--help" in cmd:
-                # `cloud-init status --help` on trusty returns non-zero
-                return_code = 2
-                stdout = "help content without wait"
-            return Result(stdout=stdout, stderr="", return_code=return_code)
-
-        instance = concrete_instance_cls(key_pair=None)
-        with mock.patch.object(instance, "execute") as m_execute:
-            m_execute.side_effect = side_effect
-            instance._wait_for_cloudinit()
-
-        assert 2 == m_execute.call_count
-        assert (
-            mock.call("cloud-init status --help")
-            == m_execute.call_args_list[0]
-        )
-        # There's no point checksum testing the full shellscript: test enough
-        # to be sure we've got the right thing.
-        first_arg = m_execute.call_args_list[1][0][0]
-        assert "runlevel" in first_arg
-        assert "result.json" in first_arg
-
-    @pytest.mark.parametrize("has_wait", [True, False])
     def test_failure_path(
         self,
-        has_wait,
         concrete_instance_cls,
     ):
         """Test failure for both has_wait and !has_wait cases."""
@@ -138,17 +106,6 @@ class TestWaitForCloudinit:
                 # that the instance can be reached
                 return Result(stdout=stdout, stderr="", return_code=0)
 
-            if "--help" in cmd:
-                # The --help call should contain the appropriate output to
-                # select --wait or not, and is unsuccessful if it doesn't (to
-                # mirror trusty's behaviour)
-                return_code = 2
-                if has_wait:
-                    return_code = 0
-                    stdout = "help content containing --wait"
-                return Result(
-                    stdout=stdout, stderr="", return_code=return_code
-                )
             # Any other call should fail
             return Result(stdout="fail_out", stderr="fail_err", return_code=1)
 
