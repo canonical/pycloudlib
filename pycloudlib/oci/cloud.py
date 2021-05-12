@@ -20,8 +20,8 @@ class OCI(BaseCloud):
     _type = 'oci'
 
     def __init__(
-        self, tag, timestamp_suffix=True, compartment_id=None,
-        config_path='~/.oci/config',
+        self, tag, *, compartment_id, timestamp_suffix=True,
+        config_path='~/.oci/config'
     ):
         """
         Initialize the connection to OCI.
@@ -38,21 +38,6 @@ class OCI(BaseCloud):
             config_path: Path of OCI config file
         """
         super().__init__(tag, timestamp_suffix)
-        if not compartment_id:
-            command = ['oci', 'iam', 'compartment', 'get']
-            exception_text = (
-                "Could not obtain OCI compartment id. Has the CLI client been "
-                "setup?\nCommand attempted: '{}'".format(' '.join(command))
-            )
-            try:
-                result = subp(command, rcs=())
-            except FileNotFoundError as e:
-                raise Exception(exception_text) from e
-            if not result.ok:
-                exception_text += '\nstdout: {}\nstderr: {}'.format(
-                    result.stdout, result.stderr)
-                raise Exception(exception_text)
-            compartment_id = json.loads(result.stdout)['data']['id']
         self.compartment_id = compartment_id
 
         if not os.path.isfile(os.path.expanduser(config_path)):
