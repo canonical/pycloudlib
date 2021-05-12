@@ -83,11 +83,7 @@ class GCE(BaseCloud):
     def _find_image(self, release, daily, arch='amd64'):
         images = self._image_list(release, daily, arch)
 
-        image_id = None
-        try:
-            image_id = images[0]['id']
-        except IndexError:
-            Exception('No images found')
+        image_id = images[0]['id']
 
         return 'projects/ubuntu-os-cloud-devel/global/images/%s' % image_id
 
