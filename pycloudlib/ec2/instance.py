@@ -109,12 +109,15 @@ class EC2Instance(BaseInstance):
             The console log or error message
 
         """
-        try:
-            # OutputBytes comes from platform._decode_console_output_as_bytes
+        start = time.time()
+        while time.time() < start + 180:
             response = self._instance.console_output()
-            return response['OutputBytes']
-        except KeyError:
-            return 'No Console Output [%s]' % self._instance
+            try:
+                return response['Output']
+            except KeyError:
+                self._log.debug("Console output not yet available; sleeping")
+                time.sleep(5)
+        return 'No Console Output [%s]' % self._instance
 
     def delete(self, wait=True):
         """Delete instance."""
