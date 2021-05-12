@@ -67,4 +67,5 @@ base_vm_profiles = {
     "focal": _make_vm_profile("focal", install_agent=False),
     "groovy": _make_vm_profile("groovy", install_agent=False),
     "hirsute": _make_vm_profile("hirsute", install_agent=False),
+    "impish": _make_vm_profile("impish", install_agent=False),
 }
