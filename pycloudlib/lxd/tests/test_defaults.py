@@ -1,6 +1,8 @@
 """Tests related to pycloudlib.lxd.defaults module."""
 import hashlib
 
+import pytest
+
 from pycloudlib.lxd.defaults import base_vm_profiles, LXC_PROFILE_VERSION
 
 
@@ -26,10 +28,12 @@ class TestLXDProfilesWereNotModified:
             "focal": "9ce4202e39d98c1499e3bce3c144e14f",
             "groovy": "05b1582d39237fb2d1b55c8782982bfd",
             "hirsute": "1f3851328bec6253f51b1f1dc9bcbf55",
-        }
+            "impish": "c2a4e4d6a9c16f73f2f79fe34d3f638f",
+        },
     }
 
-    def test_profiles_md5sum_was_not_changed(self):
+    @pytest.mark.parametrize("series", base_vm_profiles.keys())
+    def test_profiles_md5sum_was_not_changed(self, series):
         """Test if the profiles md5sum still match.
 
         This test will ensure that the current profile version
@@ -37,12 +41,15 @@ class TestLXDProfilesWereNotModified:
         """
         profiles_md5sum = self.version_to_md5sum[LXC_PROFILE_VERSION]
 
-        for series, current_profile in base_vm_profiles.items():
-            current_profile_md5sum = hashlib.md5(
-                current_profile.encode('utf-8')
-            ).hexdigest()
-            profile_md5sum = profiles_md5sum[series]
+        current_profile_md5sum = hashlib.md5(
+            base_vm_profiles[series].encode('utf-8')
+        ).hexdigest()
+        if series not in profiles_md5sum:
+            pytest.fail(
+                "Series {} md5sum not yet present: {}".format(
+                    series, current_profile_md5sum
+                )
+            )
+        profile_md5sum = profiles_md5sum[series]
 
-            print(series)
-            print(current_profile_md5sum)
-            assert profile_md5sum == current_profile_md5sum
+        assert profile_md5sum == current_profile_md5sum
