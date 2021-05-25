@@ -21,7 +21,7 @@ class OCI(BaseCloud):
 
     def __init__(
         self, tag, timestamp_suffix=True, compartment_id=None,
-        config_path='~/.oci/config',
+        availability_domain=None, config_path='~/.oci/config',
     ):
         """
         Initialize the connection to OCI.
@@ -35,6 +35,8 @@ class OCI(BaseCloud):
                 tag
             compartment_id: A compartment found at
                 https://console.us-phoenix-1.oraclecloud.com/a/identity/compartments
+            availability_domain: One of the availability domains from:
+                'oci iam availability-domain list'
             config_path: Path of OCI config file
         """
         super().__init__(tag, timestamp_suffix)
@@ -54,6 +56,10 @@ class OCI(BaseCloud):
                 raise Exception(exception_text)
             compartment_id = json.loads(result.stdout)['data']['id']
         self.compartment_id = compartment_id
+
+        if not availability_domain:
+            raise ValueError('availability_domain must be specified')
+        self.availability_domain = availability_domain
 
         if not os.path.isfile(os.path.expanduser(config_path)):
             raise ValueError(
@@ -182,7 +188,6 @@ class OCI(BaseCloud):
         subnet = self.network_client.list_subnets(
             self.compartment_id, vcn_id=vcn_id).data[0]
         subnet_id = subnet.id
-        availability_domain = subnet.availability_domain
 
         metadata = {
             'ssh_authorized_keys': self.key_pair.public_key_content,
@@ -193,7 +198,7 @@ class OCI(BaseCloud):
 
         instance_details = oci.core.models.LaunchInstanceDetails(
             display_name=self.tag,
-            availability_domain=availability_domain,
+            availability_domain=self.availability_domain,
             compartment_id=self.compartment_id,
             shape=instance_type,
             subnet_id=subnet_id,
