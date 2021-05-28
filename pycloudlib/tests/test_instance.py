@@ -43,23 +43,26 @@ class TestWait:
 
     @mock.patch.object(BaseInstance, "execute")
     @mock.patch("pycloudlib.instance.time.sleep")
+    @mock.patch("pycloudlib.instance.time.time")
     def test_wait_execute_failure(
-        self, m_sleep, m_execute, concrete_instance_cls
+        self, m_time, m_sleep, m_execute, concrete_instance_cls
     ):
         """Test wait calls when execute command fails."""
         instance = concrete_instance_cls(key_pair=None)
+        m_time.side_effect = [1, 2, 600, 601]
         m_execute.return_value = Result(stdout="", stderr="", return_code=1)
         expected_msg = "{}\n{}".format(
-            "Instance can't be reached", "Failed to execute whoami command"
+            "Instance can't be reached after 10 minutes. ",
+            "Failed to execute whoami command"
         )
-        expected_call_args = [mock.call("whoami")] * 101
+        expected_call_args = [mock.call("whoami")] * 2
 
         with pytest.raises(OSError) as excinfo:
             instance.wait()
 
         assert expected_msg == str(excinfo.value)
+        assert m_sleep.call_count == 2
         assert expected_call_args == m_execute.call_args_list
-        assert m_sleep.call_count == 100
 
 
 class TestWaitForCloudinit:

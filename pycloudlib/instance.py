@@ -156,6 +156,8 @@ class BaseInstance(ABC):
         Returns:
             Result object
 
+        Raises SSHException if there are any problem with the ssh connection
+
         """
         if isinstance(command, str):
             command = ['sh', '-c', command]
@@ -197,6 +199,8 @@ class BaseInstance(ABC):
         Args:
             remote_path: path on remote instance
             local_path: local path
+
+        Raises SSHException if there are any problem with the ssh connection
         """
         self._log.debug('pulling file %s to %s', remote_path, local_path)
 
@@ -209,6 +213,8 @@ class BaseInstance(ABC):
         Args:
             local_path: local path
             remote_path: path on remote instance
+
+        Raises SSHException if there are any problem with the ssh connection
         """
         self._log.debug('pushing file %s to %s', local_path, remote_path)
 
@@ -225,6 +231,7 @@ class BaseInstance(ABC):
         Returns:
             result from script execution
 
+        Raises SSHException if there are any problem with the ssh connection
         """
         # Just write to a file, add execute, run it, then remove it.
         shblob = '; '.join((
@@ -264,15 +271,11 @@ class BaseInstance(ABC):
 
         """
         cmd = shell_pack(command)
-        for _ in range(10):
-            try:
-                client = self._ssh_connect()
-                fp_in, fp_out, fp_err = client.exec_command(cmd)
-                break
-            except (ConnectionResetError, NoValidConnectionsError) as e:
-                last_error = e
-        else:
-            raise last_error  # noqa
+        client = self._ssh_connect()
+        try:
+            fp_in, fp_out, fp_err = client.exec_command(cmd)
+        except (ConnectionResetError, NoValidConnectionsError) as e:
+            raise SSHException from e
         channel = fp_in.channel
 
         if stdin is not None:
@@ -316,37 +319,21 @@ class BaseInstance(ABC):
         except SSHException:
             pass
 
-        start = time.time()
-        end = start + 600
-        last_exception = None
-        while True:
-            try:
-                client.connect(
-                    username=self.username,
-                    hostname=self.ip,
-                    port=int(self.port),
-                    timeout=self.connect_timeout,
-                    banner_timeout=self.banner_timeout,
-                    key_filename=self.key_pair.private_key_path,
-                )
-                self._ssh_client = client
-                return client
-            except (ConnectionRefusedError, AuthenticationException,
-                    BadHostKeyException, ConnectionResetError, SSHException,
-                    OSError) as e:
-                last_exception = e
-            if time.time() > end:
-                break
-            self._log.info(
-                "%s\nRetrying SSH connection to %s@%s:%s (%ds left)",
-                last_exception, self.username, self.ip, self.port,
-                end - time.time()
+        try:
+            client.connect(
+                username=self.username,
+                hostname=self.ip,
+                port=int(self.port),
+                timeout=self.connect_timeout,
+                banner_timeout=self.banner_timeout,
+                key_filename=self.key_pair.private_key_path,
             )
-            time.sleep(1)
-
-        self._log.error('Failed ssh connection to %s@%s:%s after 10 minutes',
-                        self.username, self.ip, self.port)
-        raise last_exception
+        except (ConnectionRefusedError, AuthenticationException,
+                BadHostKeyException, ConnectionResetError, SSHException,
+                OSError) as e:
+            raise SSHException from e
+        self._ssh_client = client
+        return client
 
     def _sftp_connect(self):
         """Connect to instance via SFTP."""
@@ -376,28 +363,27 @@ class BaseInstance(ABC):
     def _wait_for_execute(self):
         """Wait until we can execute a command in the instance."""
         self._log.debug('_wait_for_execute to complete')
-
         test_instance_command = "whoami"
-        result = self.execute(test_instance_command)
-        if result.failed:
-            retries = 100
-            while retries:
+
+        # Wait 10 minutes before failing
+        start = time.time()
+        end = start + 600
+        while time.time() < end:
+            try:
                 result = self.execute(test_instance_command)
-
                 if result.ok:
-                    break
+                    return
+            except SSHException:
+                pass
+            time.sleep(1)
 
-                retries -= 1
-                time.sleep(1)
-
-        if result.failed:
-            raise OSError(
-                "{}\n{}".format(
-                    "Instance can't be reached",
-                    "Failed to execute {} command".format(
-                        test_instance_command)
-                )
+        raise OSError(
+            "{}\n{}".format(
+                "Instance can't be reached after 10 minutes. ",
+                "Failed to execute {} command".format(
+                    test_instance_command)
             )
+        )
 
     def _wait_for_cloudinit(self):
         """Wait until cloud-init has finished."""
