@@ -81,6 +81,7 @@ ALL_CLOUDS = {
         'zone': 'a',
     },
     pycloudlib.OCI: {
+        'availability_domain': os.environ.get('AVAILABILITY_DOMAIN'),
         'compartment_id': os.environ.get('COMPARTMENT_ID')
     },
     pycloudlib.Openstack: {
