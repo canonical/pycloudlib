@@ -20,7 +20,7 @@ class OCI(BaseCloud):
     _type = 'oci'
 
     def __init__(
-        self, tag, *, availability_domain, timestamp_suffix=True,
+        self, tag, timestamp_suffix=True, *, availability_domain,
         compartment_id=None, config_path='~/.oci/config'
     ):
         """
