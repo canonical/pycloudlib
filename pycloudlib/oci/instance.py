@@ -99,6 +99,12 @@ class OciInstance(BaseInstance):
         Args:
             wait: wait for the instance to shutdown
         """
+        # Because it's like 1995 or something...
+        # But seriously, without a sync (or 5), if you power down too quickly
+        # after first boot, all the keys created in /etc/ssh will turn into
+        # zero-byte files and you'll be permanently kicked out of your
+        # instance with your only hope being serial console access.
+        self.execute('sync; sync; sync; sync; sync')
         self.compute_client.instance_action(self.instance_data.id, 'STOP')
         if wait:
             self.wait_for_stop()
