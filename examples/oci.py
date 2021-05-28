@@ -15,7 +15,7 @@ runcmd:
 """
 
 
-def demo(compartment_id):
+def demo(availability_domain, compartment_id):
     """Show example of using the OCI library.
 
     Connects to OCI and launches released image. Then runs
@@ -23,6 +23,7 @@ def demo(compartment_id):
     """
     client = pycloudlib.OCI(
         'Oracle test',
+        availability_domain=availability_domain,
         compartment_id=compartment_id,
     )
 
@@ -46,8 +47,9 @@ def demo(compartment_id):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    if len(sys.argv) != 2:
-        print('Usage: oci.py <oracle_compartment_id>')
+    if len(sys.argv) != 3:
+        print('Usage: oci.py <availability_domain> <compartment_id>')
         sys.exit(1)
-    passed_compartment_id = sys.argv[1]
-    demo(passed_compartment_id)
+    passed_availability_domain = sys.argv[1]
+    passed_compartment_id = sys.argv[2]
+    demo(passed_availability_domain, passed_compartment_id)

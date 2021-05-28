@@ -20,8 +20,8 @@ class OCI(BaseCloud):
     _type = 'oci'
 
     def __init__(
-        self, tag, timestamp_suffix=True, compartment_id=None,
-        availability_domain=None, config_path='~/.oci/config',
+        self, tag, *, availability_domain, timestamp_suffix=True,
+        compartment_id=None, config_path='~/.oci/config'
     ):
         """
         Initialize the connection to OCI.
@@ -40,6 +40,8 @@ class OCI(BaseCloud):
             config_path: Path of OCI config file
         """
         super().__init__(tag, timestamp_suffix)
+        self.availability_domain = availability_domain
+
         if not compartment_id:
             command = ['oci', 'iam', 'compartment', 'get']
             exception_text = (
@@ -56,10 +58,6 @@ class OCI(BaseCloud):
                 raise Exception(exception_text)
             compartment_id = json.loads(result.stdout)['data']['id']
         self.compartment_id = compartment_id
-
-        if not availability_domain:
-            raise ValueError('availability_domain must be specified')
-        self.availability_domain = availability_domain
 
         if not os.path.isfile(os.path.expanduser(config_path)):
             raise ValueError(
