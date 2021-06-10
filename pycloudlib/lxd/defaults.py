@@ -3,7 +3,7 @@
 import textwrap
 
 
-LXC_PROFILE_VERSION = "v2"
+LXC_PROFILE_VERSION = "v3"
 
 
 # For Xenial and Bionic vendor-data required to setup lxd-agent in a vm
@@ -47,14 +47,15 @@ VM_PROFILE_TMPL = textwrap.dedent(
 
 
 def _make_vm_profile(
-    series: str, *, install_agent: bool
+        series: str, *, install_agent: bool, config_cloudinit: bool
 ) -> str:
     config_device = ""
     vendordata = "config: {}"
-    if install_agent:
+    if config_cloudinit:
         # We need to mount the config drive so that cloud-init finds the
         # vendor-data instructing it to install the agent
         config_device = "config: {source: cloud-init:config, type: disk}"
+    if install_agent:
         vendordata = LXC_SETUP_VENDORDATA
     return VM_PROFILE_TMPL.format(
         config_device=config_device, series=series, vendordata=vendordata
@@ -62,10 +63,16 @@ def _make_vm_profile(
 
 
 base_vm_profiles = {
-    "xenial": _make_vm_profile("xenial", install_agent=True),
-    "bionic": _make_vm_profile("bionic", install_agent=True),
-    "focal": _make_vm_profile("focal", install_agent=False),
-    "groovy": _make_vm_profile("groovy", install_agent=False),
-    "hirsute": _make_vm_profile("hirsute", install_agent=False),
-    "impish": _make_vm_profile("impish", install_agent=False),
+    "xenial": _make_vm_profile(
+        "xenial", install_agent=False, config_cloudinit=True),
+    "bionic": _make_vm_profile(
+        "bionic", install_agent=True, config_cloudinit=True),
+    "focal": _make_vm_profile(
+        "focal", install_agent=False, config_cloudinit=False),
+    "groovy": _make_vm_profile(
+        "groovy", install_agent=False, config_cloudinit=False),
+    "hirsute": _make_vm_profile(
+        "hirsute", install_agent=False, config_cloudinit=False),
+    "impish": _make_vm_profile(
+        "impish", install_agent=False, config_cloudinit=False),
 }
