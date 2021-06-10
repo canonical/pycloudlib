@@ -30,6 +30,14 @@ class TestLXDProfilesWereNotModified:
             "hirsute": "1f3851328bec6253f51b1f1dc9bcbf55",
             "impish": "c2a4e4d6a9c16f73f2f79fe34d3f638f",
         },
+        "v3": {
+            "xenial": "da94488cc93ebbb136c1f6830e6b9fcc",
+            "bionic": "0e35f88aa29c66374fbd9fe3b4a36257",
+            "focal": "9ce4202e39d98c1499e3bce3c144e14f",
+            "groovy": "05b1582d39237fb2d1b55c8782982bfd",
+            "hirsute": "1f3851328bec6253f51b1f1dc9bcbf55",
+            "impish": "c2a4e4d6a9c16f73f2f79fe34d3f638f",
+        },
     }
 
     @pytest.mark.parametrize("series", base_vm_profiles.keys())
