@@ -271,8 +271,18 @@ class LXDInstance(BaseInstance):
         """
         self._log.debug('restarting %s', self.name)
 
-        self.shutdown(wait=True, force=force)
-        self.start(wait=wait)
+        # Since restart is always blocking, use restart if wait is True
+        cmd = ["lxc", "restart", self.name]
+        if force:
+            cmd.append("--force")
+        if wait:
+            subp(cmd)
+            self.wait()
+        else:
+            # If wait is False, this is a faster way to restart without
+            # blocking
+            self.shutdown(wait=True, force=force)
+            self.start(wait=False)
 
     def restore(self, snapshot_name):
         """Restore instance from a specific snapshot.
@@ -371,10 +381,38 @@ class LXDInstance(BaseInstance):
         """Wait for instance stop."""
         self._log.debug('waiting for stop: %s', self.name)
         for _ in range(100):
-            result = subp(
-                'lxc list {} -c s --format csv'.format(self.name).split()
-            )
+            result = subp([
+                'lxc', 'list', '^{}$'.format(self.name), '-cs',
+                '--format', 'csv'
+            ])
+
             if result == 'STOPPED':
+                return
+            time.sleep(1)
+        raise TimeoutError
+
+    def _wait_for_instance_start(self):
+        """Wait for the cloud instance to be up.
+
+        LXD VMs need to install systemd units upon initialization. There is
+        no easy way to do this and also enable them on boot, so an LXD VM
+        will reboot as part of its initialization process. It is possible
+        we have connected the VM before this reboot occurs, so then any
+        following SSH connections will fail.
+
+        The VM doesn't accurately report the number of processes until
+        the initialization is fully complete, so block until our number
+        of processes isn't -1.
+        """
+        processes = -1
+        for _ in range(300):
+            try:
+                processes = int(subp(
+                    'lxc list -c N {} -f csv'.format(self.name).split()
+                ))
+            except ValueError:
+                pass
+            if processes > -1:
                 return
             time.sleep(1)
         raise TimeoutError
