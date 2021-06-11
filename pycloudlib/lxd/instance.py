@@ -430,3 +430,23 @@ class LXDVirtualMachineInstance(LXDInstance):
             self._log.warning(MISSING_AGENT_MSG, "lxc exec")
 
         return super()._run_command(command, stdin)
+
+    def _wait_for_instance_start(self):
+        """Wait for the cloud instance to be up.
+
+        LXD VMs need to install systemd units upon initialization. There is
+        no easy way to do this and also enable them on boot, so an LXD VM
+        will reboot as part of its initialization process. It is possible
+        we have connected the VM before this reboot occurs, so then any
+        following SSH connections will fail.
+
+        The VM doesn't accurately report the number of processes until
+        the initialization is fully complete, so block until our number
+        of processes isn't -1.
+        """
+        # On xenial, we don't install the LXD agent, so we cannot count the
+        # number of processes running on the VM. For xenial, we will rely
+        # on the other wait methods that are run to guarantee that the instance
+        # is running
+        if self.series != "xenial":
+            super()._wait_for_instance_start()
