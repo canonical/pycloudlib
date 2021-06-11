@@ -377,19 +377,29 @@ class LXDInstance(BaseInstance):
         Not used for LXD.
         """
 
-    def wait_for_stop(self):
-        """Wait for instance stop."""
-        self._log.debug('waiting for stop: %s', self.name)
-        for _ in range(100):
+    def wait_for_state(self, desired_state: str, num_retries: int = 100):
+        """Wait for instance to reach desired state value.
+
+        :param desired_state: String representing one of lxc instance states
+            seen by `lxc ls -s`. For example, ACTIVE, FROZEN, RUNNING, STOPPED
+        :param retries: Integer for number of retry attempts before raising a
+            TimeoutError.
+        """
+        self._log.debug('waiting for %s: %s', desired_state, self.name)
+        for _ in range(num_retries):
             result = subp([
                 'lxc', 'list', '^{}$'.format(self.name), '-cs',
                 '--format', 'csv'
             ])
 
-            if result == 'STOPPED':
+            if result == desired_state:
                 return
             time.sleep(1)
         raise TimeoutError
+
+    def wait_for_stop(self):
+        """Wait for cloud instance to transition to stop state."""
+        self.wait_for_state('STOPPED')
 
     def _wait_for_instance_start(self):
         """Wait for the cloud instance to be up.
@@ -450,3 +460,5 @@ class LXDVirtualMachineInstance(LXDInstance):
         # is running
         if self.series != "xenial":
             super()._wait_for_instance_start()
+        else:
+            self.wait_for_state(desired_state="RUNNING", num_retries=200)
