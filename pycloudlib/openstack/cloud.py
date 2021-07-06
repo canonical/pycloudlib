@@ -78,7 +78,11 @@ class Openstack(BaseCloud):
         return OpenstackInstance(
             key_pair=self.key_pair,
             instance_id=instance_id,
+            network_id=self._get_network_id()
         )
+
+    def _get_network_id(self):
+        return self.conn.network.find_network(self.network).id
 
     def launch(self, image_id, instance_type='m1.small', user_data='',
                wait=True, **kwargs) -> OpenstackInstance:
@@ -95,8 +99,8 @@ class Openstack(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        net = self.conn.network.find_network(self.network)
-        networks = [{'uuid': net.id}]
+        network_id = self._get_network_id()
+        networks = [{'uuid': network_id}]
         if not self._openstack_keypair:
             self._openstack_keypair = self._get_openstack_keypair()
         if user_data:
@@ -125,6 +129,7 @@ class Openstack(BaseCloud):
         instance = OpenstackInstance(
             key_pair=self.key_pair,
             instance_id=instance.id,
+            network_id=network_id,
             connection=self.conn,
         )
         if wait:

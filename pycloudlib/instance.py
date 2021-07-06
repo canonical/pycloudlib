@@ -111,6 +111,14 @@ class BaseInstance(ABC):
         """Wait for instance stop."""
         raise NotImplementedError
 
+    def add_network_interface(self) -> str:
+        """Add nic to running instance."""
+        raise NotImplementedError
+
+    def remove_network_interface(self, ip_address: str):
+        """Remove nic from running instance."""
+        raise NotImplementedError
+
     def __del__(self):
         """Cleanup of instance."""
         if self._sftp_client:

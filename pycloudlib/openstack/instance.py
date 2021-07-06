@@ -17,12 +17,13 @@ class OpenstackInstance(BaseInstance):
 
     _type = 'openstack'
 
-    def __init__(self, key_pair, instance_id, connection=None):
+    def __init__(self, key_pair, instance_id, network_id, connection=None):
         """Set up the instance.
 
         Args:
             key_pair: A KeyPair for SSH interactions
             instance_id: The instance id representing the cloud instance
+            network_id: if of the network this instance was created on
             connection: The connection used to create this instance.
                 If None, connection will be created.
         """
@@ -30,6 +31,7 @@ class OpenstackInstance(BaseInstance):
 
         if not connection:
             connection = openstack.connect()
+        self.network_id = network_id
         self.conn = connection
 
         self.server = self.conn.compute.get_server(instance_id)
@@ -39,6 +41,7 @@ class OpenstackInstance(BaseInstance):
         if self.floating_ip is None:
             self.floating_ip = self._create_and_attach_floating_id()
             self.delete_floating_ip = True
+        self.added_local_ports = []
 
     def _get_existing_floating_ip(self):
         server_addresses = chain(*self.server.addresses.values())
@@ -104,6 +107,11 @@ class OpenstackInstance(BaseInstance):
         finally:
             if self.delete_floating_ip:
                 self.conn.delete_floating_ip(self.floating_ip.id)
+            for port_id in self.added_local_ports:
+                self.conn.network.delete_port(
+                    port=port_id,
+                    ignore_missing=True
+                )
         if wait:
             self.wait_for_delete()
 
@@ -156,3 +164,40 @@ class OpenstackInstance(BaseInstance):
     def wait_for_stop(self):
         """Wait for instance stop."""
         self.conn.compute.wait_for_server(self.server, status='SHUTOFF')
+
+    def add_network_interface(self) -> str:
+        """Add nic to running instance.
+
+        Returns IP address in string form
+        """
+        port = self.conn.network.create_port(
+            network_id=self.network_id,
+            node_id=self.server.id
+        )
+        self.added_local_ports.append(port.id)
+        interface = self.conn.compute.create_server_interface(
+            server=self.server.id,
+            port_id=port.id
+        )
+        return interface['fixed_ips'][0]['ip_address']
+
+    def _get_port_id_by_ip(self, ip_address: str):
+        ports = self.conn.network.ports()
+        for port in ports:
+            for ip in port['fixed_ips']:
+                if ip['ip_address'] == ip_address:
+                    return port
+        raise Exception('Could not find port with IP: {}'.format(ip_address))
+
+    def remove_network_interface(self, ip_address: str):
+        """Remove nic from running instance."""
+        port = self._get_port_id_by_ip(ip_address)
+        self.conn.network.delete_port(
+            port=port.id,
+        )
+        try:
+            self.added_local_ports.remove(port.id)
+        except ValueError:
+            self._log.warning(
+                'Expected port to be in added_local_ports list '
+                'but was not: %s', port.id)
