@@ -130,7 +130,7 @@ class LXDInstance(BaseInstance):
         except IndexError:
             return False
 
-        return bool(info_type == 'ephemeral')
+        return bool("ephemeral" in info_type)
 
     @property
     def state(self):
@@ -180,7 +180,13 @@ class LXDInstance(BaseInstance):
             wait: wait for delete
         """
         self._log.debug('deleting %s', self.name)
-        subp(['lxc', 'delete', self.name, '--force'])
+
+        if self.ephemeral:
+            # We don't need to wait here, since the
+            # instance will be deleted once it is stopped
+            self.shutdown(wait=False)
+        else:
+            subp(['lxc', 'delete', self.name, '--force'])
 
         if wait:
             self.wait_for_delete()
