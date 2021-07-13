@@ -188,3 +188,35 @@ class TestIP:
             assert expected == instance.ip
             assert [lxc_mock] * (1 + sleeps) == m_subp.call_args_list
         assert sleeps == m_sleep.call_count
+
+
+class TestDelete:
+    """Tests covering pycloudlib.lxd.instance.Instance.delete."""
+
+    @pytest.mark.parametrize(
+        "is_ephemeral", ((True), (False))
+    )
+    @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
+    @mock.patch("pycloudlib.lxd.instance.subp")
+    def test_delete_on_ephemeral_instance_calls_shutdown(
+        self, m_subp, m_shutdown, is_ephemeral
+    ):
+        """Check if ephemeral instance delete stops it instead of deleting it.
+
+        Also verify is delete is actually called if instance is not ephemeral.
+        """
+        instance = LXDInstance(name="test")
+
+        with mock.patch.object(type(instance), "ephemeral", is_ephemeral):
+            instance.delete(wait=False)
+
+        if is_ephemeral:
+            assert 1 == m_shutdown.call_count
+            assert 0 == m_subp.call_count
+        else:
+            assert 0 == m_shutdown.call_count
+            assert 1 == m_subp.call_count
+            assert (
+                [mock.call(["lxc", "delete", "test", "--force"])]
+                == m_subp.call_args_list
+            )
