@@ -18,6 +18,7 @@ class LXDInstance(BaseInstance):
 
     _type = 'lxd'
     _is_vm = None
+    _is_ephemeral = None
 
     def __init__(
         self, name, key_pair=None, execute_via_ssh=True, series=None
@@ -121,16 +122,21 @@ class LXDInstance(BaseInstance):
 
         Returns:
             boolean if ephemeral
-
         """
-        result = subp(['lxc', 'info', self.name])
+        if self._is_ephemeral is None:
+            result = subp(['lxc', 'info', self.name])
 
-        try:
-            info_type = re.findall(r'Type: (.*)', result)[0]
-        except IndexError:
-            return False
-
-        return bool("ephemeral" in info_type)
+            try:
+                info_type = re.findall(r'Type: (.*)', result)[0]
+            except IndexError:
+                self._log.debug(
+                    'Unable to parse lxc show %s to determine ephemeral type.'
+                    ' Assuming not ephemeral.',
+                    self.name
+                )
+                return False
+        self._is_ephemeral = bool("ephemeral" in info_type)
+        return self._is_ephemeral
 
     @property
     def state(self):
@@ -405,7 +411,9 @@ class LXDInstance(BaseInstance):
 
     def wait_for_stop(self):
         """Wait for cloud instance to transition to stop state."""
-        self.wait_for_state('STOPPED')
+        # Ephemeral instances will not go to STOPPED. They get destroyed.
+        if not self.ephemeral:
+            self.wait_for_state('STOPPED')
 
     def _wait_for_instance_start(self):
         """Wait for the cloud instance to be up.

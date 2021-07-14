@@ -190,6 +190,51 @@ class TestIP:
         assert sleeps == m_sleep.call_count
 
 
+class TestWaitForStop:
+    """Tests covering pycloudlib.lxd.instance.Instance.wait_for_stop."""
+
+    @pytest.mark.parametrize(
+        "is_ephemeral", ((True), (False))
+    )
+    def test_wait_for_stop_does_not_wait_for_ephemeral_instances(
+        self, is_ephemeral
+    ):
+        """LXDInstance.wait_for_stop does not wait on ephemeral instances."""
+        instance = LXDInstance(name="test")
+        with mock.patch.object(instance, "wait_for_state") as wait_for_state:
+            with mock.patch.object(type(instance), "ephemeral", is_ephemeral):
+                instance.wait_for_stop()
+
+        call_count = 0 if is_ephemeral else 1
+        assert call_count == wait_for_state.call_count
+
+
+class TestShutdown:
+    """Tests covering pycloudlib.lxd.instance.Instance.shutdown."""
+
+    @pytest.mark.parametrize(
+        "wait,force,cmd",
+        (
+            (True, False, ["lxc", "stop", "test"]),
+            (False, False, ["lxc", "stop", "test"]),
+            (True, True, ["lxc", "stop", "test", "--force"]),
+        )
+    )
+    @mock.patch("pycloudlib.lxd.instance.subp")
+    def test_shutdown_calls_wait_for_stopped_state_when_wait_true(
+        self, m_subp, wait, force, cmd
+    ):
+        """LXDInstance.wait_for_stopped called when wait is True."""
+        instance = LXDInstance(name="test")
+        with mock.patch.object(instance, "wait_for_stop") as wait_for_stop:
+            with mock.patch.object(type(instance), "state", "RUNNING"):
+                instance.shutdown(wait=wait, force=force)
+
+        assert [mock.call(cmd)] == m_subp.call_args_list
+        call_count = 1 if wait else 0
+        assert call_count == wait_for_stop.call_count
+
+
 class TestDelete:
     """Tests covering pycloudlib.lxd.instance.Instance.delete."""
 
