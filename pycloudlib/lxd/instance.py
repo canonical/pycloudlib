@@ -21,19 +21,31 @@ class LXDInstance(BaseInstance):
     _is_ephemeral = None
 
     def __init__(
-        self, name, key_pair=None, execute_via_ssh=True, series=None
+        self,
+        name,
+        key_pair=None,
+        execute_via_ssh=True,
+        series=None,
+        ephemeral=None,
     ):
         """Set up instance.
 
         Args:
             name: name of instance
             key_pair: SSH key object
+            execute_via_ssh: Boolean True to use ssh instead of lxc exec for
+                all operations.
+            series: Ubuntu release name: xenial, bionic etc.
+            ephemeral: Boolean True if instance is ephemeral. If left
+                unspecified, ephemeral type will be determined and cached by
+                the ephemeral method.
         """
         super().__init__(key_pair=key_pair)
 
         self._name = name
         self.execute_via_ssh = execute_via_ssh
         self.series = series
+        self._is_ephemeral = ephemeral
 
     def __repr__(self):
         """Create string representation for class."""
@@ -128,14 +140,14 @@ class LXDInstance(BaseInstance):
 
             try:
                 info_type = re.findall(r'Type: (.*)', result)[0]
+                self._is_ephemeral = bool("ephemeral" in info_type)
             except IndexError:
                 self._log.debug(
                     'Unable to parse lxc show %s to determine ephemeral type.'
                     ' Assuming not ephemeral.',
                     self.name
                 )
-                return False
-        self._is_ephemeral = bool("ephemeral" in info_type)
+                self._is_ephemeral = False
         return self._is_ephemeral
 
     @property

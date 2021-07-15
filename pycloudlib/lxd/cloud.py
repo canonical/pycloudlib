@@ -278,6 +278,7 @@ class _BaseLXD(BaseCloud):
             key_pair=self.key_pair,
             execute_via_ssh=execute_via_ssh,
             series=series,
+            ephemeral=ephemeral,
         )
 
     def launch(self, image_id, instance_type=None, user_data=None, wait=True,
