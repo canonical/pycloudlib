@@ -82,7 +82,12 @@ class Openstack(BaseCloud):
         )
 
     def _get_network_id(self):
-        return self.conn.network.find_network(self.network).id
+        try:
+            return self.conn.network.find_network(self.network).id
+        except AttributeError as e:
+            raise Exception(
+                'No network found named {}'.format(self.network)
+            ) from e
 
     def launch(self, image_id, instance_type='m1.small', user_data='',
                wait=True, **kwargs) -> OpenstackInstance:
