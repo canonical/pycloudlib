@@ -50,7 +50,12 @@ class TestAttachFloatingIp:
         m_server.addresses = SERVER_ADDRESSES
         m_connection.network.ips.return_value = NETWORK_IPS
 
-        instance = OpenstackInstance(None, None, connection=m_connection)
+        instance = OpenstackInstance(
+            key_pair=None,
+            instance_id=None,
+            network_id=None,
+            connection=m_connection
+        )
         assert '10.0.0.3' == instance.floating_ip['floating_ip_address']
         assert 0 == m_create.call_count
 
@@ -61,6 +66,11 @@ class TestAttachFloatingIp:
         m_server.addresses = SERVER_ADDRESSES
         m_connection.network.ips.return_value = []
 
-        instance = OpenstackInstance(None, None, connection=m_connection)
+        instance = OpenstackInstance(
+            key_pair=None,
+            instance_id=None,
+            network_id=None,
+            connection=m_connection,
+        )
         assert instance.floating_ip is m_create.return_value
         assert 1 == m_create.call_count

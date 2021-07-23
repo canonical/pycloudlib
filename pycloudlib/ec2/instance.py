@@ -1,9 +1,9 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """EC2 instance."""
-
 import string
 import time
 
+import botocore
 from paramiko.ssh_exception import (
     SSHException
 )
@@ -67,11 +67,12 @@ class EC2Instance(BaseInstance):
         """Return id of instance."""
         return self._instance.image_id
 
-    def add_network_interface(self):
+    def add_network_interface(self) -> str:
         """Add network interface to instance.
 
         Creates an ENI device and attaches it to the running instance. This
-        is effectively a hot-add of a network device.
+        is effectively a hot-add of a network device. Returns the IP address
+        of the added network interface as a string.
 
         See the AWS documentation for more info:
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
@@ -79,7 +80,7 @@ class EC2Instance(BaseInstance):
         """
         self._log.debug('adding network interface to %s', self.id)
         interface_id = self._create_network_interface()
-        self._attach_network_interface(interface_id)
+        return self._attach_network_interface(interface_id)
 
     def add_volume(self, size=8, drive_type='gp2'):
         """Add storage volume to instance.
@@ -264,7 +265,7 @@ class EC2Instance(BaseInstance):
             }]
         )
 
-    def _attach_network_interface(self, interface_id):
+    def _attach_network_interface(self, interface_id: str) -> str:
         """Attach ENI device to an instance.
 
         This will attach the interface at the next available index.
@@ -274,6 +275,8 @@ class EC2Instance(BaseInstance):
 
         Args:
             interface_id: string, id of interface to attach
+        Returns:
+            IP address of the added interface
         """
         device_index = self._get_free_nic_index()
         args = {
@@ -294,6 +297,9 @@ class EC2Instance(BaseInstance):
                         'DeleteOnTermination': True
                     }
                 )
+                return nic.private_ip_address
+        raise Exception('Could not attach NIC with AttachmentId: {}'.format(
+            response.get('AttachmentId', None)))
 
     def _create_ebs_volume(self, size, drive_type):
         """Create EBS volume.
@@ -326,7 +332,7 @@ class EC2Instance(BaseInstance):
 
         return volume
 
-    def _create_network_interface(self):
+    def _create_network_interface(self) -> str:
         """Create ENI device.
 
         Returns:
@@ -348,12 +354,8 @@ class EC2Instance(BaseInstance):
 
         return interface_id
 
-    def _get_free_nic_index(self):
+    def _get_free_nic_index(self) -> int:
         """Determine a free NIC interface for an instance.
-
-        Loop through used device index (e.g. 0, 1) and the possible
-        device index (e.g. 0, 1, 2... 15) and find the lower number
-        that is available.
 
         Per the following doc the maximum number of NICs is 16:
         https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html
@@ -362,13 +364,14 @@ class EC2Instance(BaseInstance):
             integer to use as index for NIC
 
         """
-        all_index = range(0, 16)
-
-        used_index = set()
-        for nic in self._instance.network_interfaces:
-            used_index.add(nic.attachment['DeviceIndex'])
-
-        return list(all_index - used_index)[0]
+        used_indexes = [
+            nic.attachment['DeviceIndex']
+            for nic in self._instance.network_interfaces
+        ]
+        for possible_index in range(16):
+            if possible_index not in used_indexes:
+                return possible_index
+        raise Exception('No free nics left!')
 
     def _get_free_volume_name(self):
         """Determine a free volume mount point for an instance.
@@ -408,3 +411,41 @@ class EC2Instance(BaseInstance):
         """
         boot_id = self.execute("cat /proc/sys/kernel/random/boot_id")
         return boot_id
+
+    def remove_network_interface(self, ip_address):
+        """Remove network interface based on IP address.
+
+        Find the NIC from the IP, detach from the instance, then delete the
+        NIC.
+        """
+        # Get the NIC from the IP
+        nic = [
+            nic for nic in self._instance.network_interfaces
+            if nic.private_ip_address == ip_address
+        ][0]
+        self._client.detach_network_interface(
+            AttachmentId=nic.attachment['AttachmentId']
+        )
+
+        # Detach from the instance
+        for _ in range(60):
+            self._instance.reload()
+            nics = [
+                nic for nic in self._instance.network_interfaces
+                if nic.id == ip_address
+            ]
+            if not nics:
+                break
+            time.sleep(1)
+        else:
+            raise Exception('Network interface did not detach')
+
+        # Delete the NIC
+        try:
+            self._client.delete_network_interface(
+                NetworkInterfaceId=nic.id)
+        except botocore.exceptions.ClientError:
+            self._log.debug(
+                'Failed manually deleting network interface. '
+                'Interface should get destroyed on instance cleanup.'
+            )
