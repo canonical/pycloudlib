@@ -34,6 +34,33 @@ def snapshot_instance():
     inst.delete(wait=False)
 
 
+def image_snapshot_instance(ephemeral_instance=False):
+    """Demonstrate image snapshot functionality.
+
+    Create an snapshot image from a running instance an show
+    how to launch a new instance based of this image snapshot
+    """
+    lxd = pycloudlib.LXDContainer('example-image-snapshot')
+    inst = lxd.launch(
+        name='pycloudlib-snapshot-base',
+        image_id=RELEASE,
+        ephemeral=ephemeral_instance
+    )
+    inst.execute("touch snapshot-test.txt")
+    print("Base instance output: {}".format(inst.execute("ls")))
+    snapshot_image = lxd.snapshot(instance=inst)
+
+    snapshot_inst = lxd.launch(
+        name="pycloudlib-snapshot-image",
+        image_id=snapshot_image,
+        ephemeral=ephemeral_instance
+    )
+    print("Snapshot instance output: {}".format(snapshot_inst.execute("ls")))
+
+    snapshot_inst.delete()
+    inst.delete()
+
+
 def modify_instance():
     """Demonstrate how to modify and interact with an instance.
 
@@ -224,6 +251,7 @@ def demo():
     launch_multiple()
     modify_instance()
     snapshot_instance()
+    image_snapshot_instance(ephemeral_instance=False)
     launch_virtual_machine()
 
 
