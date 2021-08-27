@@ -138,15 +138,17 @@ class GceInstance(BaseInstance):
 
     def wait_for_delete(self, sleep_seconds=300):
         """Wait for instance to be deleted."""
-        # Once instance is deleted, URL just 404s
         for _ in range(sleep_seconds):
             try:
-                self.instance.get(
+                result = self.instance.get(
                     project=self.project,
                     zone=self.zone,
                     instance=self.instance_id
                 ).execute()
+                if result['status'] == 'TERMINATED':
+                    break
             except HttpError as e:
+                # Sometimes URL just 404s once deleted
                 if e.resp.status == 404:
                     break
                 raise e
