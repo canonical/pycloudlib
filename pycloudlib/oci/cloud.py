@@ -100,7 +100,14 @@ class OCI(BaseCloud):
         """Get the daily image.
 
         OCI just has periodic builds, so "released" and "daily" don't
-        really make sense here. Just call the same code for both
+        really make sense here. Just call the same code for both.
+
+        Should be equivalent to the cli call:
+        oci compute image list \
+          --operating-system="Canonical Ubuntu" \
+          --operating-system-version="<xx.xx>" \
+          --sort-by='TIMECREATED' \
+          --sort-order='DESC'
 
         Args:
             release: string, Ubuntu release to look for
@@ -126,7 +133,9 @@ class OCI(BaseCloud):
             sort_by='TIMECREATED',
             sort_order='DESC'
         )
-        image_id = image_response.data[0].id
+        matching_image = [
+            i for i in image_response.data if 'aarch64' not in i.display_name]
+        image_id = matching_image[0].id
         return image_id
 
     def image_serial(self, image_id):
