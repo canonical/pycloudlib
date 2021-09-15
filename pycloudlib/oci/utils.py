@@ -3,7 +3,7 @@
 import time
 
 
-def wait_till_ready(func, current_data, desired_state, sleep_seconds=300):
+def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
     """Wait until the results of function call reach a desired lifecycle state.
 
     Args:

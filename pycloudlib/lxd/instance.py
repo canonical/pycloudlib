@@ -371,6 +371,8 @@ class LXDInstance(BaseInstance):
             snapshot_name: name to call snapshot
         """
         self.clean()
+        if not self.ephemeral:
+            self.shutdown()
         if snapshot_name is None:
             snapshot_name = '{}-snapshot'.format(self.name)
         cmd = [
