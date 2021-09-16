@@ -134,7 +134,9 @@ class OCI(BaseCloud):
             sort_order='DESC'
         )
         matching_image = [
-            i for i in image_response.data if 'aarch64' not in i.display_name]
+            i for i in image_response.data
+            if 'aarch64' not in i.display_name and 'GPU' not in i.display_name
+        ]
         image_id = matching_image[0].id
         return image_id
 
