@@ -53,6 +53,8 @@ class GCE(BaseCloud):
 
         if project:
             os.environ["GOOGLE_CLOUD_PROJECT"] = str(project)
+        elif "GOOGLE_CLOUD_PROJECT" in os.environ:
+            project = os.environ["GOOGLE_CLOUD_PROJECT"]
         else:
             command = ['gcloud', 'config', 'get-value', 'project']
             exception_text = (
