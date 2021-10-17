@@ -65,54 +65,40 @@ class TestWait:
         assert expected_call_args == m_execute.call_args_list
 
 
+# Disable this one because we're intentionally testing a protected member
+# pylint: disable=protected-access
 class TestWaitForCloudinit:
     """Tests covering pycloudlib.instance.Instance._wait_for_cloudinit."""
 
-    # Disable this one because we're intentionally testing a protected member
-    # pylint: disable=protected-access
-
     def test_with_wait_available(self, concrete_instance_cls):
         """Test the happy path for instances with `status --wait`."""
-
-        def side_effect(cmd, *_args, **_kwargs):
-            stdout = ""
-            if "--help" in cmd:
-                stdout = "help content containing --wait"
-            return Result(stdout=stdout, stderr="", return_code=0)
-
         instance = concrete_instance_cls(key_pair=None)
         with mock.patch.object(instance, "execute") as m_execute:
-            m_execute.side_effect = side_effect
             instance._wait_for_cloudinit()
 
-        assert 1 == m_execute.call_count
-        assert (
-            [
-                mock.call(
-                    ["cloud-init", "status", "--wait", "--long"],
-                    description="waiting for start",
-                )
-            ]
-            == m_execute.call_args_list
-        )
+        assert mock.call(
+            ["cloud-init", "status", "--wait", "--long"],
+            description="waiting for start",
+        ) == m_execute.call_args
 
-    def test_failure_path(
-        self,
-        concrete_instance_cls,
-    ):
-        """Test failure for both has_wait and !has_wait cases."""
-
-        def side_effect(cmd, *_args, **_kwargs):
-            stdout = ""
-            if "whoami" == cmd:
-                # The whoami call should be successful and inform us
-                # that the instance can be reached
-                return Result(stdout=stdout, stderr="", return_code=0)
-
-            # Any other call should fail
-            return Result(stdout="fail_out", stderr="fail_err", return_code=1)
-
+    @mock.patch("time.sleep")
+    def test_wait_on_target_not_active(self, _m_sleep, concrete_instance_cls):
+        """Test that we wait for cloud-init is-active before calling status."""
         instance = concrete_instance_cls(key_pair=None)
-        with mock.patch.object(instance, "execute") as m_execute:
-            m_execute.side_effect = side_effect
+        with mock.patch.object(
+            instance,
+            "execute",
+            side_effect=[Result("", "", 0)] + [Result("", "", 1)] * 500,
+        ) as m_execute:
             instance._wait_for_cloudinit()
+        expected = [
+            mock.call(["which", "systemctl"]),
+            *([mock.call(
+                ["systemctl", "is-active", "cloud-init.target"]
+            )] * 300),
+            mock.call(
+                ["cloud-init", "status", "--wait", "--long"],
+                description="waiting for start"
+            ),
+        ]
+        assert expected == m_execute.call_args_list
