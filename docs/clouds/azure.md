@@ -4,16 +4,16 @@ The following page documents the Azure cloud integration in pycloudlib.
 
 ## Credentials
 
-To access Azure via the API requires users to have four different keys:
+To access Azure requires users to have four different keys:
 
 * client id
 * client secret id
 * tenant id
 * subscription id
 
-To obtain this info, there are two ways supported in pycloudlib
+These should be set in pycloudlib.toml.
 
-### Azure login
+### Azure login (Deprecated)
 
 By using the Azure CLI, you can login into your Azure account through it. Once you logged in, the
 CLI will create folder in your home directory which will contain all of the necessary information
@@ -23,7 +23,7 @@ to use the API. To login into you Azure using the CLI, just run the following co
 az login
 ```
 
-### Passed Directly
+### Passed Directly (Deprecated)
 
 All of these four credentials can also be provided directly when initializing the Azure object:
 

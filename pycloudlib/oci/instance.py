@@ -14,7 +14,7 @@ class OciInstance(BaseInstance):
     _type = 'oci'
 
     def __init__(self, key_pair, instance_id, compartment_id,
-                 config_path='~/.oci/config'):
+                 oci_config=None):
         """Set up the instance.
 
         Args:
@@ -22,7 +22,7 @@ class OciInstance(BaseInstance):
             instance_id: The instance id representing the cloud instance
             compartment_id: A compartment found at
                 https://console.us-phoenix-1.oraclecloud.com/a/identity/compartments
-            config_path: Path of OCI config file
+            oci_config: OCI configuration dictionary
 
         """
         super().__init__(key_pair)
@@ -30,9 +30,10 @@ class OciInstance(BaseInstance):
         self.compartment_id = compartment_id
         self._ip = None
 
-        config = oci.config.from_file(str(config_path))
-        self.compute_client = oci.core.ComputeClient(config)
-        self.network_client = oci.core.VirtualNetworkClient(config)
+        if oci_config is None:
+            oci_config = oci.config.from_file('~/.oci/config')
+        self.compute_client = oci.core.ComputeClient(oci_config)
+        self.network_client = oci.core.VirtualNetworkClient(oci_config)
 
     def __repr__(self):
         """Create string representation of class."""

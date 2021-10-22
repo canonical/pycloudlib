@@ -6,7 +6,7 @@ from time import sleep
 import googleapiclient.discovery
 from googleapiclient.errors import HttpError
 
-from pycloudlib.gce.util import raise_on_error
+from pycloudlib.gce.util import raise_on_error, get_credentials
 from pycloudlib.instance import BaseInstance
 
 
@@ -15,7 +15,10 @@ class GceInstance(BaseInstance):
 
     _type = 'gce'
 
-    def __init__(self, key_pair, instance_id, project, zone, name=None):
+    def __init__(
+        self, key_pair, instance_id, project, zone, credentials_path, *,
+        name=None
+    ):
         """Set up the instance.
 
         Args:
@@ -33,8 +36,9 @@ class GceInstance(BaseInstance):
         self.project = project
         self.zone = zone
         self._ip = None
+        credentials = get_credentials(credentials_path)
         self.instance = googleapiclient.discovery.build(
-            'compute', 'v1', cache_discovery=False
+            'compute', 'v1', cache_discovery=False, credentials=credentials
         ).instances()
 
     def __repr__(self):

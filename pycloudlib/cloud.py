@@ -5,8 +5,10 @@ import io
 import getpass
 import logging
 from abc import ABC, abstractmethod
+
 import paramiko
 
+from pycloudlib.config import parse_config, ConfigFile
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
 from pycloudlib.util import get_timestamped_tag, validate_tag
@@ -17,18 +19,27 @@ class BaseCloud(ABC):
 
     _type = 'base'
 
-    def __init__(self, tag, timestamp_suffix=True):
+    def __init__(
+        self, tag, timestamp_suffix=True, config_file: ConfigFile = None
+    ):
         """Initialize base cloud class.
 
         Args:
             tag: string used to name and tag resources with
-            timestamp_suffic: Append a timestamped suffix to the tag string.
+            timestamp_suffix: Append a timestamped suffix to the tag string.
+            config_file: path to pycloudlib configuration file
         """
         self._log = logging.getLogger(__name__)
+        self.config = parse_config(config_file)[self._type]
 
-        _username = getpass.getuser()
+        user = getpass.getuser()
         self.key_pair = KeyPair(
-            '/home/%s/.ssh/id_rsa.pub' % _username, name=_username
+            public_key_path=self.config.get(
+               'public_key_path',
+               '/home/{}/.ssh/id_rsa.pub'.format(user)
+            ),
+            private_key_path=self.config.get('private_key_path'),
+            name=self.config.get('key_name', user),
         )
         if timestamp_suffix:
             self.tag = validate_tag(get_timestamped_tag(tag))

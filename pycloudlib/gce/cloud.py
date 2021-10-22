@@ -14,7 +14,8 @@ from itertools import count
 import googleapiclient.discovery
 
 from pycloudlib.cloud import BaseCloud
-from pycloudlib.gce.util import raise_on_error
+from pycloudlib.config import ConfigFile
+from pycloudlib.gce.util import raise_on_error, get_credentials
 from pycloudlib.gce.instance import GceInstance
 from pycloudlib.util import subp
 
@@ -28,8 +29,9 @@ class GCE(BaseCloud):
     _type = 'gce'
 
     def __init__(
-        self, tag, timestamp_suffix=True, credentials_path=None, project=None,
-        region="us-west2", zone="a", service_account_email=None
+        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
+        credentials_path=None, project=None, region=None, zone=None,
+        service_account_email=None
     ):
         """Initialize the connection to GCE.
 
@@ -37,6 +39,7 @@ class GCE(BaseCloud):
             tag: string used to name and tag resources with
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
+            config_file: path to pycloudlib configuration file
             credentials_path: path to credentials file for GCE
             project: GCE project
             region: GCE region
@@ -44,43 +47,57 @@ class GCE(BaseCloud):
             service_account_email: service account to bind launched
                                    instances to
         """
-        super().__init__(tag, timestamp_suffix)
+        super().__init__(tag, timestamp_suffix, config_file)
         self._log.debug('logging into GCE')
 
+        self.credentials_path = ''
         if credentials_path:
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
-                credentials_path)
+            self.credentials_path = credentials_path
+        elif 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+            self.credentials_path = os.environ[
+                'GOOGLE_APPLICATION_CREDENTIALS']
+        elif 'credentials_path' in self.config:
+            self.credentials_path = self.config['credentials_path']
 
-        if project:
-            os.environ["GOOGLE_CLOUD_PROJECT"] = str(project)
-        elif "GOOGLE_CLOUD_PROJECT" in os.environ:
-            project = os.environ["GOOGLE_CLOUD_PROJECT"]
-        else:
-            command = ['gcloud', 'config', 'get-value', 'project']
-            exception_text = (
-                "Could not obtain GCE project id. Has the CLI client been "
-                "setup?\nCommand attempted: '{}'".format(' '.join(command))
-            )
-            try:
-                result = subp(command, rcs=())
-            except FileNotFoundError as e:
-                raise Exception(exception_text) from e
-            if not result.ok:
-                exception_text += '\nstdout: {}\nstderr: {}'.format(
-                    result.stdout, result.stderr)
-                raise Exception(exception_text)
-            project = result.stdout
+        credentials = get_credentials(self.credentials_path)
+
+        if not project:
+            if 'project' in self.config:
+                project = self.config['project']
+            elif "GOOGLE_CLOUD_PROJECT" in os.environ:
+                project = os.environ["GOOGLE_CLOUD_PROJECT"]
+            else:
+                command = ['gcloud', 'config', 'get-value', 'project']
+                exception_text = (
+                    "Could not obtain GCE project id. Set it in the "
+                    "pycloudlib config or setup the gcloud cli."
+                )
+                try:
+                    result = subp(command, rcs=())
+                except FileNotFoundError as e:
+                    raise Exception(exception_text) from e
+                if not result.ok:
+                    exception_text += '\nstdout: {}\nstderr: {}'.format(
+                        result.stdout, result.stderr)
+                    raise Exception(exception_text)
+                project = result.stdout
 
         # disable cache_discovery due to:
         # https://github.com/google/google-api-python-client/issues/299
         self.compute = googleapiclient.discovery.build(
-            'compute', 'v1', cache_discovery=False
+            'compute',
+            'v1',
+            cache_discovery=False,
+            credentials=credentials,
         )
+        region = region or self.config.get('region') or 'us-west2'
+        zone = zone or self.config.get('zone') or 'a'
         self.project = project
         self.region = region
         self.zone = '%s-%s' % (region, zone)
         self.instance_counter = count()
-        self.service_account_email = service_account_email
+        self.service_account_email = service_account_email or self.config.get(
+            'service_account_meail')
 
     def _find_image(self, release, daily, arch='amd64'):
         images = self._image_list(release, daily, arch)
@@ -156,7 +173,8 @@ class GCE(BaseCloud):
 
         """
         return GceInstance(self.key_pair, instance_id,
-                           self.project, self.zone, name)
+                           self.project, self.zone,
+                           self.credentials_path, name=name)
 
     def launch(self, image_id, instance_type='n1-standard-1', user_data=None,
                wait=True, **kwargs):

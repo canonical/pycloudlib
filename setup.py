@@ -28,6 +28,7 @@ INSTALL_REQUIRES = [
     "azure-cli-core >= 2.9.1",
     "knack >= 0.7.1",
     "python-openstackclient >= 5.2.1",
+    "toml == 0.10",
     "pyparsing >= 2, < 3.0.0",
 
     # Simplestreams is not found on PyPi so pull from repo directly

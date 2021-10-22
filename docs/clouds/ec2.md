@@ -4,9 +4,9 @@ The following page documents the AWS EC2 cloud integration in pycloudlib.
 
 ## Credentials
 
-To access EC2 via the API requires users to have an access key id and secret access key. There are two ways to provide these:
+To access EC2 requires users to have an access key id and secret access key. These should be set in pycloudlib.toml.
 
-### AWS Dotfile
+### AWS Dotfile (Deprecated)
 
 The AWS CLI, Python library boto3, and other AWS tools maintain credentials and configuration settings in a local dotfile found under the aws dotfile directory (i.e. `/home/$USER/.aws/`). If these files exist they will be used to provide login and region information.
 
@@ -23,7 +23,7 @@ output = json
 region = us-west-2
 ```
 
-### Passed Directly
+### Passed Directly (Deprecated)
 
 The credential and region information can also be provided directly when initializing the EC2 object:
 

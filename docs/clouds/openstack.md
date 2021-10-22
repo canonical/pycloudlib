@@ -14,7 +14,7 @@ The image id to use for a launch must be manually passed to pycloudlib rather th
 
 ## Network ID
 
-Network ID must be manually passed to pycloudlib. Since there can be multiple networks and no concept of a default network, we can't choose which network to create an instance on.
+Network ID must be specified in pycloudlib.toml. Since there can be multiple networks and no concept of a default network, we can't choose which network to create an instance on.
 
 ## Floating IPs
 

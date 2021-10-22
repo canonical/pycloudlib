@@ -1,0 +1,65 @@
+############### pycloudlib.toml.template #####################################
+# Copy this file to ~/.config/pycloudlib.toml or /etc/pycloudlib.toml and
+# fill in the values appropriately. You can also set a PYCLOUDLIB_CONFIG
+# environment variable to point to the path of the config file.
+#
+# After you complete this file, DO NOT CHECK IT INTO VERSION CONTROL
+# It you have a secret manager like lastpass, it should go there
+#
+# If a key is uncommented, it is required to launch an instance on that cloud.
+# Commented keys aren't required, but allow further customization for
+# settings in which the defaults don't work for you. If a key has a value,
+# that represents the default for that cloud.
+##############################################################################
+
+[azure]
+# Credentials can be found with `az ad sp create-for-rbac --sdk-auth`
+client_id = ""
+client_secret = ""
+subscription_id = ""
+tenant_id = ""
+# region = "centralus"
+# public_key_path = "~/.ssh/id_rsa.pub"
+# private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
+# key_name = ""  # Defaults to your username if not set
+
+[ec2]
+# Most values can be found in ~/.aws/credentials or ~/.aws/config
+access_key_id = ""  # in ~/.aws/credentials
+secret_access_key = ""  # in ~/.aws/credentials
+region = ""  # in ~/.aws/config
+# public_key_path = "/root/id_rsa.pub"
+# private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
+# key_name = ""  # can be found with `aws ec2 describe-key-pairs`
+
+
+[gce]
+# For a user, credentials_path should be ~/.config/gcloud/application_default_credentials.json
+# For a service, in the console, create a json key in the IAM service accounts page and download
+credentials_path = "~/.config/gcloud/application_default_credentials.json"
+project = ""  # glcoud config get-value project
+# region = "us-west2"
+# zone = "a"
+# service_account_email = ""
+# public_key_path = "~/.ssh/id_rsa.pub"
+# private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
+# key_name = ""  # Defaults to your username if not set
+
+[oci]
+config_path = "~/.oci/config"
+availability_domain = ""  # Likely in ~/.oci/oci_cli_rc
+compartment_id = ""  # Likely in ~/.oci/oci_cli_rc
+# public_key_path = "~/.ssh/id_rsa.pub"
+# private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
+# key_name = ""  # Defaults to your username if not set
+
+[openstack]
+# Openstack can be configured a number of different ways, so best to defer
+# to clouds.yaml or OS_ env vars.
+# See https://docs.openstack.org/openstacksdk/latest/user/config/configuration.html
+network = ""  # openstack network list
+# public_key_path = "~/.ssh/id_rsa.pub"
+# private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
+# key_name = ""  # Defaults to your username if not set
+
+[lxd]

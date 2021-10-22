@@ -1,8 +1,15 @@
 """Tests related to pycloudlib.azure.cloud module."""
+from io import StringIO
+
 import pytest
 import mock
 
 from pycloudlib.azure.cloud import Azure
+
+CONFIG = """\
+[azure]
+
+"""
 
 
 # Disable this one because we're intentionally testing a protected member
@@ -48,6 +55,7 @@ class TestCreateNetworkInterfaceClient:
         instance = Azure(
             tag="tag",
             timestamp_suffix=False,
+            config_file=StringIO(CONFIG),
             region="location"
         )
         instance._create_network_security_group(

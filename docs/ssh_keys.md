@@ -14,6 +14,10 @@ The default behavior of pycloudlib is to use the user's RSA key found in `/home/
 
 If any of these values are not correct, then the user will need to specify the key to use or upload a new key. See the following sections for more information.
 
+## Using the Configuration File
+
+In pycloudlib.toml, any cloud can take the optional keys `public_key_path`, `private_key_path`, and `key_name`. If specified, these values will be used for SSH.
+
 ## Use an Uploaded Key
 
 Ideally if the user's SSH key as started above will not work, then the user will have already uploaded the key to be used with the cloud.
