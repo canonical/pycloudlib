@@ -95,40 +95,61 @@ class Azure(BaseCloud):
         """
         raise NotImplementedError
 
-    def _create_network_security_group(self):
+    def _create_network_security_group(self, inbound_ports):
         """Create a network security group.
 
         This method creates a network security groups that allows the user
         to ssh into the machine and execute commands.
 
+        Args:
+            inbound_ports: List of strings, optional inbound ports
+                           to enable in the instance.
+
         Returns:
             The network security object created by Azure
 
         """
+        if not inbound_ports:
+            inbound_ports = []
+
+        # We need to guarantee that the 22 port is enabled
+        # here, otherwise we will not be able to ssh into it
+        if "22" not in inbound_ports:
+            inbound_ports = ["22"] + inbound_ports
+
         security_group_name = "{}-sgn".format(self.tag)
         nsg_group = self.network_client.network_security_groups
 
         self._log.debug('Creating Azure network security group')
+
+        security_rules = []
+
+        # The lower the number, the higher is the priority of the rule.
+        # We are assuming here that the SSH rule will be the first item
+        # in the list
+        priority = 300
+        for port in inbound_ports:
+            security_rules.append(
+                {
+                    "name": "port-{}".format(port),
+                    "priority": priority,
+                    "protocol": "TCP",
+                    "access": "Allow",
+                    "direction": "Inbound",
+                    "sourceAddressPrefix": "*",
+                    "sourcePortRange": "*",
+                    "destinationAddressPrefix": "*",
+                    "destinationPortRange": port
+                }
+            )
+            priority += 10
+
         nsg_call = nsg_group.create_or_update(
             resource_group_name=self.resource_group.name,
             network_security_group_name=security_group_name,
             parameters={
                 "location": self.location,
-                "security_rules": [
-                    {
-                        "name": "SSH",
-                        "properties": {
-                            "priority": 300,
-                            "protocol": "TCP",
-                            "access": "Allow",
-                            "direction": "Inbound",
-                            "sourceAddressPrefix": "*",
-                            "sourcePortRange": "*",
-                            "destinationAddressPrefix": "*",
-                            "destinationPortRange": "22"
-                        }
-                    }
-                ]
+                "security_rules": security_rules,
             }
         )
 
@@ -502,7 +523,8 @@ class Azure(BaseCloud):
         return None
 
     def launch(self, image_id, instance_type='Standard_DS1_v2',
-               user_data=None, wait=True, name=None, **kwargs):
+               user_data=None, wait=True, name=None,
+               inbound_ports=None, **kwargs):
         """Launch virtual machine on Azure.
 
         Args:
@@ -511,6 +533,8 @@ class Azure(BaseCloud):
             wait: boolean, wait for instance to come up
             name: string, optional name to give the vm when launching.
                   Default results in a name of <tag>-vm
+            inbound_ports: List of strings, optional inbound ports
+                           to enable in the instance.
             kwargs: dict, other named arguments to provide to
                     virtual_machines.create_or_update
 
@@ -531,9 +555,15 @@ class Azure(BaseCloud):
         if self.resource_group is None:
             self.resource_group = self._create_resource_group()
 
-        # Check if we already have an existing network interface that is not
-        # attached to a virtual machine. If we have, we will just use it
-        nic = self._check_for_network_interfaces()
+        # We will not reuse existing network interfaces if we need to customize
+        # it to enable more ports. The rationale for is that we want to reuse
+        # those resources only if they are generic enough
+        nic = None
+        if not inbound_ports:
+            # Check if we already have an existing network interface that is
+            # not attached to a virtual machine. If we have, we will just
+            # use it
+            nic = self._check_for_network_interfaces()
 
         if nic is None:
             self._log.debug(
@@ -555,7 +585,9 @@ class Azure(BaseCloud):
                 'Created ip address with name: %s', ip_address.name
             )
 
-            network_security_group = self._create_network_security_group()
+            network_security_group = self._create_network_security_group(
+                inbound_ports=inbound_ports
+            )
             self._log.debug(
                 'Created network security group with name: %s',
                 network_security_group.name
