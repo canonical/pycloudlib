@@ -38,4 +38,5 @@ matrix:
           - sudo usermod -a -G lxd $USER
           - git clone https://github.com/canonical/cloud-init.git
           - cd cloud-init
+          - pip install -r requirements.txt
           - sg lxd -c "CLOUD_INIT_CLOUD_INIT_SOURCE=ppa:cloud-init-dev/daily pytest -m ci tests/integration_tests/"
