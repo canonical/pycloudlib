@@ -172,7 +172,6 @@ class OpenstackInstance(BaseInstance):
         """
         port = self.conn.network.create_port(
             network_id=self.network_id,
-            node_id=self.server.id
         )
         self.added_local_ports.append(port.id)
         interface = self.conn.compute.create_server_interface(
