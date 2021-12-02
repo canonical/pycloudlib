@@ -10,6 +10,11 @@ from pycloudlib.lxd.cloud import (LXDContainer,
                                   LXDVirtualMachine)
 from pycloudlib.result import Result
 
+CONFIG = """\
+[lxd]
+
+"""
+
 
 class TestProfileCreation:
     """Tests covering pycloudlib.lxd.cloud.create_profile method."""
@@ -20,7 +25,7 @@ class TestProfileCreation:
         m_subp.return_value = """
             - name: test_profile
         """
-        cloud = LXDContainer(tag="test")
+        cloud = LXDContainer(tag="test", config_file=io.StringIO(CONFIG))
 
         fake_stdout = io.StringIO()
         with contextlib.redirect_stdout(fake_stdout):
@@ -43,7 +48,7 @@ class TestProfileCreation:
         m_subp.return_value = """
             - name: test_profile
         """
-        cloud = LXDContainer(tag="test")
+        cloud = LXDContainer(tag="test", config_file=io.StringIO(CONFIG))
         profile_name = "test_profile"
         profile_config = "profile_config"
 
@@ -71,7 +76,7 @@ class TestProfileCreation:
         m_subp.return_value = """
             - name: other_profile
         """
-        cloud = LXDContainer(tag="test")
+        cloud = LXDContainer(tag="test", config_file=io.StringIO(CONFIG))
         profile_name = "other_profile_v1"
         profile_config = "profile_config"
 
@@ -100,7 +105,9 @@ class Test_LxcImageInfo:  # pylint: disable=W0212
         content = {"my": "data"}
         m_subp.return_value = Result(yaml.dump(content), "", 0)
 
-        ret = LXDVirtualMachine(tag="test")._lxc_image_info(image_id)
+        ret = LXDVirtualMachine(
+            tag="test", config_file=io.StringIO(CONFIG)
+        )._lxc_image_info(image_id)
 
         assert content == ret
         expected_call = mock.call(["lxc", "image", "info", image_id], rcs=())
@@ -111,13 +118,17 @@ class Test_LxcImageInfo:  # pylint: disable=W0212
         content = {"my": "data"}
         m_subp.return_value = Result(yaml.dump(content), "", 1)
 
-        assert {} == LXDVirtualMachine(tag="test")._lxc_image_info("image_id")
+        assert {} == LXDVirtualMachine(
+            tag="test", config_file=io.StringIO(CONFIG)
+        )._lxc_image_info("image_id")
 
     def test_invalid_yaml_returns_empty_dict(self, m_subp):
         """Invalid YAML even with command success returns empty dict."""
         m_subp.return_value = Result("{:a}", "", 0)
 
-        assert {} == LXDVirtualMachine(tag="test")._lxc_image_info("image_id")
+        assert {} == LXDVirtualMachine(
+            tag="test", config_file=io.StringIO(CONFIG)
+        )._lxc_image_info("image_id")
 
 
 class TestExtractReleaseFromImageId:
@@ -160,7 +171,7 @@ class TestExtractReleaseFromImageId:
     ):
         """Test that we fallthrough when the image is missing required info."""
         image_id = mock.sentinel.image_id
-        cloud = LXDVirtualMachine(tag="test")
+        cloud = LXDVirtualMachine(tag="test", config_file=io.StringIO(CONFIG))
         with mock.patch.object(
             cloud, "_lxc_image_info", return_value=lxc_image_info
         ) as m__lxc_image_info:

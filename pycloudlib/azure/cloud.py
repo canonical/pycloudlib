@@ -7,9 +7,9 @@ from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.compute import ComputeManagementClient
 
 import pycloudlib.azure.util as util
-
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.azure.instance import AzureInstance
+from pycloudlib.config import ConfigFile
 from pycloudlib.util import get_timestamped_tag, update_nested
 
 
@@ -27,8 +27,9 @@ class Azure(BaseCloud):
     }
 
     def __init__(
-        self, tag, timestamp_suffix=True, client_id=None, client_secret=None,
-        subscription_id=None, tenant_id=None, region="centralus"
+        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
+        client_id=None, client_secret=None, subscription_id=None,
+        tenant_id=None, region=None
     ):
         """Initialize the connection to Azure.
 
@@ -40,15 +41,16 @@ class Azure(BaseCloud):
             tag: string used to name and tag resources with
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
+            config_file: path to pycloudlib configuration file
             client_id: user's client id
             client_secret: user's client secret access key
             subscription_id: user's subscription id key
             tenant_id: user's tenant id key
             region: The region where the instance will be created
         """
-        super().__init__(tag, timestamp_suffix)
+        super().__init__(tag, timestamp_suffix, config_file)
         self._log.debug('logging into Azure')
-        self.location = region
+        self.location = region or self.config.get('region') or 'centralus'
         self.username = "ubuntu"
 
         self.registered_instances = {}
@@ -56,15 +58,19 @@ class Azure(BaseCloud):
 
         config_dict = {}
 
+        client_id = client_id or self.config.get('client_id')
         if client_id:
             config_dict["clientId"] = client_id
 
+        client_secret = client_secret or self.config.get('client_secret')
         if client_secret:
             config_dict["clientSecret"] = client_secret
 
+        subscription_id = subscription_id or self.config.get('subscription_id')
         if subscription_id:
             config_dict["subscriptionId"] = subscription_id
 
+        tenant_id = tenant_id or self.config.get('tenant_id')
         if tenant_id:
             config_dict["tenantId"] = tenant_id
 

@@ -9,13 +9,16 @@ pycloudlib.
 
 The preferred method of connecting to GCE is to use service account credentials. See the GCE [Authentication Getting Started](https://cloud.google.com/docs/authentication/getting-started) page for more information on creating one.
 
-Once a service account is created, generate a key file and download it to your system. Export the credential file as a shell variable and the Google API will automatically read the environmental variable and discover the credentials:
+Once a service account is created, generate a key file and download it to your system. Specify the credential file in pycloudlib.toml.
+
+#### Export the Credentials File (deprecated)
+Export the credential file as a shell variable and the Google API will automatically read the environmental variable and discover the credentials:
 
 ```shell
 export GOOGLE_APPLICATION_CREDENTIALS="[path to keyfile.json]"
 ```
 
-### End User
+### End User (Deprecated)
 
 A secondary method of GCE access is to use end user credentials directly. This is not the recommended method and Google will warn the user and suggest using a service account instead.
 

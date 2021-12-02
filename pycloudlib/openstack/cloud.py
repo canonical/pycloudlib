@@ -4,6 +4,7 @@ import base64
 import openstack
 
 from pycloudlib.cloud import BaseCloud
+from pycloudlib.config import ConfigFile
 from pycloudlib.openstack.instance import OpenstackInstance
 
 
@@ -12,7 +13,10 @@ class Openstack(BaseCloud):
 
     _type = 'openstack'
 
-    def __init__(self, tag, network, timestamp_suffix=True):
+    def __init__(
+        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
+        network=None
+    ):
         """Initialize the connection to openstack.
 
         Requires valid pre-configured environment variables or clouds.yaml.
@@ -20,12 +24,14 @@ class Openstack(BaseCloud):
 
         Args:
             tag: Name of instance
-            network: Name of the network to use (from openstack network list)
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
+            config_file: path to pycloudlib configuration file
+            network: Name of the network to use (from openstack network list)
+
         """  # noqa: E501
-        super().__init__(tag, timestamp_suffix)
-        self.network = network
+        super().__init__(tag, timestamp_suffix, config_file)
+        self.network = network or self.config['network']
         self._openstack_keypair = None
         self.conn = openstack.connect()
 

@@ -21,7 +21,7 @@ matrix:
           - sudo snap install lxd
           - sudo lxd init --auto
           - sudo usermod -a -G lxd $USER
-          - sg lxd -c "python examples/lxd.py"
+          - sg lxd -c "PYCLOUDLIB_CONFIG=pycloudlib.toml.template python examples/lxd.py"
     - name: run-cloudinit-integration-tests
       install:
           # Generate an SSH key to connect to test instances
@@ -39,4 +39,4 @@ matrix:
           - git clone https://github.com/canonical/cloud-init.git
           - cd cloud-init
           - pip install -r requirements.txt
-          - sg lxd -c "CLOUD_INIT_CLOUD_INIT_SOURCE=ppa:cloud-init-dev/daily pytest -m ci tests/integration_tests/"
+          - sg lxd -c "PYCLOUDLIB_CONFIG=../pycloudlib.toml.template CLOUD_INIT_CLOUD_INIT_SOURCE=ppa:cloud-init-dev/daily pytest -m ci tests/integration_tests/"

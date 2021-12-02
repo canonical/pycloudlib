@@ -78,6 +78,7 @@ use the pycloudlib-devs@lists.launchpad.net list.
    :glob:
    :caption: Other
 
+   configuration
    ssh_keys
    images
 
@@ -85,7 +86,7 @@ use the pycloudlib-devs@lists.launchpad.net list.
    :hidden:
    :caption: External
 
-   File a bug <https://bugs.launchpad.net/pycloudlib/+filebug>
+   File a bug <https://github.com/canonical/pycloudlib/issues>
    PyPI <https://pypi.org/project/pycloudlib/>
 
 .. toctree::

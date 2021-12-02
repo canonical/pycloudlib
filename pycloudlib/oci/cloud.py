@@ -6,9 +6,11 @@ import base64
 import json
 import os
 import re
+
 import oci
 
 from pycloudlib.cloud import BaseCloud
+from pycloudlib.config import ConfigFile
 from pycloudlib.oci.instance import OciInstance
 from pycloudlib.oci.utils import wait_till_ready
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
@@ -20,8 +22,8 @@ class OCI(BaseCloud):
     _type = 'oci'
 
     def __init__(
-        self, tag, timestamp_suffix=True, *, availability_domain,
-        compartment_id=None, config_path='~/.oci/config'
+        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
+        availability_domain=None, compartment_id=None, config_path=None
     ):
         """
         Initialize the connection to OCI.
@@ -33,15 +35,19 @@ class OCI(BaseCloud):
             tag: Name of instance
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
+            config_file: path to pycloudlib configuration file
             compartment_id: A compartment found at
                 https://console.us-phoenix-1.oraclecloud.com/a/identity/compartments
             availability_domain: One of the availability domains from:
                 'oci iam availability-domain list'
             config_path: Path of OCI config file
         """
-        super().__init__(tag, timestamp_suffix)
-        self.availability_domain = availability_domain
+        super().__init__(tag, timestamp_suffix, config_file)
+        self.availability_domain = availability_domain or self.config[
+            'availability_domain'
+        ]
 
+        compartment_id = compartment_id or self.config.get('compartment_id')
         if not compartment_id:
             command = ['oci', 'iam', 'compartment', 'get']
             exception_text = (
@@ -59,19 +65,20 @@ class OCI(BaseCloud):
             compartment_id = json.loads(result.stdout)['data']['id']
         self.compartment_id = compartment_id
 
+        config_path = (
+            config_path or
+            self.config.get('config_path') or
+            '~/.oci/config'
+        )
         if not os.path.isfile(os.path.expanduser(config_path)):
             raise ValueError(
-                '{} is not a valid config file. '
-                'Pass a valid config file or first setup your OCI client. '
-                'See https://github.com/cloud-init/qa-scripts/blob/master/'
-                'doc/launching-oracle.md'
-                .format(config_path))
-        self.config_path = config_path
-        config = oci.config.from_file(str(config_path))
+                '{} is not a valid config file. Pass a valid config '
+                'file.'.format(config_path))
+        self.oci_config = oci.config.from_file(config_path)
 
         self._log.debug('Logging into OCI')
-        self.compute_client = oci.core.ComputeClient(config)
-        self.network_client = oci.core.VirtualNetworkClient(config)
+        self.compute_client = oci.core.ComputeClient(self.oci_config)
+        self.network_client = oci.core.VirtualNetworkClient(self.oci_config)
 
     def delete_image(self, image_id):
         """Delete an image.
@@ -171,7 +178,7 @@ class OCI(BaseCloud):
             key_pair=self.key_pair,
             instance_id=instance_id,
             compartment_id=self.compartment_id,
-            config_path=self.config_path,
+            oci_config=self.oci_config,
         )
 
     def launch(self, image_id, instance_type='VM.Standard2.1', user_data=None,

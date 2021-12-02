@@ -18,6 +18,8 @@ API Signing RSA key pair: use defaults for all prompts
 Follow instructions in your terminal for uploading your generated key
 ```
 
+Now specify your `config_path` in pycloudlib.toml.
+
 ### Hard way
 
 Construct your config file manually by filling in the appropriate entries
@@ -25,8 +27,8 @@ documented here: <br>
 https://docs.cloud.oracle.com/en-us/iaas/Content/API/Concepts/sdkconfig.htm
 
 ### Compartment id
-In addition to the OCI config, the API also requires you provide the
-compartment id upon initialization. This can be found in the OCI console
+In addition to the OCI config, pycloudlib.toml also requires you provide the
+compartment id. This can be found in the OCI console
 from the menu at Identity>Compartments> <your compartment>
 
 ## SSH Keys

@@ -1,9 +1,9 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """AWS EC2 Cloud type."""
-
 import botocore
 
 from pycloudlib.cloud import BaseCloud
+from pycloudlib.config import ConfigFile
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
@@ -15,8 +15,8 @@ class EC2(BaseCloud):
     _type = 'ec2'
 
     def __init__(
-        self, tag, timestamp_suffix=True, access_key_id=None,
-        secret_access_key=None, region=None
+        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
+        access_key_id=None, secret_access_key=None, region=None
     ):
         """Initialize the connection to EC2.
 
@@ -27,15 +27,20 @@ class EC2(BaseCloud):
             tag: string used to name and tag resources with
             timestamp_suffix: bool set True to append a timestamp suffix to the
                 tag
+            config_file: path to pycloudlib configuration file
             access_key_id: user's access key ID
             secret_access_key: user's secret access key
             region: region to login to
         """
-        super().__init__(tag, timestamp_suffix)
+        super().__init__(tag, timestamp_suffix, config_file)
         self._log.debug('logging into EC2')
 
         try:
-            session = _get_session(access_key_id, secret_access_key, region)
+            session = _get_session(
+                access_key_id or self.config.get('access_key_id'),
+                secret_access_key or self.config.get('secret_access_key'),
+                region or self.config.get('region'),
+            )
             self.client = session.client('ec2')
             self.resource = session.resource('ec2')
             self.region = session.region_name
