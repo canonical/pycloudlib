@@ -15,6 +15,9 @@
 #
 import os
 import sys
+
+from sphinx.ext import apidoc
+
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -178,6 +181,18 @@ def skip(app, what, name, obj, skip, options):
     return skip
 
 
+def run_apidoc(_):
+    """Runs sphinx-apidoc when building the documentation."""
+    apidoc.main([
+        "--module-first",
+        "--separate",
+        "--output-dir",
+        "source/",
+        "../pycloudlib"
+    ])
+
+
 def setup(app):
     """Add exception to autodoc's skip-member function."""
     app.connect("autodoc-skip-member", skip)
+    app.connect("builder-inited", run_apidoc)

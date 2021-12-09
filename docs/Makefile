@@ -15,7 +15,6 @@ help:
 
 build:
 	rm -rf source _build
-	sphinx-apidoc --module-first --separate --output-dir source/ ../pycloudlib
 	$(MAKE) html
 
 clean:
