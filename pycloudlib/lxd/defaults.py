@@ -75,4 +75,6 @@ base_vm_profiles = {
         "hirsute", install_agent=False, config_cloudinit=False),
     "impish": _make_vm_profile(
         "impish", install_agent=False, config_cloudinit=False),
+    "jammy": _make_vm_profile(
+        "jammy", install_agent=False, config_cloudinit=False),
 }
