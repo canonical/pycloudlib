@@ -6,7 +6,7 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.compute import ComputeManagementClient
 
-import pycloudlib.azure.util as util
+from pycloudlib.azure import util
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.azure.instance import AzureInstance
 from pycloudlib.config import ConfigFile

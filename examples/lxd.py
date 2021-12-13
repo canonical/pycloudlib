@@ -210,10 +210,10 @@ def launch_virtual_machine():
     priv_key_path = "lxd-privkey"
     pub_key, priv_key = lxd.create_key_pair()
 
-    with open(pub_key_path, "w") as f:
+    with open(pub_key_path, "w", encoding="utf-8") as f:
         f.write(pub_key)
 
-    with open(priv_key_path, "w") as f:
+    with open(priv_key_path, "w", encoding="utf-8") as f:
         f.write(priv_key)
 
     lxd.use_key(
