@@ -169,7 +169,7 @@ def subp(args, data=None, env=None, shell=False, rcs=(0,),
     elif shortcircuit_stdin:
         # using devnull assures any reads get null, rather
         # than possibly waiting on input.
-        devnull_fp = open(os.devnull)
+        devnull_fp = open(os.devnull, "rb")  # pylint: disable=R1732
         stdin = devnull_fp
     else:
         stdin = None
@@ -177,7 +177,7 @@ def subp(args, data=None, env=None, shell=False, rcs=(0,),
     bytes_args = _convert_args(args)
 
     try:
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # pylint: disable=R1732
             bytes_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             stdin=stdin, env=env, shell=shell
         )

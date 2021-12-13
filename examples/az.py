@@ -31,10 +31,10 @@ def demo():
     pub_path = "pub_test.pem"
     priv_path = "priv_test.pem"
 
-    with open(pub_path, "w") as f:
+    with open(pub_path, "w", encoding="utf-8") as f:
         f.write(pub_key)
 
-    with open(priv_path, "w") as f:
+    with open(priv_path, "w", encoding="utf-8") as f:
         f.write(priv_key)
     client.use_key(pub_path, priv_path)
 

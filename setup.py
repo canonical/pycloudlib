@@ -8,7 +8,7 @@ def read_readme():
     """Read and return text of README.md."""
     pwd = os.path.abspath(os.path.dirname(__name__))
     readme_file = os.path.join(pwd, 'README.md')
-    with open(readme_file, 'r') as readme:
+    with open(readme_file, 'r', encoding='utf-8') as readme:
         readme_txt = readme.read()
 
     return readme_txt

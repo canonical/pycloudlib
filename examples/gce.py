@@ -27,10 +27,10 @@ def demo():
     priv_key_path = "gce-privkey"
     pub_key, priv_key = gce.create_key_pair()
 
-    with open(pub_key_path, "w") as f:
+    with open(pub_key_path, "w", encoding="utf-8") as f:
         f.write(pub_key)
 
-    with open(priv_key_path, "w") as f:
+    with open(priv_key_path, "w", encoding="utf-8") as f:
         f.write(priv_key)
 
     os.chmod(pub_key_path, 0o600)

@@ -38,4 +38,4 @@ class KeyPair:
             output of public key
 
         """
-        return open(self.public_key_path).read()
+        return open(self.public_key_path, encoding="utf-8").read()

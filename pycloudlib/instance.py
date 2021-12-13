@@ -1,7 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all instances to provide consistent set of functions."""
 
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 import logging
 import time
 
@@ -43,7 +43,8 @@ class BaseInstance(ABC):
         """Return instance name."""
         raise NotImplementedError
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def ip(self):
         """Return IP address of instance."""
         raise NotImplementedError
