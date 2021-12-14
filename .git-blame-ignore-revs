@@ -1,0 +1,4 @@
+# Automatically apply to git blames with `git config blame.ignorerevsfile .git-blame-ignore-revs`
+
+# Apply black formatting
+df271e3ebe0fd007b06177a3fda82f9139d111ce
