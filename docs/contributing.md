@@ -39,10 +39,10 @@ Documentation should be written in Markdown whenever possible.
 When making changes please keep the following in mind:
 
 * Keep pull requests limited to a single issue
+* Code must be formatted to [Black](https://black.readthedocs.io/en/stable/index.html) standards
+  * Run `tox -e format` to reformat code accordingly
 * Run `tox` to execute style and lint checks
-* Use [Google styling](https://github.com/google/styleguide/blob/gh-pages/pyguide.md) for docstrings
 * When adding new clouds please add detailed documentation under the `docs` directory and code examples under `examples`
-* 4 spaces, no tabs
 
 ## Submit a Merge Request
 
