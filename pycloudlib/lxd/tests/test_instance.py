@@ -17,8 +17,9 @@ class TestRestart:
             (True, True, ["lxc", "restart", "my_vm", "--force"]),
             (True, False, ["lxc", "restart", "my_vm"]),
             # When wait is false, call shutdown and start
-            (False, False, []), (False, True, [])
-        )
+            (False, False, []),
+            (False, True, []),
+        ),
     )
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.start")
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
@@ -72,42 +73,33 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
     _missing_agent_msg = "missing lxd-agent"
 
     @mock.patch("pycloudlib.lxd.instance.subp")
-    def test_exec_with_run_command_on_xenial_machine(
-        self,
-        m_subp,
-        caplog
-    ):
+    def test_exec_with_run_command_on_xenial_machine(self, m_subp, caplog):
         """Test exec does not work with xenial vm."""
         instance = LXDVirtualMachineInstance(
-            None, execute_via_ssh=False, series="xenial")
+            None, execute_via_ssh=False, series="xenial"
+        )
 
         instance._run_command(["test"], None)
         assert self._missing_agent_msg in caplog.text
         assert m_subp.call_count == 1
 
     @mock.patch("pycloudlib.lxd.instance.subp")
-    def test_file_pull_with_agent_on_xenial_machine(
-        self,
-        m_subp,
-        caplog
-    ):
+    def test_file_pull_with_agent_on_xenial_machine(self, m_subp, caplog):
         """Test file pull does not work with xenial vm."""
         instance = LXDVirtualMachineInstance(
-            None, execute_via_ssh=False, series="xenial")
+            None, execute_via_ssh=False, series="xenial"
+        )
 
         instance.pull_file("/some/file", "/some/local/file")
         assert self._missing_agent_msg in caplog.text
         assert m_subp.call_count == 1
 
     @mock.patch("pycloudlib.lxd.instance.subp")
-    def test_file_push_with_agent_on_xenial_machine(
-        self,
-        m_subp,
-        caplog
-    ):
+    def test_file_push_with_agent_on_xenial_machine(self, m_subp, caplog):
         """Test file push does not work with xenial vm."""
         instance = LXDVirtualMachineInstance(
-            None, execute_via_ssh=False, series="xenial")
+            None, execute_via_ssh=False, series="xenial"
+        )
 
         instance.push_file("/some/file", "/some/local/file")
         assert self._missing_agent_msg in caplog.text
@@ -128,35 +120,45 @@ class TestIP:
     @pytest.mark.parametrize(
         "stdouts,stderr,return_code,sleeps,expected",
         (
-             (
-                  ["unparseable"], "", 0, 150,
-                  TimeoutError(
-                      "Unable to determine IP address after 150 retries."
-                      " exit:0 stdout: unparseable stderr: "
-                  )
-             ),
-             (    # retry on non-zero exit code
-                  ["10.0.0.1 (eth0)"], "", 1, 150,
-                  TimeoutError(
-                      "Unable to determine IP address after 150 retries."
-                      " exit:1 stdout: 10.0.0.1 (eth0) stderr: "
-                  )
-             ),
-             (    # empty values will retry indefinitely
-                  [""], "", 0, 150,
-                  TimeoutError(
-                      "Unable to determine IP address after 150 retries."
-                      " exit:0 stdout:  stderr: "
-                  )
-             ),
-             (    # only retry until success
-                  ["unparseable", "10.69.10.5 (eth0)\n"], "", 0, 1,
-                  "10.69.10.5"
-             ),
-             (
-                   ["10.69.10.5 (eth0)\n"], "", 0, 0, "10.69.10.5"
-             ),
-        )
+            (
+                ["unparseable"],
+                "",
+                0,
+                150,
+                TimeoutError(
+                    "Unable to determine IP address after 150 retries."
+                    " exit:0 stdout: unparseable stderr: "
+                ),
+            ),
+            (  # retry on non-zero exit code
+                ["10.0.0.1 (eth0)"],
+                "",
+                1,
+                150,
+                TimeoutError(
+                    "Unable to determine IP address after 150 retries."
+                    " exit:1 stdout: 10.0.0.1 (eth0) stderr: "
+                ),
+            ),
+            (  # empty values will retry indefinitely
+                [""],
+                "",
+                0,
+                150,
+                TimeoutError(
+                    "Unable to determine IP address after 150 retries."
+                    " exit:0 stdout:  stderr: "
+                ),
+            ),
+            (  # only retry until success
+                ["unparseable", "10.69.10.5 (eth0)\n"],
+                "",
+                0,
+                1,
+                "10.69.10.5",
+            ),
+            (["10.69.10.5 (eth0)\n"], "", 0, 0, "10.69.10.5"),
+        ),
     )
     @mock.patch("pycloudlib.lxd.instance.time.sleep")
     @mock.patch("pycloudlib.lxd.instance.subp")
@@ -193,9 +195,7 @@ class TestIP:
 class TestWaitForStop:
     """Tests covering pycloudlib.lxd.instance.Instance.wait_for_stop."""
 
-    @pytest.mark.parametrize(
-        "is_ephemeral", ((True), (False))
-    )
+    @pytest.mark.parametrize("is_ephemeral", ((True), (False)))
     def test_wait_for_stop_does_not_wait_for_ephemeral_instances(
         self, is_ephemeral
     ):
@@ -218,7 +218,7 @@ class TestShutdown:
             (True, False, ["lxc", "stop", "test"]),
             (False, False, ["lxc", "stop", "test"]),
             (True, True, ["lxc", "stop", "test", "--force"]),
-        )
+        ),
     )
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_shutdown_calls_wait_for_stopped_state_when_wait_true(
@@ -238,9 +238,7 @@ class TestShutdown:
 class TestDelete:
     """Tests covering pycloudlib.lxd.instance.Instance.delete."""
 
-    @pytest.mark.parametrize(
-        "is_ephemeral", ((True), (False))
-    )
+    @pytest.mark.parametrize("is_ephemeral", ((True), (False)))
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_delete_on_ephemeral_instance_calls_shutdown(
@@ -261,7 +259,6 @@ class TestDelete:
         else:
             assert 0 == m_shutdown.call_count
             assert 1 == m_subp.call_count
-            assert (
-                [mock.call(["lxc", "delete", "test", "--force"])]
-                == m_subp.call_args_list
-            )
+            assert [
+                mock.call(["lxc", "delete", "test", "--force"])
+            ] == m_subp.call_args_list

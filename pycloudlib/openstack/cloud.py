@@ -11,11 +11,15 @@ from pycloudlib.openstack.instance import OpenstackInstance
 class Openstack(BaseCloud):
     """Openstack cloud class."""
 
-    _type = 'openstack'
+    _type = "openstack"
 
     def __init__(
-        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
-        network=None
+        self,
+        tag,
+        timestamp_suffix=True,
+        config_file: ConfigFile = None,
+        *,
+        network=None,
     ):
         """Initialize the connection to openstack.
 
@@ -31,7 +35,7 @@ class Openstack(BaseCloud):
 
         """  # noqa: E501
         super().__init__(tag, timestamp_suffix, config_file)
-        self.network = network or self.config['network']
+        self.network = network or self.config["network"]
         self._openstack_keypair = None
         self.conn = openstack.connect()
 
@@ -46,17 +50,17 @@ class Openstack(BaseCloud):
     def released_image(self, release, **kwargs):
         """Not supported for openstack."""
         raise Exception(
-            'Obtaining released image for a release is not supported on '
-            'Openstack because we have no guarantee of what images will be '
-            'available for any particular openstack setup.'
+            "Obtaining released image for a release is not supported on "
+            "Openstack because we have no guarantee of what images will be "
+            "available for any particular openstack setup."
         )
 
     def daily_image(self, release, **kwargs):
         """Not supported for openstack."""
         raise Exception(
-            'Obtaining daily image for a release is not supported on '
-            'Openstack because we have no guarantee of what images will be '
-            'available for any particular openstack setup.'
+            "Obtaining daily image for a release is not supported on "
+            "Openstack because we have no guarantee of what images will be "
+            "available for any particular openstack setup."
         )
 
     def image_serial(self, image_id):
@@ -84,7 +88,7 @@ class Openstack(BaseCloud):
         return OpenstackInstance(
             key_pair=self.key_pair,
             instance_id=instance_id,
-            network_id=self._get_network_id()
+            network_id=self._get_network_id(),
         )
 
     def _get_network_id(self):
@@ -92,11 +96,17 @@ class Openstack(BaseCloud):
             return self.conn.network.find_network(self.network).id
         except AttributeError as e:
             raise Exception(
-                'No network found named {}'.format(self.network)
+                "No network found named {}".format(self.network)
             ) from e
 
-    def launch(self, image_id, instance_type='m1.small', user_data='',
-               wait=True, **kwargs) -> OpenstackInstance:
+    def launch(
+        self,
+        image_id,
+        instance_type="m1.small",
+        user_data="",
+        wait=True,
+        **kwargs,
+    ) -> OpenstackInstance:
         """Launch an instance.
 
         Args:
@@ -111,20 +121,20 @@ class Openstack(BaseCloud):
 
         """
         network_id = self._get_network_id()
-        networks = [{'uuid': network_id}]
+        networks = [{"uuid": network_id}]
         if not self._openstack_keypair:
             self._openstack_keypair = self._get_openstack_keypair()
         if user_data:
             user_data = base64.b64encode(user_data.encode()).decode()
         else:
-            user_data = ''
+            user_data = ""
 
         flavor = self.conn.compute.find_flavor(instance_type)
         if flavor is None:
             raise Exception(
-                'No Openstack flavor found named {}. Please pass a valid '
-                'Openstack flavor as the `instance_type` when calling '
-                'launch.'.format(instance_type)
+                "No Openstack flavor found named {}. Please pass a valid "
+                "Openstack flavor as the `instance_type` when calling "
+                "launch.".format(instance_type)
             )
 
         instance = self.conn.compute.create_server(
@@ -162,9 +172,7 @@ class Openstack(BaseCloud):
             instance.clean()
         instance.shutdown()
         image = self.conn.create_image_snapshot(
-            '{}-snapshot'.format(self.tag),
-            instance.server.id,
-            wait=True
+            "{}-snapshot".format(self.tag), instance.server.id, wait=True
         )
         return image.id
 
@@ -193,10 +201,7 @@ class Openstack(BaseCloud):
         openstack_keypair = self.conn.get_keypair(name)
         if not openstack_keypair:
             # If the openstack keypair doesn't exist, create it
-            return self.conn.create_keypair(
-                name,
-                public_key_content
-            )
+            return self.conn.create_keypair(name, public_key_content)
         if public_key_content == openstack_keypair.public_key:
             return openstack_keypair
         raise Exception(

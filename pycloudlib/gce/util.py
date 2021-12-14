@@ -13,18 +13,18 @@ class GceException(Exception):
 
 def raise_on_error(response):
     """Look for errors in response and raise if found."""
-    if 'httpErrorStatusCode' in response:
+    if "httpErrorStatusCode" in response:
         raise HTTPError(
-            url=response['selfLink'],
-            code=response['httpErrorStatusCode'],
-            msg=response['httpErrorMessage'],
+            url=response["selfLink"],
+            code=response["httpErrorStatusCode"],
+            msg=response["httpErrorMessage"],
             hdrs={},
-            fp=None
+            fp=None,
         )
-    if 'error' in response:
+    if "error" in response:
         raise GceException(
-            'Received error(s)!\n'
-            'Errors: {}'.format(response['error']['errors'])
+            "Received error(s)!\n"
+            "Errors: {}".format(response["error"]["errors"])
         )
 
 
@@ -37,7 +37,8 @@ def get_credentials(credentials_path):
     if credentials_path:
         try:
             return service_account.Credentials.from_service_account_file(
-                credentials_path)
+                credentials_path
+            )
         except ValueError:
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
     return google.auth.default()[0]

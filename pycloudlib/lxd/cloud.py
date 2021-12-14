@@ -15,9 +15,9 @@ from pycloudlib.lxd.defaults import base_vm_profiles, LXC_PROFILE_VERSION
 class _BaseLXD(BaseCloud):
     """LXD Base Cloud Class."""
 
-    _type = 'lxd'
-    _daily_remote = 'ubuntu-daily'
-    _releases_remote = 'ubuntu'
+    _type = "lxd"
+    _daily_remote = "ubuntu-daily"
+    _releases_remote = "ubuntu"
     _lxd_instance_cls = LXDInstance
 
     def clone(self, base, new_instance_name):
@@ -36,13 +36,11 @@ class _BaseLXD(BaseCloud):
             The created LXD instance object
 
         """
-        self._log.debug('cloning %s to %s', base, new_instance_name)
-        subp(['lxc', 'copy', base, new_instance_name])
+        self._log.debug("cloning %s to %s", base, new_instance_name)
+        subp(["lxc", "copy", base, new_instance_name])
         return LXDInstance(new_instance_name)
 
-    def create_profile(
-        self, profile_name, profile_config, force=False
-    ):
+    def create_profile(self, profile_name, profile_config, force=False):
         """Create a lxd profile.
 
         Create a lxd profile and populate it with the given
@@ -66,8 +64,7 @@ class _BaseLXD(BaseCloud):
             return
 
         if force:
-            self._log.debug(
-                "Deleting current profile %s ...", profile_name)
+            self._log.debug("Deleting current profile %s ...", profile_name)
             subp(["lxc", "profile", "delete", profile_name])
 
         self._log.debug("Creating profile %s ...", profile_name)
@@ -81,7 +78,7 @@ class _BaseLXD(BaseCloud):
             instance_name: instance name to delete
             wait: wait for delete to complete
         """
-        self._log.debug('deleting %s', instance_name)
+        self._log.debug("deleting %s", instance_name)
         inst = self.get_instance(instance_name)
         inst.delete(wait)
 
@@ -148,15 +145,23 @@ class _BaseLXD(BaseCloud):
         return self._image_info(image_id)[0]["release"]
 
     def _normalize_image_id(self, image_id: str) -> str:
-        if ':' not in image_id:
-            return self._daily_remote + ':' + image_id
+        if ":" not in image_id:
+            return self._daily_remote + ":" + image_id
         return image_id
 
     # pylint: disable=R0914,R0912,R0915
     def _prepare_command(
-            self, name, image_id, ephemeral=False, network=None, storage=None,
-            inst_type=None, profile_list=None, user_data=None,
-            config_dict=None):
+        self,
+        name,
+        image_id,
+        ephemeral=False,
+        network=None,
+        storage=None,
+        inst_type=None,
+        profile_list=None,
+        user_data=None,
+        config_dict=None,
+    ):
         """Build a the command to be used to launch the LXD instance.
 
         Args:
@@ -179,7 +184,7 @@ class _BaseLXD(BaseCloud):
         config_dict = config_dict if config_dict else {}
 
         self._log.debug("Full image ID to launch: '%s'", image_id)
-        cmd = ['lxc', 'init', image_id]
+        cmd = ["lxc", "init", image_id]
 
         if name:
             cmd.append(name)
@@ -191,43 +196,52 @@ class _BaseLXD(BaseCloud):
             config_dict["user.meta-data"] = metadata
 
         if ephemeral:
-            cmd.append('--ephemeral')
+            cmd.append("--ephemeral")
 
         if network:
-            cmd.append('--network')
+            cmd.append("--network")
             cmd.append(network)
 
         if storage:
-            cmd.append('--storage')
+            cmd.append("--storage")
             cmd.append(storage)
 
         if inst_type:
-            cmd.append('--type')
+            cmd.append("--type")
             cmd.append(inst_type)
 
         for profile in profile_list:
-            cmd.append('--profile')
+            cmd.append("--profile")
             cmd.append(profile)
 
         for key, value in config_dict.items():
-            cmd.append('--config')
-            cmd.append('%s=%s' % (key, value))
+            cmd.append("--config")
+            cmd.append("%s=%s" % (key, value))
 
         if user_data:
-            if 'user.user-data' in config_dict:
+            if "user.user-data" in config_dict:
                 raise ValueError(
                     "User data cannot be defined in config_dict and also"
                     "passed through user_data. Pick one"
                 )
-            cmd.append('--config')
-            cmd.append('user.user-data=%s' % user_data)
+            cmd.append("--config")
+            cmd.append("user.user-data=%s" % user_data)
 
         return cmd
 
     def init(
-            self, name, image_id, ephemeral=False, network=None, storage=None,
-            inst_type=None, profile_list=None, user_data=None,
-            config_dict=None, execute_via_ssh=True):
+        self,
+        name,
+        image_id,
+        ephemeral=False,
+        network=None,
+        storage=None,
+        inst_type=None,
+        profile_list=None,
+        user_data=None,
+        config_dict=None,
+        execute_via_ssh=True,
+    ):
         """Init a container.
 
         This will initialize a container, but not launch or start it.
@@ -263,16 +277,16 @@ class _BaseLXD(BaseCloud):
             inst_type=inst_type,
             profile_list=profile_list,
             user_data=user_data,
-            config_dict=config_dict
+            config_dict=config_dict,
         )
 
         print(cmd)
         result = subp(cmd)
 
         if not name:
-            name = result.split('Instance name is: ')[1]
+            name = result.split("Instance name is: ")[1]
 
-        self._log.debug('Created %s', name)
+        self._log.debug("Created %s", name)
         return self._lxd_instance_cls(
             name=name,
             key_pair=self.key_pair,
@@ -281,10 +295,21 @@ class _BaseLXD(BaseCloud):
             ephemeral=ephemeral,
         )
 
-    def launch(self, image_id, instance_type=None, user_data=None, wait=True,
-               name=None, ephemeral=False, network=None, storage=None,
-               profile_list=None, config_dict=None, execute_via_ssh=True,
-               **kwargs):
+    def launch(
+        self,
+        image_id,
+        instance_type=None,
+        user_data=None,
+        wait=True,
+        name=None,
+        ephemeral=False,
+        network=None,
+        storage=None,
+        profile_list=None,
+        config_dict=None,
+        execute_via_ssh=True,
+        **kwargs,
+    ):
         """Set up and launch a container.
 
         This will init and start a container with the provided settings.
@@ -335,12 +360,12 @@ class _BaseLXD(BaseCloud):
             string, LXD fingerprint of latest image
 
         """
-        self._log.debug('finding released Ubuntu image for %s', release)
+        self._log.debug("finding released Ubuntu image for %s", release)
         return self._search_for_image(
             remote=self._releases_remote,
             daily=False,
             release=release,
-            arch=arch
+            arch=arch,
         )
 
     def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH):
@@ -354,12 +379,9 @@ class _BaseLXD(BaseCloud):
             string, LXD fingerprint of latest image
 
         """
-        self._log.debug('finding daily Ubuntu image for %s', release)
+        self._log.debug("finding daily Ubuntu image for %s", release)
         return self._search_for_image(
-            remote=self._daily_remote,
-            daily=True,
-            release=release,
-            arch=arch
+            remote=self._daily_remote, daily=True, release=release, arch=arch
         )
 
     @abstractmethod
@@ -399,7 +421,7 @@ class _BaseLXD(BaseCloud):
         image_data = self._find_image(release, arch, daily=daily)
         image_hash_key = self._get_image_hash_key(release)
 
-        return '%s:%s' % (remote, image_data[image_hash_key])
+        return "%s:%s" % (remote, image_data[image_hash_key])
 
     def _image_info(self, image_id, image_hash_key=None):
         """Find the image serial of a given LXD image.
@@ -413,18 +435,18 @@ class _BaseLXD(BaseCloud):
 
         """
         daily = True
-        if ':' in image_id:
-            remote = image_id[:image_id.index(':')]
-            image_id = image_id[image_id.index(':')+1:]
+        if ":" in image_id:
+            remote = image_id[: image_id.index(":")]
+            image_id = image_id[image_id.index(":") + 1 :]
             if remote == self._releases_remote:
                 daily = False
             elif remote != self._daily_remote:
-                raise RuntimeError('Unknown remote: %s' % remote)
+                raise RuntimeError("Unknown remote: %s" % remote)
 
         if not image_hash_key:
             image_hash_key = self._get_image_hash_key()
 
-        filters = ['%s=%s' % (image_hash_key, image_id)]
+        filters = ["%s=%s" % (image_hash_key, image_id)]
         image_info = self._streams_query(filters, daily=daily)
 
         return image_info
@@ -440,11 +462,12 @@ class _BaseLXD(BaseCloud):
 
         """
         self._log.debug(
-            'finding image serial for LXD Ubuntu image %s', image_id)
+            "finding image serial for LXD Ubuntu image %s", image_id
+        )
 
         image_info = self._image_info(image_id)
 
-        return image_info[0]['version_name']
+        return image_info[0]["version_name"]
 
     def delete_image(self, image_id):
         """Delete the image.
@@ -454,8 +477,8 @@ class _BaseLXD(BaseCloud):
         """
         self._log.debug("Deleting image: '%s'", image_id)
 
-        subp(['lxc', 'image', 'delete', image_id])
-        self._log.debug('Deleted %s', image_id)
+        subp(["lxc", "image", "delete", image_id])
+        self._log.debug("Deleted %s", image_id)
 
     def snapshot(self, instance, clean=True, name=None):
         """Take a snapshot of the passed in instance for use as image.
@@ -485,10 +508,10 @@ class _BaseLXD(BaseCloud):
 
         """
         filters = [
-            'datatype=image-downloads',
-            'ftype=lxd.tar.xz',
-            'arch=%s' % arch,
-            'release=%s' % release,
+            "datatype=image-downloads",
+            "ftype=lxd.tar.xz",
+            "arch=%s" % arch,
+            "release=%s" % release,
         ]
 
         return self._streams_query(filters, daily)[0]
@@ -529,8 +552,7 @@ class LXDContainer(_BaseLXD):
 
         """
         return super()._image_info(
-            image_id=image_id,
-            image_hash_key=self.CONTAINER_HASH_KEY
+            image_id=image_id, image_hash_key=self.CONTAINER_HASH_KEY
         )
 
 
@@ -568,7 +590,8 @@ class LXDVirtualMachine(_BaseLXD):
             return kvm_image_info
 
         uefi1_image_info = super()._image_info(
-            image_id, image_hash_key=self.DISK_UEFI1_KEY)
+            image_id, image_hash_key=self.DISK_UEFI1_KEY
+        )
         if uefi1_image_info:
             return uefi1_image_info
 
@@ -589,19 +612,28 @@ class LXDVirtualMachine(_BaseLXD):
         image_id = self._normalize_image_id(image_id)
         base_release = self._extract_release_from_image_id(image_id)
         profile_name = "pycloudlib-vm-{}-{}".format(
-            base_release, LXC_PROFILE_VERSION)
+            base_release, LXC_PROFILE_VERSION
+        )
 
         self.create_profile(
             profile_name=profile_name,
-            profile_config=base_vm_profiles[base_release]
+            profile_config=base_vm_profiles[base_release],
         )
 
         return [profile_name]
 
     def _prepare_command(
-            self, name, image_id, ephemeral=False, network=None, storage=None,
-            inst_type=None, profile_list=None, user_data=None,
-            config_dict=None):
+        self,
+        name,
+        image_id,
+        ephemeral=False,
+        network=None,
+        storage=None,
+        inst_type=None,
+        profile_list=None,
+        user_data=None,
+        config_dict=None,
+    ):
         """Build a the command to be used to launch the LXD instance.
 
         Args:
@@ -632,7 +664,7 @@ class LXDVirtualMachine(_BaseLXD):
             inst_type=inst_type,
             profile_list=profile_list,
             user_data=user_data,
-            config_dict=config_dict
+            config_dict=config_dict,
         )
 
         cmd.append("--vm")

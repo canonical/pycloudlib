@@ -9,8 +9,8 @@ import toml
 
 # Order matters here. Local should take precedence over global.
 CONFIG_PATHS = [
-    Path('~/.config/pycloudlib.toml').expanduser(),
-    Path('/etc/pycloudlib.toml'),
+    Path("~/.config/pycloudlib.toml").expanduser(),
+    Path("/etc/pycloudlib.toml"),
 ]
 
 ConfigFile = Union[Path, StringIO]
@@ -31,15 +31,13 @@ class Config(dict):
             ) from None
 
 
-def parse_config(
-    config_file: ConfigFile = None
-) -> MutableMapping[str, Any]:
+def parse_config(config_file: ConfigFile = None) -> MutableMapping[str, Any]:
     """Find the relevant TOML, load, and return it."""
     possible_configs = []
     if config_file:
         possible_configs.append(config_file)
-    if os.environ.get('PYCLOUDLIB_CONFIG'):
-        possible_configs.append(Path(os.environ['PYCLOUDLIB_CONFIG']))
+    if os.environ.get("PYCLOUDLIB_CONFIG"):
+        possible_configs.append(Path(os.environ["PYCLOUDLIB_CONFIG"]))
     possible_configs.extend(CONFIG_PATHS)
     for path in possible_configs:
         try:

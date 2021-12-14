@@ -5,7 +5,7 @@
 class Result(str):  # pylint: disable=too-many-ancestors
     """Result Class."""
 
-    def __init__(self, stdout, stderr='', return_code=0):
+    def __init__(self, stdout, stderr="", return_code=0):
         """Initialize class."""
         super().__init__()
 

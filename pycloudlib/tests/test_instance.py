@@ -53,7 +53,7 @@ class TestWait:
         m_execute.return_value = Result(stdout="", stderr="", return_code=1)
         expected_msg = "{}\n{}".format(
             "Instance can't be reached after 10 minutes. ",
-            "Failed to execute whoami command"
+            "Failed to execute whoami command",
         )
         expected_call_args = [mock.call("whoami")] * 2
 
@@ -76,10 +76,13 @@ class TestWaitForCloudinit:
         with mock.patch.object(instance, "execute") as m_execute:
             instance._wait_for_cloudinit()
 
-        assert mock.call(
-            ["cloud-init", "status", "--wait", "--long"],
-            description="waiting for start",
-        ) == m_execute.call_args
+        assert (
+            mock.call(
+                ["cloud-init", "status", "--wait", "--long"],
+                description="waiting for start",
+            )
+            == m_execute.call_args
+        )
 
     @mock.patch("time.sleep")
     def test_wait_on_target_not_active(self, _m_sleep, concrete_instance_cls):
@@ -93,12 +96,13 @@ class TestWaitForCloudinit:
             instance._wait_for_cloudinit()
         expected = [
             mock.call(["which", "systemctl"]),
-            *([mock.call(
-                ["systemctl", "is-active", "cloud-init.target"]
-            )] * 300),
+            *(
+                [mock.call(["systemctl", "is-active", "cloud-init.target"])]
+                * 300
+            ),
             mock.call(
                 ["cloud-init", "status", "--wait", "--long"],
-                description="waiting for start"
+                description="waiting for start",
             ),
         ]
         assert expected == m_execute.call_args_list

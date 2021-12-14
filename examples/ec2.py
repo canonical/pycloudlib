@@ -13,13 +13,13 @@ def hot_add(ec2, daily):
     Give an example of hot adding a pair of network interfaces and a
     couple storage volumes of various sizes.
     """
-    instance = ec2.launch(daily, instance_type='m4.xlarge')
+    instance = ec2.launch(daily, instance_type="m4.xlarge")
 
     instance.add_network_interface()
     instance.add_network_interface()
 
     instance.add_volume(size=9)
-    instance.add_volume(size=10, drive_type='gp2')
+    instance.add_volume(size=10, drive_type="gp2")
 
     instance.delete()
 
@@ -47,11 +47,11 @@ def launch_multiple(ec2, daily):
 def snapshot(ec2, daily):
     """Create a snapshot from a customized image and launch it."""
     instance = ec2.launch(daily)
-    instance.execute('touch custom_config_file')
+    instance.execute("touch custom_config_file")
 
     image = ec2.snapshot(instance)
     new_instance = ec2.launch(image)
-    new_instance.execute('ls')
+    new_instance.execute("ls")
 
     new_instance.delete()
     ec2.delete_image(image)
@@ -60,7 +60,7 @@ def snapshot(ec2, daily):
 
 def custom_vpc(ec2, daily):
     """Launch instances using a custom VPC."""
-    vpc = ec2.get_or_create_vpc(name='test-vpc')
+    vpc = ec2.get_or_create_vpc(name="test-vpc")
     ec2.launch(daily, vpc=vpc)
 
     # vpc.delete will also delete any associated instances in that VPC
@@ -74,7 +74,7 @@ def launch_basic(ec2, daily):
     """
     instance = ec2.launch(daily)
     instance.console_log()
-    instance.execute('ip a')
+    instance.execute("ip a")
 
     instance.shutdown()
     instance.start()
@@ -95,8 +95,8 @@ def demo():
     Connects to EC2 and finds the latest daily image. Then runs
     through a number of examples.
     """
-    ec2 = pycloudlib.EC2(tag='examples')
-    daily = ec2.daily_image(release='bionic')
+    ec2 = pycloudlib.EC2(tag="examples")
+    daily = ec2.daily_image(release="bionic")
 
     launch_basic(ec2, daily)
     custom_vpc(ec2, daily)
@@ -105,6 +105,6 @@ def demo():
     hot_add(ec2, daily)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     demo()

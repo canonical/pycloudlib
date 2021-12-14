@@ -4,9 +4,7 @@ import string
 import time
 
 import botocore
-from paramiko.ssh_exception import (
-    SSHException
-)
+from paramiko.ssh_exception import SSHException
 
 from pycloudlib.instance import BaseInstance
 
@@ -14,7 +12,7 @@ from pycloudlib.instance import BaseInstance
 class EC2Instance(BaseInstance):
     """EC2 backed instance."""
 
-    _type = 'ec2'
+    _type = "ec2"
 
     def __init__(self, key_pair, client, instance):
         """Set up instance.
@@ -34,17 +32,17 @@ class EC2Instance(BaseInstance):
 
     def __repr__(self):
         """Create string representation for class."""
-        return '{}(key_pair={}, client={}, instance={})'.format(
+        return "{}(key_pair={}, client={}, instance={})".format(
             self.__class__.__name__,
             self.key_pair,
             self._client,
-            self._instance
+            self._instance,
         )
 
     @property
     def availability_zone(self):
         """Return availability zone."""
-        return self._instance.placement['AvailabilityZone']
+        return self._instance.placement["AvailabilityZone"]
 
     @property
     def ip(self):
@@ -78,11 +76,11 @@ class EC2Instance(BaseInstance):
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
         """
-        self._log.debug('adding network interface to %s', self.id)
+        self._log.debug("adding network interface to %s", self.id)
         interface_id = self._create_network_interface()
         return self._attach_network_interface(interface_id)
 
-    def add_volume(self, size=8, drive_type='gp2'):
+    def add_volume(self, size=8, drive_type="gp2"):
         """Add storage volume to instance.
 
         Creates an EBS volume and attaches it to the running instance. This
@@ -96,7 +94,7 @@ class EC2Instance(BaseInstance):
             size: Size in GB of the drive to add
             drive_type: Type of EBS volume to add
         """
-        self._log.debug('adding storage volume to %s', self.id)
+        self._log.debug("adding storage volume to %s", self.id)
         volume = self._create_ebs_volume(size, drive_type)
         self._attach_ebs_volume(volume)
 
@@ -114,15 +112,15 @@ class EC2Instance(BaseInstance):
         while time.time() < start + 300:
             response = self._instance.console_output()
             try:
-                return response['Output']
+                return response["Output"]
             except KeyError:
                 self._log.debug("Console output not yet available; sleeping")
                 time.sleep(5)
-        return 'No Console Output [%s]' % self._instance
+        return "No Console Output [%s]" % self._instance
 
     def delete(self, wait=True):
         """Delete instance."""
-        self._log.debug('deleting instance %s', self._instance.id)
+        self._log.debug("deleting instance %s", self._instance.id)
         self._instance.terminate()
 
         if wait:
@@ -130,7 +128,7 @@ class EC2Instance(BaseInstance):
 
     def restart(self, wait=True, **kwargs):
         """Restart the instance."""
-        self._log.debug('restarting instance %s', self._instance.id)
+        self._log.debug("restarting instance %s", self._instance.id)
 
         # Case 1: wait=False. Call boto3's reboot() and return.
         if not wait:
@@ -158,13 +156,14 @@ class EC2Instance(BaseInstance):
         except ssh_exceptions:
             # Case 2: wait=True, but the instance is unreachable.
             # The best we can do is to send a reboot signal and wait.
-            self._log.debug('Instance seems down; '
-                            'will send reboot signal and wait.')
+            self._log.debug(
+                "Instance seems down; " "will send reboot signal and wait."
+            )
             self._instance.reboot()
             self.wait()
             return
 
-        self._log.debug('Pre-reboot boot_id: %s', pre_reboot_boot_id)
+        self._log.debug("Pre-reboot boot_id: %s", pre_reboot_boot_id)
 
         # Case 3: wait=True, the instance is reachable. Call boto3's reboot()
         # and wait for the instance to change its boot_id, then wait().
@@ -173,13 +172,13 @@ class EC2Instance(BaseInstance):
         while current_boot_id == pre_reboot_boot_id:
             time.sleep(5)
             try:
-                self._log.debug('Reading the current boot_id.')
+                self._log.debug("Reading the current boot_id.")
                 current_boot_id = self._get_boot_id()
-                self._log.debug('Current boot_id: %s', current_boot_id)
+                self._log.debug("Current boot_id: %s", current_boot_id)
             except ssh_exceptions:
                 # The instance went down. Exit the loop and delegate the rest
                 # of the waiting to wait().
-                self._log.debug('Instance went down (rebooting).')
+                self._log.debug("Instance went down (rebooting).")
                 break
 
         self.wait()
@@ -193,7 +192,7 @@ class EC2Instance(BaseInstance):
         Args:
             wait: wait for the instance shutdown
         """
-        self._log.debug('shutting down instance %s', self._instance.id)
+        self._log.debug("shutting down instance %s", self._instance.id)
         self._instance.stop()
 
         if wait:
@@ -205,10 +204,10 @@ class EC2Instance(BaseInstance):
         Args:
             wait: wait for the instance to start.
         """
-        if self._instance.state['Name'] == 'running':
+        if self._instance.state["Name"] == "running":
             return
 
-        self._log.debug('starting instance %s', self._instance.id)
+        self._log.debug("starting instance %s", self._instance.id)
         self._instance.start()
 
         if wait:
@@ -216,9 +215,9 @@ class EC2Instance(BaseInstance):
 
     def _wait_for_instance_start(self):
         """Wait for instance to be up."""
-        self._log.debug('wait for instance running %s', self._instance.id)
+        self._log.debug("wait for instance running %s", self._instance.id)
         self._instance.wait_until_running()
-        self._log.debug('reloading instance state %s', self._instance.id)
+        self._log.debug("reloading instance state %s", self._instance.id)
         self._instance.reload()
 
     def wait_for_delete(self):
@@ -244,25 +243,25 @@ class EC2Instance(BaseInstance):
         """
         mount_point = self._get_free_volume_name()
         args = {
-            'Device': mount_point,
-            'InstanceId': self.id,
-            'VolumeId': volume['VolumeId'],
+            "Device": mount_point,
+            "InstanceId": self.id,
+            "VolumeId": volume["VolumeId"],
         }
 
         self._client.attach_volume(**args)
 
-        waiter = self._client.get_waiter('volume_in_use')
-        waiter.wait(VolumeIds=[volume['VolumeId']])
+        waiter = self._client.get_waiter("volume_in_use")
+        waiter.wait(VolumeIds=[volume["VolumeId"]])
 
         self._instance.reload()
 
         self._instance.modify_attribute(
-            BlockDeviceMappings=[{
-                'DeviceName': mount_point,
-                'Ebs': {
-                    'DeleteOnTermination': True
+            BlockDeviceMappings=[
+                {
+                    "DeviceName": mount_point,
+                    "Ebs": {"DeleteOnTermination": True},
                 }
-            }]
+            ]
         )
 
     def _attach_network_interface(self, interface_id: str) -> str:
@@ -280,9 +279,9 @@ class EC2Instance(BaseInstance):
         """
         device_index = self._get_free_nic_index()
         args = {
-            'DeviceIndex': device_index,
-            'InstanceId': self.id,
-            'NetworkInterfaceId': interface_id
+            "DeviceIndex": device_index,
+            "InstanceId": self.id,
+            "NetworkInterfaceId": interface_id,
         }
 
         response = self._client.attach_network_interface(**args)
@@ -290,16 +289,19 @@ class EC2Instance(BaseInstance):
         self._instance.reload()
 
         for nic in self._instance.network_interfaces:
-            if nic.attachment['AttachmentId'] == response['AttachmentId']:
+            if nic.attachment["AttachmentId"] == response["AttachmentId"]:
                 nic.modify_attribute(
                     Attachment={
-                        'AttachmentId': response['AttachmentId'],
-                        'DeleteOnTermination': True
+                        "AttachmentId": response["AttachmentId"],
+                        "DeleteOnTermination": True,
                     }
                 )
                 return nic.private_ip_address
-        raise Exception('Could not attach NIC with AttachmentId: {}'.format(
-            response.get('AttachmentId', None)))
+        raise Exception(
+            "Could not attach NIC with AttachmentId: {}".format(
+                response.get("AttachmentId", None)
+            )
+        )
 
     def _create_ebs_volume(self, size, drive_type):
         """Create EBS volume.
@@ -313,22 +315,21 @@ class EC2Instance(BaseInstance):
 
         """
         args = {
-            'AvailabilityZone': self.availability_zone,
-            'Size': size,
-            'VolumeType': drive_type,
-            'TagSpecifications': [{
-                'ResourceType': 'volume',
-                'Tags': [{
-                    'Key': 'Name',
-                    'Value': self.id
-                }]
-            }]
+            "AvailabilityZone": self.availability_zone,
+            "Size": size,
+            "VolumeType": drive_type,
+            "TagSpecifications": [
+                {
+                    "ResourceType": "volume",
+                    "Tags": [{"Key": "Name", "Value": self.id}],
+                }
+            ],
         }
 
         volume = self._client.create_volume(**args)
 
-        waiter = self._client.get_waiter('volume_available')
-        waiter.wait(VolumeIds=[volume['VolumeId']])
+        waiter = self._client.get_waiter("volume_available")
+        waiter.wait(VolumeIds=[volume["VolumeId"]])
 
         return volume
 
@@ -340,16 +341,16 @@ class EC2Instance(BaseInstance):
 
         """
         args = {
-            'Groups': [
-                group['GroupId'] for group in self._instance.security_groups
+            "Groups": [
+                group["GroupId"] for group in self._instance.security_groups
             ],
-            'SubnetId': self._instance.subnet_id
+            "SubnetId": self._instance.subnet_id,
         }
 
         response = self._client.create_network_interface(**args)
-        interface_id = response['NetworkInterface']['NetworkInterfaceId']
+        interface_id = response["NetworkInterface"]["NetworkInterfaceId"]
 
-        waiter = self._client.get_waiter('network_interface_available')
+        waiter = self._client.get_waiter("network_interface_available")
         waiter.wait(NetworkInterfaceIds=[interface_id])
 
         return interface_id
@@ -365,13 +366,13 @@ class EC2Instance(BaseInstance):
 
         """
         used_indexes = [
-            nic.attachment['DeviceIndex']
+            nic.attachment["DeviceIndex"]
             for nic in self._instance.network_interfaces
         ]
         for possible_index in range(16):
             if possible_index not in used_indexes:
                 return possible_index
-        raise Exception('No free nics left!')
+        raise Exception("No free nics left!")
 
     def _get_free_volume_name(self):
         """Determine a free volume mount point for an instance.
@@ -393,12 +394,12 @@ class EC2Instance(BaseInstance):
         """
         all_device_names = []
         for name in string.ascii_lowercase:
-            if name not in 'abcde':
+            if name not in "abcde":
                 all_device_names.append("/dev/sd%s" % name)
 
         used_device_names = set()
         for device in self._instance.block_device_mappings:
-            used_device_names.add(device['DeviceName'])
+            used_device_names.add(device["DeviceName"])
 
         return list(set(all_device_names) - used_device_names)[0]
 
@@ -420,32 +421,33 @@ class EC2Instance(BaseInstance):
         """
         # Get the NIC from the IP
         nic = [
-            nic for nic in self._instance.network_interfaces
+            nic
+            for nic in self._instance.network_interfaces
             if nic.private_ip_address == ip_address
         ][0]
         self._client.detach_network_interface(
-            AttachmentId=nic.attachment['AttachmentId']
+            AttachmentId=nic.attachment["AttachmentId"]
         )
 
         # Detach from the instance
         for _ in range(60):
             self._instance.reload()
             nics = [
-                nic for nic in self._instance.network_interfaces
+                nic
+                for nic in self._instance.network_interfaces
                 if nic.id == ip_address
             ]
             if not nics:
                 break
             time.sleep(1)
         else:
-            raise Exception('Network interface did not detach')
+            raise Exception("Network interface did not detach")
 
         # Delete the NIC
         try:
-            self._client.delete_network_interface(
-                NetworkInterfaceId=nic.id)
+            self._client.delete_network_interface(NetworkInterfaceId=nic.id)
         except botocore.exceptions.ClientError:
             self._log.debug(
-                'Failed manually deleting network interface. '
-                'Interface should get destroyed on instance cleanup.'
+                "Failed manually deleting network interface. "
+                "Interface should get destroyed on instance cleanup."
             )

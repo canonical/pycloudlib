@@ -11,10 +11,9 @@ from pycloudlib.oci.utils import wait_till_ready
 class OciInstance(BaseInstance):
     """OCI backed instance."""
 
-    _type = 'oci'
+    _type = "oci"
 
-    def __init__(self, key_pair, instance_id, compartment_id,
-                 oci_config=None):
+    def __init__(self, key_pair, instance_id, compartment_id, oci_config=None):
         """Set up the instance.
 
         Args:
@@ -31,13 +30,13 @@ class OciInstance(BaseInstance):
         self._ip = None
 
         if oci_config is None:
-            oci_config = oci.config.from_file('~/.oci/config')
+            oci_config = oci.config.from_file("~/.oci/config")
         self.compute_client = oci.core.ComputeClient(oci_config)
         self.network_client = oci.core.VirtualNetworkClient(oci_config)
 
     def __repr__(self):
         """Create string representation of class."""
-        return '{}(instance_id={}, compartment_id={})'.format(
+        return "{}(instance_id={}, compartment_id={})".format(
             self.__class__.__name__,
             self.instance_id,
             self.compartment_id,
@@ -54,7 +53,7 @@ class OciInstance(BaseInstance):
         if not self._ip:
             vnic_attachment = self.compute_client.list_vnic_attachments(
                 compartment_id=self.compartment_id,
-                instance_id=self.instance_data.id
+                instance_id=self.instance_data.id,
             ).data[0]
 
             self._ip = self.network_client.get_vnic(
@@ -92,7 +91,7 @@ class OciInstance(BaseInstance):
         zero-byte files and you'll be permanently kicked out of your
         instance with your only hope being serial console access.
         """
-        self.execute('sync')
+        self.execute("sync")
 
     def restart(self, wait=True, **kwargs):
         """Restart the instance.
@@ -101,7 +100,7 @@ class OciInstance(BaseInstance):
             wait: wait for the instance to be fully started
         """
         self._sync_filesystem()
-        self.compute_client.instance_action(self.instance_data.id, 'RESET')
+        self.compute_client.instance_action(self.instance_data.id, "RESET")
         if wait:
             self.wait()
 
@@ -112,7 +111,7 @@ class OciInstance(BaseInstance):
             wait: wait for the instance to shutdown
         """
         self._sync_filesystem()
-        self.compute_client.instance_action(self.instance_data.id, 'STOP')
+        self.compute_client.instance_action(self.instance_data.id, "STOP")
         if wait:
             self.wait_for_stop()
 
@@ -122,7 +121,7 @@ class OciInstance(BaseInstance):
         Args:
             wait: wait for the instance to start.
         """
-        self.compute_client.instance_action(self.instance_data.id, 'START')
+        self.compute_client.instance_action(self.instance_data.id, "START")
         if wait:
             self.wait()
 
@@ -131,7 +130,7 @@ class OciInstance(BaseInstance):
         wait_till_ready(
             func=self.compute_client.get_instance,
             current_data=self.instance_data,
-            desired_state='RUNNING',
+            desired_state="RUNNING",
         )
 
     def wait_for_delete(self):
@@ -139,7 +138,7 @@ class OciInstance(BaseInstance):
         wait_till_ready(
             func=self.compute_client.get_instance,
             current_data=self.instance_data,
-            desired_state='TERMINATED',
+            desired_state="TERMINATED",
         )
 
     def wait_for_stop(self):
@@ -147,5 +146,5 @@ class OciInstance(BaseInstance):
         wait_till_ready(
             func=self.compute_client.get_instance,
             current_data=self.instance_data,
-            desired_state='STOPPED',
+            desired_state="STOPPED",
         )

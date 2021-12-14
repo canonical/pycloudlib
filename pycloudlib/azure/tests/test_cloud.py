@@ -37,8 +37,9 @@ class TestCreateNetworkInterfaceClient:
         network_group_mock = mock.MagicMock()
         compute_client_mock = mock.MagicMock()
         m_get_client.side_effect = [
-            resource_client_mock, network_client_mock,
-            compute_client_mock
+            resource_client_mock,
+            network_client_mock,
+            compute_client_mock,
         ]
 
         type(resource_mock).name = mock.PropertyMock(
@@ -56,11 +57,9 @@ class TestCreateNetworkInterfaceClient:
             tag="tag",
             timestamp_suffix=False,
             config_file=StringIO(CONFIG),
-            region="location"
+            region="location",
         )
-        instance._create_network_security_group(
-            inbound_ports=inbound_ports
-        )
+        instance._create_network_security_group(inbound_ports=inbound_ports)
 
         expected_security_rules = [
             {
@@ -100,7 +99,7 @@ class TestCreateNetworkInterfaceClient:
                         "sourcePortRange": "*",
                         "destinationAddressPrefix": "*",
                         "destinationPortRange": "8080",
-                    }
+                    },
                 ]
             )
 
@@ -110,8 +109,8 @@ class TestCreateNetworkInterfaceClient:
                 network_security_group_name="tag-sgn",
                 parameters={
                     "location": "location",
-                    "security_rules": expected_security_rules
-                }
+                    "security_rules": expected_security_rules,
+                },
             ),
         ]
 

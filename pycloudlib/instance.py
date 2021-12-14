@@ -11,7 +11,7 @@ from paramiko.ssh_exception import (
     BadHostKeyException,
     NoValidConnectionsError,
     PasswordRequiredException,
-    SSHException
+    SSHException,
 )
 
 from pycloudlib.result import Result
@@ -21,7 +21,7 @@ from pycloudlib.util import shell_quote, shell_pack
 class BaseInstance(ABC):
     """Base instance object."""
 
-    _type = 'base'
+    _type = "base"
 
     def __init__(self, key_pair):
         """Set up instance."""
@@ -32,8 +32,8 @@ class BaseInstance(ABC):
 
         self.boot_timeout = 120
         self.key_pair = key_pair
-        self.port = '22'
-        self.username = 'ubuntu'
+        self.port = "22"
+        self.username = "ubuntu"
         self.connect_timeout = 60
         self.banner_timeout = 60
 
@@ -126,13 +126,13 @@ class BaseInstance(ABC):
             try:
                 self._sftp_client.close()
             except SSHException:
-                self._log.warning('Failed to close SFTP connection.')
+                self._log.warning("Failed to close SFTP connection.")
             self._sftp_client = None
         if self._ssh_client:
             try:
                 self._ssh_client.close()
             except SSHException:
-                self._log.warning('Failed to close SSH connection.')
+                self._log.warning("Failed to close SSH connection.")
             self._ssh_client = None
 
     def clean(self):
@@ -140,15 +140,22 @@ class BaseInstance(ABC):
 
         This will clean out specifically the cloud-init files and system logs.
         """
-        self.execute('sudo cloud-init clean --logs')
-        self.execute('sudo rm -rf /var/log/syslog')
+        self.execute("sudo cloud-init clean --logs")
+        self.execute("sudo rm -rf /var/log/syslog")
 
     def _run_command(self, command, stdin):
         """Run command in the instance."""
         return self._ssh(list(command), stdin=stdin)
 
-    def execute(self, command, stdin=None, description=None, *, use_sudo=False,
-                **kwargs):
+    def execute(
+        self,
+        command,
+        stdin=None,
+        description=None,
+        *,
+        use_sudo=False,
+        **kwargs,
+    ):
         """Execute command in instance, recording output, error and exit code.
 
         Assumes functional networking and execution with the target filesystem
@@ -169,15 +176,15 @@ class BaseInstance(ABC):
 
         """
         if isinstance(command, str):
-            command = ['sh', '-c', command]
+            command = ["sh", "-c", command]
         if use_sudo:
-            command = ['sudo', '--'] + command
+            command = ["sudo", "--"] + command
 
-        self._log.info('executing: %s', shell_quote(command))
+        self._log.info("executing: %s", shell_quote(command))
         if description:
             self._log.debug(description)
         else:
-            self._log.debug('executing: %s', shell_quote(command))
+            self._log.debug("executing: %s", shell_quote(command))
 
         return self._run_command(command, stdin, **kwargs)
 
@@ -192,14 +199,18 @@ class BaseInstance(ABC):
 
         """
         if isinstance(packages, str):
-            packages = packages.split(' ')
+            packages = packages.split(" ")
 
-        self.execute(['sudo', 'apt-get', 'update'])
+        self.execute(["sudo", "apt-get", "update"])
         return self.execute(
             [
-                'DEBIAN_FRONTEND=noninteractive',
-                'sudo', 'apt-get', 'install', '--yes'
-            ] + packages
+                "DEBIAN_FRONTEND=noninteractive",
+                "sudo",
+                "apt-get",
+                "install",
+                "--yes",
+            ]
+            + packages
         )
 
     def pull_file(self, remote_path, local_path):
@@ -211,7 +222,7 @@ class BaseInstance(ABC):
 
         Raises SSHException if there are any problem with the ssh connection
         """
-        self._log.debug('pulling file %s to %s', remote_path, local_path)
+        self._log.debug("pulling file %s to %s", remote_path, local_path)
 
         sftp = self._sftp_connect()
         sftp.get(remote_path, local_path)
@@ -225,7 +236,7 @@ class BaseInstance(ABC):
 
         Raises SSHException if there are any problem with the ssh connection
         """
-        self._log.debug('pushing file %s to %s', local_path, remote_path)
+        self._log.debug("pushing file %s to %s", local_path, remote_path)
 
         sftp = self._sftp_connect()
         sftp.put(local_path, remote_path)
@@ -243,17 +254,22 @@ class BaseInstance(ABC):
         Raises SSHException if there are any problem with the ssh connection
         """
         # Just write to a file, add execute, run it, then remove it.
-        shblob = '; '.join((
-            'set -e',
-            's="$1"',
-            'shift',
-            'cat > "$s"',
-            'trap "rm -f $s" EXIT',
-            'chmod +x "$s"',
-            '"$s" "$@"'))
+        shblob = "; ".join(
+            (
+                "set -e",
+                's="$1"',
+                "shift",
+                'cat > "$s"',
+                'trap "rm -f $s" EXIT',
+                'chmod +x "$s"',
+                '"$s" "$@"',
+            )
+        )
         return self.execute(
-            ['sh', '-c', shblob, 'runscript', self._tmpfile()],
-            stdin=script, description=description)
+            ["sh", "-c", shblob, "runscript", self._tmpfile()],
+            stdin=script,
+            description=description,
+        )
 
     def update(self):
         """Run apt-get update/upgrade on instance.
@@ -262,11 +278,16 @@ class BaseInstance(ABC):
             result from upgrade
 
         """
-        self.execute(['sudo', 'apt-get', 'update'])
-        return self.execute([
-            'DEBIAN_FRONTEND=noninteractive',
-            'sudo', 'apt-get', '--yes', 'upgrade'
-        ])
+        self.execute(["sudo", "apt-get", "update"])
+        return self.execute(
+            [
+                "DEBIAN_FRONTEND=noninteractive",
+                "sudo",
+                "apt-get",
+                "--yes",
+                "upgrade",
+            ]
+        )
 
     def _ssh(self, command, stdin=None):
         """Run a command via SSH.
@@ -297,8 +318,8 @@ class BaseInstance(ABC):
         err = fp_err.read()
         return_code = channel.recv_exit_status()
 
-        out = '' if not out else out.rstrip().decode("utf-8")
-        err = '' if not err else err.rstrip().decode("utf-8")
+        out = "" if not out else out.rstrip().decode("utf-8")
+        err = "" if not err else err.rstrip().decode("utf-8")
 
         return Result(out, err, return_code)
 
@@ -317,7 +338,8 @@ class BaseInstance(ABC):
         # when connecting
         try:
             paramiko.RSAKey.from_private_key_file(
-                self.key_pair.private_key_path)
+                self.key_pair.private_key_path
+            )
         except PasswordRequiredException:
             self._log.warning(
                 "The specified key (%s) requires a passphrase. If you have not"
@@ -337,17 +359,24 @@ class BaseInstance(ABC):
                 banner_timeout=self.banner_timeout,
                 key_filename=self.key_pair.private_key_path,
             )
-        except (ConnectionRefusedError, AuthenticationException,
-                BadHostKeyException, ConnectionResetError, SSHException,
-                OSError) as e:
+        except (
+            ConnectionRefusedError,
+            AuthenticationException,
+            BadHostKeyException,
+            ConnectionResetError,
+            SSHException,
+            OSError,
+        ) as e:
             raise SSHException from e
         self._ssh_client = client
         return client
 
     def _sftp_connect(self):
         """Connect to instance via SFTP."""
-        if (self._sftp_client and
-                self._sftp_client.get_channel().get_transport().is_active()):
+        if (
+            self._sftp_client
+            and self._sftp_client.get_channel().get_transport().is_active()
+        ):
             return self._sftp_client
 
         logging.getLogger("paramiko").setLevel(logging.INFO)
@@ -371,7 +400,7 @@ class BaseInstance(ABC):
 
     def _wait_for_execute(self):
         """Wait until we can execute a command in the instance."""
-        self._log.debug('_wait_for_execute to complete')
+        self._log.debug("_wait_for_execute to complete")
         test_instance_command = "whoami"
 
         # Wait 10 minutes before failing
@@ -389,23 +418,22 @@ class BaseInstance(ABC):
         raise OSError(
             "{}\n{}".format(
                 "Instance can't be reached after 10 minutes. ",
-                "Failed to execute {} command".format(
-                    test_instance_command)
+                "Failed to execute {} command".format(test_instance_command),
             )
         )
 
     def _wait_for_cloudinit(self):
         """Wait until cloud-init has finished."""
-        self._log.debug('_wait_for_cloudinit to complete')
-        if self.execute(['which', 'systemctl']).ok:
+        self._log.debug("_wait_for_cloudinit to complete")
+        if self.execute(["which", "systemctl"]).ok:
             # We may have issues with cloud-init status early boot, so also
             # ensure our cloud-init.target is active as an extra layer of
             # protection against connecting before the system is ready
             for _ in range(300):
-                if self.execute([
-                    'systemctl', 'is-active', 'cloud-init.target'
-                ]).ok:
+                if self.execute(
+                    ["systemctl", "is-active", "cloud-init.target"]
+                ).ok:
                     break
                 time.sleep(1)
         cmd = ["cloud-init", "status", "--wait", "--long"]
-        self.execute(cmd, description='waiting for start')
+        self.execute(cmd, description="waiting for start")

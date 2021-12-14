@@ -11,14 +11,14 @@ from pycloudlib.oci.cloud import OCI
 from pycloudlib.openstack.cloud import Openstack
 
 __all__ = [
-    'Azure',
-    'EC2',
-    'GCE',
-    'LXD',
-    'LXDContainer',
-    'LXDVirtualMachine',
-    'OCI',
-    'Openstack',
+    "Azure",
+    "EC2",
+    "GCE",
+    "LXD",
+    "LXDContainer",
+    "LXDVirtualMachine",
+    "OCI",
+    "Openstack",
 ]
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())

@@ -17,7 +17,7 @@ from pycloudlib.util import get_timestamped_tag, validate_tag
 class BaseCloud(ABC):
     """Base Cloud Class."""
 
-    _type = 'base'
+    _type = "base"
 
     def __init__(
         self, tag, timestamp_suffix=True, config_file: ConfigFile = None
@@ -35,11 +35,10 @@ class BaseCloud(ABC):
         user = getpass.getuser()
         self.key_pair = KeyPair(
             public_key_path=self.config.get(
-               'public_key_path',
-               '/home/{}/.ssh/id_rsa.pub'.format(user)
+                "public_key_path", "/home/{}/.ssh/id_rsa.pub".format(user)
             ),
-            private_key_path=self.config.get('private_key_path'),
-            name=self.config.get('key_name', user),
+            private_key_path=self.config.get("private_key_path"),
+            name=self.config.get("key_name", user),
         )
         if timestamp_suffix:
             self.tag = validate_tag(get_timestamped_tag(tag))
@@ -110,8 +109,9 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def launch(self, image_id, instance_type=None, user_data=None,
-               wait=True, **kwargs):  # () -> BaseInstance
+    def launch(
+        self, image_id, instance_type=None, user_data=None, wait=True, **kwargs
+    ):  # () -> BaseInstance
         """Launch an instance.
 
         Args:
@@ -172,7 +172,7 @@ class BaseCloud(ABC):
             private_key_path: path to the private key
             name: name to reference key by
         """
-        self._log.debug('using SSH key from %s', public_key_path)
+        self._log.debug("using SSH key from %s", public_key_path)
         self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
     @staticmethod
@@ -189,13 +189,13 @@ class BaseCloud(ABC):
 
         """
         if daily:
-            mirror_url = 'https://cloud-images.ubuntu.com/daily'
+            mirror_url = "https://cloud-images.ubuntu.com/daily"
         else:
-            mirror_url = 'https://cloud-images.ubuntu.com/releases'
+            mirror_url = "https://cloud-images.ubuntu.com/releases"
 
         stream = Streams(
             mirror_url=mirror_url,
-            keyring_path='/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg'
+            keyring_path="/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg",
         )
 
         return stream.query(filters)

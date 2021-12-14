@@ -34,6 +34,7 @@ class Streams:
             dictionary with latest image information or empty
 
         """
+
         def policy(content, path):  # pylint: disable=W0613
             """TODO."""
             return s_util.read_signed(content, keyring=self.keyring_path)
@@ -41,9 +42,9 @@ class Streams:
         (url, path) = s_util.path_from_mirror_url(self.mirror_url, None)
         s_mirror = mirrors.UrlMirrorReader(url, policy=policy)
 
-        config = {'filters': filters.get_filters(img_filter)}
+        config = {"filters": filters.get_filters(img_filter)}
 
-        self._log.debug('looking for image with the following config:')
+        self._log.debug("looking for image with the following config:")
         self._log.debug(config)
 
         t_mirror = FilterMirror(config)
@@ -65,7 +66,7 @@ class FilterMirror(mirrors.BasicMirrorWriter):
         if config is None:
             config = {}
         self.config = config
-        self.filters = config.get('filters', [])
+        self.filters = config.get("filters", [])
         self.json_entries = []
 
     def load_products(self, path=None, content_id=None):
@@ -79,7 +80,7 @@ class FilterMirror(mirrors.BasicMirrorWriter):
             dictionary of products
 
         """
-        return {'content_id': content_id, 'products': {}}
+        return {"content_id": content_id, "products": {}}
 
     def filter_item(self, data, src, target, pedigree):
         """Filter items based on filter.
@@ -111,6 +112,6 @@ class FilterMirror(mirrors.BasicMirrorWriter):
             contentsource: TBD
         """
         data = s_util.products_exdata(src, pedigree)
-        if 'path' in data:
-            data.update({'item_url': contentsource.url})
+        if "path" in data:
+            data.update({"item_url": contentsource.url})
         self.json_entries.append(data)
