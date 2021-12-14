@@ -57,7 +57,7 @@ def get_client(resource, config_dict):
         "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
         "resourceManagerEndpointUrl": "https://management.azure.com/",
         "activeDirectoryGraphResourceId": "https://graph.windows.net/",
-        "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+        "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",  # noqa: E501
         "galleryEndpointUrl": "https://gallery.azure.com/",
         "managementEndpointUrl": "https://management.core.windows.net/",
     }

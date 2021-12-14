@@ -116,7 +116,7 @@ class TestBaseCloud:
         )
         assert mycloud.key_pair.name == "some_name"
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
-        assert mycloud.key_pair.private_key_path == ("/home/asdf/.ssh/my_key")
+        assert mycloud.key_pair.private_key_path == "/home/asdf/.ssh/my_key"
 
     def test_missing_private_key_in_ssh_config(self):
         """The key_pair assumes the private key name."""
@@ -136,4 +136,4 @@ class TestBaseCloud:
         )
         assert mycloud.key_pair.name == "some_name"
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
-        assert mycloud.key_pair.private_key_path == ("/home/asdf/.ssh/id_rsa")
+        assert mycloud.key_pair.private_key_path == "/home/asdf/.ssh/id_rsa"
