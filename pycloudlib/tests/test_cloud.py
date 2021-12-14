@@ -33,8 +33,9 @@ class CloudSubclass(BaseCloud):
     def get_instance(self, instance_id):  # () -> BaseInstance
         """Skeletal get_instance."""
 
-    def launch(self, image_id, instance_type=None, user_data=None,
-               wait=True, **kwargs):  # () -> BaseInstance
+    def launch(
+        self, image_id, instance_type=None, user_data=None, wait=True, **kwargs
+    ):  # () -> BaseInstance
         """Skeletal launch."""
 
     def snapshot(self, instance, clean=True, **kwargs):
@@ -51,8 +52,7 @@ class TestBaseCloud:
         """The BaseCloud needs a concrete subclass to __init__."""
         with pytest.raises(TypeError) as exc_info:
             BaseCloud(  # pylint: disable=E0110
-                tag="",
-                config_file=StringIO(CONFIG)
+                tag="", config_file=StringIO(CONFIG)
             )
         assert "Can't instantiate abstract class BaseCloud" in str(
             exc_info.value
@@ -64,10 +64,10 @@ class TestBaseCloud:
             ("a", None, "a-timestamp"),
             ("a", True, "a-timestamp"),
             ("a", False, "a"),
-        )
+        ),
     )
-    @mock.patch(MPATH + 'get_timestamped_tag', return_value="a-timestamp")
-    @mock.patch(MPATH + 'getpass.getuser', return_value="crashoverride")
+    @mock.patch(MPATH + "get_timestamped_tag", return_value="a-timestamp")
+    @mock.patch(MPATH + "getpass.getuser", return_value="crashoverride")
     def test_init_sets_timestamped_tag(
         self,
         _m_getuser,
@@ -83,7 +83,7 @@ class TestBaseCloud:
         mycloud = CloudSubclass(config_file=StringIO(CONFIG), **args)
         assert expected_tag == mycloud.tag
 
-    @mock.patch(MPATH + 'getpass.getuser', return_value="crashoverride")
+    @mock.patch(MPATH + "getpass.getuser", return_value="crashoverride")
     def test_init_sets_key_pair_based_on_getuser(self, _m_getuser):
         """The default key_pair for the cloud is based on the current user."""
         mycloud = CloudSubclass(
@@ -102,36 +102,38 @@ class TestBaseCloud:
         mycloud = CloudSubclass(
             tag="tag",
             timestamp_suffix=False,
-            config_file=StringIO(dedent(
-                """
+            config_file=StringIO(
+                dedent(
+                    """
                 [base]
 
                 key_name = "some_name"
                 public_key_path = "/home/asdf/.ssh/id_rsa.pub"
                 private_key_path = "/home/asdf/.ssh/my_key"
-                """)),
+                """
+                )
+            ),
         )
         assert mycloud.key_pair.name == "some_name"
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
-        assert mycloud.key_pair.private_key_path == (
-            "/home/asdf/.ssh/my_key"
-        )
+        assert mycloud.key_pair.private_key_path == ("/home/asdf/.ssh/my_key")
 
     def test_missing_private_key_in_ssh_config(self):
         """The key_pair assumes the private key name."""
         mycloud = CloudSubclass(
             tag="tag",
             timestamp_suffix=False,
-            config_file=StringIO(dedent(
-                """
+            config_file=StringIO(
+                dedent(
+                    """
                 [base]
 
                 key_name = "some_name"
                 public_key_path = "/home/asdf/.ssh/id_rsa.pub"
-                """)),
+                """
+                )
+            ),
         )
         assert mycloud.key_pair.name == "some_name"
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
-        assert mycloud.key_pair.private_key_path == (
-            "/home/asdf/.ssh/id_rsa"
-        )
+        assert mycloud.key_pair.private_key_path == ("/home/asdf/.ssh/id_rsa")

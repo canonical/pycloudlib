@@ -20,18 +20,25 @@ from pycloudlib.gce.instance import GceInstance
 from pycloudlib.util import subp
 
 
-logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
+logging.getLogger("googleapiclient.discovery").setLevel(logging.WARNING)
 
 
 class GCE(BaseCloud):
     """GCE Cloud Class."""
 
-    _type = 'gce'
+    _type = "gce"
 
     def __init__(
-        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
-        credentials_path=None, project=None, region=None, zone=None,
-        service_account_email=None
+        self,
+        tag,
+        timestamp_suffix=True,
+        config_file: ConfigFile = None,
+        *,
+        credentials_path=None,
+        project=None,
+        region=None,
+        zone=None,
+        service_account_email=None,
     ):
         """Initialize the connection to GCE.
 
@@ -48,26 +55,27 @@ class GCE(BaseCloud):
                                    instances to
         """
         super().__init__(tag, timestamp_suffix, config_file)
-        self._log.debug('logging into GCE')
+        self._log.debug("logging into GCE")
 
-        self.credentials_path = ''
+        self.credentials_path = ""
         if credentials_path:
             self.credentials_path = credentials_path
-        elif 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+        elif "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
             self.credentials_path = os.environ[
-                'GOOGLE_APPLICATION_CREDENTIALS']
-        elif 'credentials_path' in self.config:
-            self.credentials_path = self.config['credentials_path']
+                "GOOGLE_APPLICATION_CREDENTIALS"
+            ]
+        elif "credentials_path" in self.config:
+            self.credentials_path = self.config["credentials_path"]
 
         credentials = get_credentials(self.credentials_path)
 
         if not project:
-            if 'project' in self.config:
-                project = self.config['project']
+            if "project" in self.config:
+                project = self.config["project"]
             elif "GOOGLE_CLOUD_PROJECT" in os.environ:
                 project = os.environ["GOOGLE_CLOUD_PROJECT"]
             else:
-                command = ['gcloud', 'config', 'get-value', 'project']
+                command = ["gcloud", "config", "get-value", "project"]
                 exception_text = (
                     "Could not obtain GCE project id. Set it in the "
                     "pycloudlib config or setup the gcloud cli."
@@ -77,36 +85,38 @@ class GCE(BaseCloud):
                 except FileNotFoundError as e:
                     raise Exception(exception_text) from e
                 if not result.ok:
-                    exception_text += '\nstdout: {}\nstderr: {}'.format(
-                        result.stdout, result.stderr)
+                    exception_text += "\nstdout: {}\nstderr: {}".format(
+                        result.stdout, result.stderr
+                    )
                     raise Exception(exception_text)
                 project = result.stdout
 
         # disable cache_discovery due to:
         # https://github.com/google/google-api-python-client/issues/299
         self.compute = googleapiclient.discovery.build(
-            'compute',
-            'v1',
+            "compute",
+            "v1",
             cache_discovery=False,
             credentials=credentials,
         )
-        region = region or self.config.get('region') or 'us-west2'
-        zone = zone or self.config.get('zone') or 'a'
+        region = region or self.config.get("region") or "us-west2"
+        zone = zone or self.config.get("zone") or "a"
         self.project = project
         self.region = region
-        self.zone = '%s-%s' % (region, zone)
+        self.zone = "%s-%s" % (region, zone)
         self.instance_counter = count()
         self.service_account_email = service_account_email or self.config.get(
-            'service_account_meail')
+            "service_account_meail"
+        )
 
-    def _find_image(self, release, daily, arch='amd64'):
+    def _find_image(self, release, daily, arch="amd64"):
         images = self._image_list(release, daily, arch)
 
-        image_id = images[0]['id']
+        image_id = images[0]["id"]
 
-        return 'projects/ubuntu-os-cloud-devel/global/images/%s' % image_id
+        return "projects/ubuntu-os-cloud-devel/global/images/%s" % image_id
 
-    def released_image(self, release, arch='amd64'):
+    def released_image(self, release, arch="amd64"):
         """ID of the latest released image for a particular release.
 
         Args:
@@ -119,7 +129,7 @@ class GCE(BaseCloud):
         """
         return self.daily_image(release, arch)
 
-    def daily_image(self, release, arch='amd64'):
+    def daily_image(self, release, arch="amd64"):
         """Find the id of the latest image for a particular release.
 
         Args:
@@ -130,7 +140,7 @@ class GCE(BaseCloud):
             string, path to latest daily image
 
         """
-        self._log.debug('finding daily Ubuntu image for %s', release)
+        self._log.debug("finding daily Ubuntu image for %s", release)
         return self._find_image(release, daily=True, arch=arch)
 
     def image_serial(self, image_id):
@@ -151,14 +161,19 @@ class GCE(BaseCloud):
         Args:
             image_id: string, id of the image to delete
         """
-        api_image_id = self.compute.images().get(
-            project=self.project,
-            image=os.path.basename(image_id)
-        ).execute()['id']
-        response = self.compute.images().delete(
-            project=self.project,
-            image=api_image_id,
-        ).execute()
+        api_image_id = (
+            self.compute.images()
+            .get(project=self.project, image=os.path.basename(image_id))
+            .execute()["id"]
+        )
+        response = (
+            self.compute.images()
+            .delete(
+                project=self.project,
+                image=api_image_id,
+            )
+            .execute()
+        )
 
         raise_on_error(response)
 
@@ -172,12 +187,23 @@ class GCE(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        return GceInstance(self.key_pair, instance_id,
-                           self.project, self.zone,
-                           self.credentials_path, name=name)
+        return GceInstance(
+            self.key_pair,
+            instance_id,
+            self.project,
+            self.zone,
+            self.credentials_path,
+            name=name,
+        )
 
-    def launch(self, image_id, instance_type='n1-standard-1', user_data=None,
-               wait=True, **kwargs):
+    def launch(
+        self,
+        image_id,
+        instance_type="n1-standard-1",
+        user_data=None,
+        wait=True,
+        **kwargs,
+    ):
         """Launch instance on GCE and print the IP address.
 
         Args:
@@ -188,64 +214,67 @@ class GCE(BaseCloud):
             kwargs: other named arguments to add to instance JSON
 
         """
-        instance_name = 'i{}-{}'.format(next(self.instance_counter), self.tag)
+        instance_name = "i{}-{}".format(next(self.instance_counter), self.tag)
         config = {
-            'name': instance_name,
-            'machineType': 'zones/%s/machineTypes/%s' % (
-                self.zone, instance_type
-            ),
-            'disks': [{
-                'boot': True,
-                'autoDelete': True,
-                'initializeParams': {
-                    'sourceImage': image_id,
+            "name": instance_name,
+            "machineType": "zones/%s/machineTypes/%s"
+            % (self.zone, instance_type),
+            "disks": [
+                {
+                    "boot": True,
+                    "autoDelete": True,
+                    "initializeParams": {
+                        "sourceImage": image_id,
+                    },
                 }
-            }],
-            'networkInterfaces': [{
-                'network': 'global/networks/default',
-                'accessConfigs': [
-                    {'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}
-                ]
-            }],
+            ],
+            "networkInterfaces": [
+                {
+                    "network": "global/networks/default",
+                    "accessConfigs": [
+                        {"type": "ONE_TO_ONE_NAT", "name": "External NAT"}
+                    ],
+                }
+            ],
             "metadata": {
-                "items": [{
-                    "key": "ssh-keys",
-                    "value": "ubuntu:%s" % self.key_pair.public_key_content,
-                }]
+                "items": [
+                    {
+                        "key": "ssh-keys",
+                        "value": "ubuntu:%s"
+                        % self.key_pair.public_key_content,
+                    }
+                ]
             },
         }
 
         if self.service_account_email:
-            config["serviceAccounts"] = [
-                {
-                    "email": self.service_account_email
-                }
-            ]
+            config["serviceAccounts"] = [{"email": self.service_account_email}]
 
         if user_data:
-            user_metadata = {
-                'key': 'user-data',
-                'value': user_data
-            }
-            config['metadata']['items'].append(user_metadata)
+            user_metadata = {"key": "user-data", "value": user_data}
+            config["metadata"]["items"].append(user_metadata)
 
-        operation = self.compute.instances().insert(
-            project=self.project,
-            zone=self.zone,
-            body=config
-        ).execute()
+        operation = (
+            self.compute.instances()
+            .insert(project=self.project, zone=self.zone, body=config)
+            .execute()
+        )
         raise_on_error(operation)
 
-        result = self.compute.instances().get(
-            project=self.project,
-            zone=self.zone,
-            instance=instance_name,
-        ).execute()
+        result = (
+            self.compute.instances()
+            .get(
+                project=self.project,
+                zone=self.zone,
+                instance=instance_name,
+            )
+            .execute()
+        )
         raise_on_error(result)
 
-        instance = self.get_instance(result['id'], name=result['name'])
+        instance = self.get_instance(result["id"], name=result["name"])
         if wait:
-            self._wait_for_operation(operation, operation_type='zone')
+            self._wait_for_operation(operation, operation_type="zone")
             instance.wait()
 
         return instance
@@ -260,35 +289,43 @@ class GCE(BaseCloud):
         Returns:
             An image id
         """
-        response = self.compute.disks().list(
-            project=self.project, zone=self.zone
-        ).execute()
+        response = (
+            self.compute.disks()
+            .list(project=self.project, zone=self.zone)
+            .execute()
+        )
 
         instance_disks = [
-            disk for disk in response['items'] if disk['name'] == instance.name
+            disk for disk in response["items"] if disk["name"] == instance.name
         ]
 
         if len(instance_disks) > 1:
             raise Exception(
-                "Snapshotting an image with multiple disks not supported")
+                "Snapshotting an image with multiple disks not supported"
+            )
 
         instance.shutdown()
 
-        snapshot_name = '{}-image'.format(instance.name)
-        operation = self.compute.images().insert(
-            project=self.project,
-            body={
-                'name': snapshot_name,
-                'sourceDisk': instance_disks[0]['selfLink'],
-            }
-        ).execute()
+        snapshot_name = "{}-image".format(instance.name)
+        operation = (
+            self.compute.images()
+            .insert(
+                project=self.project,
+                body={
+                    "name": snapshot_name,
+                    "sourceDisk": instance_disks[0]["selfLink"],
+                },
+            )
+            .execute()
+        )
         raise_on_error(operation)
         self._wait_for_operation(operation)
 
-        return 'projects/{}/global/images/{}'.format(
-            self.project, snapshot_name)
+        return "projects/{}/global/images/{}".format(
+            self.project, snapshot_name
+        )
 
-    def _image_list(self, release, daily, arch='amd64'):
+    def _image_list(self, release, daily, arch="amd64"):
         """Find list of images with a filter.
 
         Args:
@@ -300,24 +337,22 @@ class GCE(BaseCloud):
 
         """
         filters = [
-            'arch=%s' % arch,
-            'endpoint=%s' % 'https://www.googleapis.com',
-            'region=%s' % self.region,
-            'release=%s' % release,
-            'virt=kvm'
+            "arch=%s" % arch,
+            "endpoint=%s" % "https://www.googleapis.com",
+            "region=%s" % self.region,
+            "release=%s" % release,
+            "virt=kvm",
         ]
 
         return self._streams_query(filters, daily)
 
-    def _wait_for_operation(self, operation, operation_type='global',
-                            sleep_seconds=300):
+    def _wait_for_operation(
+        self, operation, operation_type="global", sleep_seconds=300
+    ):
         response = None
-        kwargs = {
-            'project': self.project,
-            'operation': operation['name']
-        }
-        if operation_type == 'zone':
-            kwargs['zone'] = self.zone
+        kwargs = {"project": self.project, "operation": operation["name"]}
+        if operation_type == "zone":
+            kwargs["zone"] = self.zone
             api = self.compute.zoneOperations()
         else:
             api = self.compute.globalOperations()
@@ -328,18 +363,20 @@ class GCE(BaseCloud):
                 # This exception is known to be raised by GCE every so often:
                 # https://github.com/canonical/pycloudlib/issues/101.
                 response = {
-                    "status": "ConnectionResetError", "statusMessage": "n/a",
+                    "status": "ConnectionResetError",
+                    "statusMessage": "n/a",
                 }
             else:
-                if response['status'] == 'DONE':
+                if response["status"] == "DONE":
                     break
             time.sleep(1)
         else:
             raise Exception(
-                'Expected DONE state, but found {} after waiting {} seconds. '
-                'Check GCE console for more details. \n'
-                'Status message: {}'.format(
-                    response['status'], sleep_seconds,
-                    response['statusMessage']
+                "Expected DONE state, but found {} after waiting {} seconds. "
+                "Check GCE console for more details. \n"
+                "Status message: {}".format(
+                    response["status"],
+                    sleep_seconds,
+                    response["statusMessage"],
                 )
             )

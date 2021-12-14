@@ -16,7 +16,7 @@ from pycloudlib.util import get_timestamped_tag, update_nested
 class Azure(BaseCloud):
     """Azure Cloud Class."""
 
-    _type = 'azure'
+    _type = "azure"
 
     UBUNTU_RELEASE = {
         "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS",
@@ -27,9 +27,16 @@ class Azure(BaseCloud):
     }
 
     def __init__(
-        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
-        client_id=None, client_secret=None, subscription_id=None,
-        tenant_id=None, region=None
+        self,
+        tag,
+        timestamp_suffix=True,
+        config_file: ConfigFile = None,
+        *,
+        client_id=None,
+        client_secret=None,
+        subscription_id=None,
+        tenant_id=None,
+        region=None,
     ):
         """Initialize the connection to Azure.
 
@@ -49,8 +56,8 @@ class Azure(BaseCloud):
             region: The region where the instance will be created
         """
         super().__init__(tag, timestamp_suffix, config_file)
-        self._log.debug('logging into Azure')
-        self.location = region or self.config.get('region') or 'centralus'
+        self._log.debug("logging into Azure")
+        self.location = region or self.config.get("region") or "centralus"
         self.username = "ubuntu"
 
         self.registered_instances = {}
@@ -58,19 +65,19 @@ class Azure(BaseCloud):
 
         config_dict = {}
 
-        client_id = client_id or self.config.get('client_id')
+        client_id = client_id or self.config.get("client_id")
         if client_id:
             config_dict["clientId"] = client_id
 
-        client_secret = client_secret or self.config.get('client_secret')
+        client_secret = client_secret or self.config.get("client_secret")
         if client_secret:
             config_dict["clientSecret"] = client_secret
 
-        subscription_id = subscription_id or self.config.get('subscription_id')
+        subscription_id = subscription_id or self.config.get("subscription_id")
         if subscription_id:
             config_dict["subscriptionId"] = subscription_id
 
-        tenant_id = tenant_id or self.config.get('tenant_id')
+        tenant_id = tenant_id or self.config.get("tenant_id")
         if tenant_id:
             config_dict["tenantId"] = tenant_id
 
@@ -126,7 +133,7 @@ class Azure(BaseCloud):
         security_group_name = "{}-sgn".format(self.tag)
         nsg_group = self.network_client.network_security_groups
 
-        self._log.debug('Creating Azure network security group')
+        self._log.debug("Creating Azure network security group")
 
         security_rules = []
 
@@ -145,7 +152,7 @@ class Azure(BaseCloud):
                     "sourceAddressPrefix": "*",
                     "sourcePortRange": "*",
                     "destinationAddressPrefix": "*",
-                    "destinationPortRange": port
+                    "destinationPortRange": port,
                 }
             )
             priority += 10
@@ -156,7 +163,7 @@ class Azure(BaseCloud):
             parameters={
                 "location": self.location,
                 "security_rules": security_rules,
-            }
+            },
         )
 
         return nsg_call.result()
@@ -174,16 +181,11 @@ class Azure(BaseCloud):
 
         """
         resource_name = "{}-rg".format(self.tag)
-        self._log.debug('Creating Azure resource group')
+        self._log.debug("Creating Azure resource group")
 
         return self.resource_client.resource_groups.create_or_update(
             resource_name,
-            {
-                "location": self.location,
-                "tags": {
-                    "name": self.tag
-                }
-            }
+            {"location": self.location, "tags": {"name": self.tag}},
         )
 
     def _create_virtual_network(self, address_prefixes=None):
@@ -204,19 +206,15 @@ class Azure(BaseCloud):
 
         virtual_network_name = "{}-vnet".format(self.tag)
 
-        self._log.debug('Creating Azure virtual network')
+        self._log.debug("Creating Azure virtual network")
         network_call = self.network_client.virtual_networks.create_or_update(
             self.resource_group.name,
             virtual_network_name,
             {
                 "location": self.location,
-                "address_space": {
-                    "address_prefixes": address_prefixes
-                },
-                "tags": {
-                    "name": self.tag
-                }
-            }
+                "address_space": {"address_prefixes": address_prefixes},
+                "tags": {"name": self.tag},
+            },
         )
 
         return network_call.result()
@@ -237,17 +235,12 @@ class Azure(BaseCloud):
         """
         subnet_name = "{}-subnet".format(self.tag)
 
-        self._log.debug('Creating Azure subnet')
+        self._log.debug("Creating Azure subnet")
         subnet_call = self.network_client.subnets.create_or_update(
             self.resource_group.name,
             vnet_name,
             subnet_name,
-            {
-                "address_prefix": address_prefix,
-                "tags": {
-                    "name": self.tag
-                }
-            }
+            {"address_prefix": address_prefix, "tags": {"name": self.tag}},
         )
 
         return subnet_call.result()
@@ -264,7 +257,7 @@ class Azure(BaseCloud):
         """
         ip_name = "{}-ip".format(self.tag)
 
-        self._log.debug('Creating Azure ip address')
+        self._log.debug("Creating Azure ip address")
         ip_call = self.network_client.public_ip_addresses.create_or_update(
             self.resource_group.name,
             ip_name,
@@ -273,16 +266,15 @@ class Azure(BaseCloud):
                 "sku": {"name": "Standard"},
                 "public_ip_allocation_method": "Static",
                 "rpublic_ip_address_version": "IPV4",
-                "tags": {
-                    "name": self.tag
-                }
-            }
+                "tags": {"name": self.tag},
+            },
         )
 
         return ip_call.result()
 
-    def _create_network_interface_client(self, ip_address_id, subnet_id,
-                                         nsg_id):
+    def _create_network_interface_client(
+        self, ip_address_id, subnet_id, nsg_id
+    ):
         """Create a network interface client.
 
         This method creates an Azure network interface to be used when
@@ -300,7 +292,7 @@ class Azure(BaseCloud):
         nic_name = "{}-nic".format(self.tag)
         ip_config_name = "{}-ip-config".format(self.tag)
 
-        self._log.debug('Creating Azure network interface')
+        self._log.debug("Creating Azure network interface")
         nic_call = self.network_client.network_interfaces.create_or_update(
             self.resource_group.name,
             nic_name,
@@ -309,27 +301,20 @@ class Azure(BaseCloud):
                 "ip_configurations": [
                     {
                         "name": ip_config_name,
-                        "subnet": {
-                            "id": subnet_id
-                        },
-                        "public_ip_address": {
-                            "id": ip_address_id
-                            }
+                        "subnet": {"id": subnet_id},
+                        "public_ip_address": {"id": ip_address_id},
                     }
                 ],
-                "network_security_group": {
-                    "id": nsg_id
-                },
-                "tags": {
-                    "name": self.tag
-                }
-            }
+                "network_security_group": {"id": nsg_id},
+                "tags": {"name": self.tag},
+            },
         )
 
         return nic_call.result()
 
-    def _create_vm_parameters(self, name, image_id, instance_type, nic_id,
-                              user_data):
+    def _create_vm_parameters(
+        self, name, image_id, instance_type, nic_id, user_data
+    ):
         """Create the virtual machine parameters to be used for provision.
 
         Composes the dict that will be used to provision an Azure virtual
@@ -350,12 +335,8 @@ class Azure(BaseCloud):
         """
         vm_parameters = {
             "location": self.location,
-            "hardware_profile": {
-                "vm_size": instance_type
-            },
-            "storage_profile": {
-                "image_reference": {}
-            },
+            "hardware_profile": {"vm_size": instance_type},
+            "storage_profile": {"image_reference": {}},
             "os_profile": {
                 "computer_name": name,
                 "admin_username": self.username,
@@ -364,32 +345,35 @@ class Azure(BaseCloud):
                         "public_keys": [
                             {
                                 "path": "/home/{}/.ssh/authorized_keys".format(
-                                    self.username),
-                                "key_data": self.key_pair.public_key_content
+                                    self.username
+                                ),
+                                "key_data": self.key_pair.public_key_content,
                             }
                         ]
                     },
-                    "disable_password_authentication": True
-                }
+                    "disable_password_authentication": True,
+                },
             },
             "network_profile": {
-                "network_interfaces": [{
-                    "id": nic_id,
-                }]
+                "network_interfaces": [
+                    {
+                        "id": nic_id,
+                    }
+                ]
             },
-            "tags": {
-                "name": self.tag
-            }
+            "tags": {"name": self.tag},
         }
 
         if user_data:
             # We need to encode the user_data into base64 before sending
             # it to the virtual machine.
             vm_parameters["os_profile"]["custom_data"] = base64.b64encode(
-                user_data.encode()).decode()
+                user_data.encode()
+            ).decode()
 
         vm_parameters["storage_profile"][
-            "image_reference"] = util.get_image_reference_params(image_id)
+            "image_reference"
+        ] = util.get_image_reference_params(image_id)
 
         # We can have pro images from two different sources; marketplaces
         # and snapshots. A snapshot image does not have the necessary metadata
@@ -400,7 +384,8 @@ class Azure(BaseCloud):
         registered_image = self.registered_images.get(image_id)
         if util.is_pro_image(image_id, registered_image):
             vm_parameters["plan"] = util.get_plan_params(
-                image_id, registered_image)
+                image_id, registered_image
+            )
 
         return vm_parameters
 
@@ -435,7 +420,7 @@ class Azure(BaseCloud):
         )
         if vm_params:
             update_nested(params, vm_params)
-        self._log.debug('Creating Azure virtual machine: %s', name)
+        self._log.debug("Creating Azure virtual machine: %s", name)
         vm_call = self.compute_client.virtual_machines.create_or_update(
             self.resource_group.name,
             name,
@@ -454,19 +439,17 @@ class Azure(BaseCloud):
         resource_group_name = util.get_resource_group_name_from_id(image_id)
 
         delete = self.compute_client.images.delete(
-            resource_group_name=resource_group_name,
-            image_name=image_name
+            resource_group_name=resource_group_name, image_name=image_name
         )
 
         delete_resp = delete._response  # pylint: disable=protected-access
         resp_code = delete_resp.status_code
         if resp_code in (200, 202):
-            self._log.debug('Image %s was deleted', image_id)
+            self._log.debug("Image %s was deleted", image_id)
             del self.registered_images[image_id]
         else:
             self._log.debug(
-                'Error deleting %s. Request returned %d',
-                image_id, resp_code
+                "Error deleting %s. Request returned %d", image_id, resp_code
             )
 
     def released_image(self, release):
@@ -495,13 +478,13 @@ class Azure(BaseCloud):
             A string representing an Ubuntu image
 
         """
-        self._log.debug('finding daily Ubuntu image for %s', release)
+        self._log.debug("finding daily Ubuntu image for %s", release)
         release = self.UBUNTU_RELEASE.get(release)
 
         if release is None:
             msg = "No Ubuntu release image found for {}. Expected one of: {}"
             raise ValueError(
-                msg.format(release, ' '.join(self.UBUNTU_RELEASE.keys()))
+                msg.format(release, " ".join(self.UBUNTU_RELEASE.keys()))
             )
 
         return release
@@ -528,9 +511,16 @@ class Azure(BaseCloud):
 
         return None
 
-    def launch(self, image_id, instance_type='Standard_DS1_v2',
-               user_data=None, wait=True, name=None,
-               inbound_ports=None, **kwargs):
+    def launch(
+        self,
+        image_id,
+        instance_type="Standard_DS1_v2",
+        user_data=None,
+        wait=True,
+        name=None,
+        inbound_ports=None,
+        **kwargs,
+    ):
         """Launch virtual machine on Azure.
 
         Args:
@@ -550,8 +540,7 @@ class Azure(BaseCloud):
         """
         # pylint: disable-msg=too-many-locals
 
-        self._log.debug(
-            'Launching Azure virtual machine: %s', image_id)
+        self._log.debug("Launching Azure virtual machine: %s", image_id)
 
         # For every new launch, we need to update the tag, since
         # we are using it as a base for the name of all the
@@ -573,47 +562,43 @@ class Azure(BaseCloud):
 
         if nic is None:
             self._log.debug(
-                'Could not find a network interface. Creating one now'
+                "Could not find a network interface. Creating one now"
             )
             virtual_network = self._create_virtual_network()
             self._log.debug(
-                'Created virtual network with name: %s', virtual_network.name
+                "Created virtual network with name: %s", virtual_network.name
             )
 
             subnet = self._create_subnet(vnet_name=virtual_network.name)
-            self._log.debug(
-                'Created subnet with name: %s', subnet.name
-            )
+            self._log.debug("Created subnet with name: %s", subnet.name)
 
             ip_address = self._create_ip_address()
             ip_address_str = ip_address.ip_address
             self._log.debug(
-                'Created ip address with name: %s', ip_address.name
+                "Created ip address with name: %s", ip_address.name
             )
 
             network_security_group = self._create_network_security_group(
                 inbound_ports=inbound_ports
             )
             self._log.debug(
-                'Created network security group with name: %s',
-                network_security_group.name
+                "Created network security group with name: %s",
+                network_security_group.name,
             )
 
             nic = self._create_network_interface_client(
                 ip_address_id=ip_address.id,
                 subnet_id=subnet.id,
-                nsg_id=network_security_group.id
+                nsg_id=network_security_group.id,
             )
 
             self._log.debug(
-                'Created network interface with name: %s',
-                nic.name
+                "Created network interface with name: %s", nic.name
             )
         else:
-            ip_address_str = self._retrieve_ip_from_network_interface(
-                nic=nic)
+            ip_address_str = self._retrieve_ip_from_network_interface(nic=nic)
             self._log.debug(
-                'Found network interface: %s. Reusing it', nic.name
+                "Found network interface: %s. Reusing it", nic.name
             )
 
         vm = self._create_virtual_machine(
@@ -622,19 +607,19 @@ class Azure(BaseCloud):
             nic_id=nic.id,
             user_data=user_data,
             name=name,
-            vm_params=kwargs.get('vm_params', None),
+            vm_params=kwargs.get("vm_params", None),
         )
 
         instance_info = {
             "vm": vm,
             "ip_address": ip_address_str,
-            "rg_name": self.resource_group.name
+            "rg_name": self.resource_group.name,
         }
 
         instance = AzureInstance(
             key_pair=self.key_pair,
             client=self.compute_client,
-            instance=instance_info
+            instance=instance_info,
         )
 
         if wait:
@@ -656,12 +641,7 @@ class Azure(BaseCloud):
         self.compute_client.ssh_public_keys.create(
             self.resource_group.name,
             key_name,
-            parameters={
-                "location": self.location,
-                "tags": {
-                    "name": self.tag
-                }
-            }
+            parameters={"location": self.location, "tags": {"name": self.tag}},
         )
 
     def create_key_pair(self, key_name):
@@ -678,12 +658,13 @@ class Azure(BaseCloud):
 
         ssh_call = self.compute_client.ssh_public_keys.generate_key_pair(
             resource_group_name=self.resource_group.name,
-            ssh_public_key_name=key_name)
+            ssh_public_key_name=key_name,
+        )
 
         # Azure's SDK returns multi-line DOS format for pubkeys.
         # OpenSSH doesn't like this format and ignores it resulting in
         # Unauthorized key errors. Issue: #88
-        return ssh_call.public_key.replace('\r\n', ''), ssh_call.private_key
+        return ssh_call.public_key.replace("\r\n", ""), ssh_call.private_key
 
     def list_keys(self):
         """List all ssh keys in the class resource group."""
@@ -692,7 +673,8 @@ class Azure(BaseCloud):
         return [
             ssh.name
             for ssh in ssh_public_keys.list_by_resource_group(
-                self.resource_group.name)
+                self.resource_group.name
+            )
         ]
 
     def delete_key(self, key_name):
@@ -705,7 +687,7 @@ class Azure(BaseCloud):
         ssh_public_keys = self.compute_client.ssh_public_keys
         ssh_public_keys.delete(
             resource_group_name=self.resource_group.name,
-            ssh_public_key_name=key_name
+            ssh_public_key_name=key_name,
         )
 
     def use_key(self, public_key_path, private_key_path=None, name=None):
@@ -783,9 +765,7 @@ class Azure(BaseCloud):
                 """
             )
 
-        return self._retrieve_ip_from_network_interface(
-            nic=instance_nic
-        )
+        return self._retrieve_ip_from_network_interface(nic=instance_nic)
 
     def get_instance(self, instance_id, search_all=False):
         """Get an instance by id.
@@ -814,12 +794,12 @@ class Azure(BaseCloud):
                     instance_info = {
                         "vm": instance,
                         "ip_address": ip_address,
-                        "rg_name": resource_group_name
+                        "rg_name": resource_group_name,
                     }
                     azure_instance = AzureInstance(
                         key_pair=self.key_pair,
                         client=self.compute_client,
-                        instance=instance_info
+                        instance=instance_info,
                     )
 
                     self.registered_instances[instance.name] = azure_instance
@@ -839,12 +819,11 @@ class Azure(BaseCloud):
 
             return instance
 
-        raise Exception(
-            "Could not find {}".format(instance_id)
-        )
+        raise Exception("Could not find {}".format(instance_id))
 
-    def snapshot(self, instance, clean=True, delete_provisioned_user=True,
-                 **kwargs):
+    def snapshot(
+        self, instance, clean=True, delete_provisioned_user=True, **kwargs
+    ):
         """Snapshot an instance and generate an image from it.
 
         Args:
@@ -859,28 +838,21 @@ class Azure(BaseCloud):
         """
         if clean:
             instance.clean()
-        user = '+user' if delete_provisioned_user else ''
+        user = "+user" if delete_provisioned_user else ""
         instance.execute("sudo waagent -deprovision{} -force".format(user))
         instance.shutdown(wait=True)
         instance.generalize()
 
-        self._log.debug(
-            'creating custom image from instance %s', instance.id
-        )
+        self._log.debug("creating custom image from instance %s", instance.id)
 
         response = self.compute_client.images.create_or_update(
             resource_group_name=self.resource_group.name,
-            image_name='%s-%s' % (self.tag, "image"),
+            image_name="%s-%s" % (self.tag, "image"),
             parameters={
                 "location": self.location,
-                "source_virtual_machine": {
-                    "id": instance.id
-                },
-                "tags": {
-                    "name": self.tag,
-                    "src-image-id": instance.image_id
-                }
-            }
+                "source_virtual_machine": {"id": instance.id},
+                "tags": {"name": self.tag, "src-image-id": instance.image_id},
+            },
         )
 
         image = response.result()
@@ -891,7 +863,7 @@ class Azure(BaseCloud):
         self.registered_images[image_id] = {
             "name": image_name,
             "sku": instance.sku,
-            "offer": instance.offer
+            "offer": instance.offer,
         }
 
         return image_id

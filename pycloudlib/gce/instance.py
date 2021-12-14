@@ -13,11 +13,17 @@ from pycloudlib.instance import BaseInstance
 class GceInstance(BaseInstance):
     """GCE backed instance."""
 
-    _type = 'gce'
+    _type = "gce"
 
     def __init__(
-        self, key_pair, instance_id, project, zone, credentials_path, *,
-        name=None
+        self,
+        key_pair,
+        instance_id,
+        project,
+        zone,
+        credentials_path,
+        *,
+        name=None,
     ):
         """Set up the instance.
 
@@ -28,8 +34,10 @@ class GceInstance(BaseInstance):
             zone: Zone instance was created in
         """
         if project is None or zone is None:
-            raise ValueError("kwargs 'project' and 'zone' are required. "
-                             "Project: {}, Zone: {}".format(project, zone))
+            raise ValueError(
+                "kwargs 'project' and 'zone' are required. "
+                "Project: {}, Zone: {}".format(project, zone)
+            )
         super().__init__(key_pair)
         self.instance_id = instance_id
         self._name = name
@@ -38,12 +46,12 @@ class GceInstance(BaseInstance):
         self._ip = None
         credentials = get_credentials(credentials_path)
         self.instance = googleapiclient.discovery.build(
-            'compute', 'v1', cache_discovery=False, credentials=credentials
+            "compute", "v1", cache_discovery=False, credentials=credentials
         ).instances()
 
     def __repr__(self):
         """Create string representation of class."""
-        return '{}(instance_id={})'.format(
+        return "{}(instance_id={})".format(
             self.__class__.__name__,
             self.instance_id,
         )
@@ -62,7 +70,7 @@ class GceInstance(BaseInstance):
                 zone=self.zone,
                 instance=self.instance_id,
             ).execute()
-            self._name = result['name']
+            self._name = result["name"]
         return self._name
 
     @property
@@ -78,7 +86,7 @@ class GceInstance(BaseInstance):
             zone=self.zone,
             instance=self.instance_id,
         ).execute()
-        ip = result['networkInterfaces'][0]['accessConfigs'][0]['natIP']
+        ip = result["networkInterfaces"][0]["accessConfigs"][0]["natIP"]
         return ip
 
     def delete(self, wait=True):
@@ -88,9 +96,7 @@ class GceInstance(BaseInstance):
             wait: wait for instance to be deleted
         """
         response = self.instance.delete(
-            project=self.project,
-            zone=self.zone,
-            instance=self.instance_id
+            project=self.project, zone=self.zone, instance=self.instance_id
         ).execute()
         raise_on_error(response)
         if wait:
@@ -112,9 +118,7 @@ class GceInstance(BaseInstance):
             wait: wait for the instance to shutdown
         """
         response = self.instance.stop(
-            project=self.project,
-            zone=self.zone,
-            instance=self.instance_id
+            project=self.project, zone=self.zone, instance=self.instance_id
         ).execute()
         raise_on_error(response)
         if wait:
@@ -127,9 +131,7 @@ class GceInstance(BaseInstance):
             wait: wait for the instance to start.
         """
         response = self.instance.start(
-            project=self.project,
-            zone=self.zone,
-            instance=self.instance_id
+            project=self.project, zone=self.zone, instance=self.instance_id
         ).execute()
         raise_on_error(response)
         if wait:
@@ -137,7 +139,7 @@ class GceInstance(BaseInstance):
 
     def _wait_for_instance_start(self):
         """Wait for instance to be up."""
-        self._wait_for_status('RUNNING')
+        self._wait_for_status("RUNNING")
         self._ip = self._get_ip()
 
     def wait_for_delete(self, sleep_seconds=300):
@@ -147,9 +149,9 @@ class GceInstance(BaseInstance):
                 result = self.instance.get(
                     project=self.project,
                     zone=self.zone,
-                    instance=self.instance_id
+                    instance=self.instance_id,
                 ).execute()
-                if result['status'] == 'TERMINATED':
+                if result["status"] == "TERMINATED":
                     break
             except HttpError as e:
                 # Sometimes URL just 404s once deleted
@@ -158,31 +160,31 @@ class GceInstance(BaseInstance):
                 raise e
         else:
             raise Exception(
-                'Instance not terminated after {} seconds. '
-                'Check GCE console.'.format(sleep_seconds)
+                "Instance not terminated after {} seconds. "
+                "Check GCE console.".format(sleep_seconds)
             )
 
     def wait_for_stop(self):
         """Wait for instance stop."""
-        self._wait_for_status('TERMINATED')
+        self._wait_for_status("TERMINATED")
 
     def _wait_for_status(self, status, sleep_seconds=300):
         response = None
         for _ in range(sleep_seconds):
             response = self.instance.get(
-                project=self.project,
-                zone=self.zone,
-                instance=self.instance_id
+                project=self.project, zone=self.zone, instance=self.instance_id
             ).execute()
-            if response['status'] == status:
+            if response["status"] == status:
                 break
             sleep(1)
         else:
             raise Exception(
-                'Expected {} state, but found {} after waiting {} seconds. '
-                'Check GCE console for more details. \n'
-                'Status message: {}'.format(
-                    status, response['status'],
-                    sleep_seconds, response['statusMessage']
+                "Expected {} state, but found {} after waiting {} seconds. "
+                "Check GCE console for more details. \n"
+                "Status message: {}".format(
+                    status,
+                    response["status"],
+                    sleep_seconds,
+                    response["statusMessage"],
                 )
             )

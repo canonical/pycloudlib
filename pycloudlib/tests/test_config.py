@@ -44,10 +44,10 @@ class TestParseConfig:
         with pytest.raises(ValueError):
             parse_config(StringIO(""))
         expected_order = [
-            'StringIO',
-            '/some/path',
-            '.config/pycloudlib.toml',
-            '/etc/pycloudlib.toml',
+            "StringIO",
+            "/some/path",
+            ".config/pycloudlib.toml",
+            "/etc/pycloudlib.toml",
         ]
         for expected, actual in zip(expected_order, m_load.call_args_list):
             assert expected in str(actual)

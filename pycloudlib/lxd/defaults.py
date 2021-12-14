@@ -47,7 +47,7 @@ VM_PROFILE_TMPL = textwrap.dedent(
 
 
 def _make_vm_profile(
-        series: str, *, install_agent: bool, config_cloudinit: bool
+    series: str, *, install_agent: bool, config_cloudinit: bool
 ) -> str:
     config_device = ""
     vendordata = "config: {}"
@@ -64,17 +64,24 @@ def _make_vm_profile(
 
 base_vm_profiles = {
     "xenial": _make_vm_profile(
-        "xenial", install_agent=False, config_cloudinit=True),
+        "xenial", install_agent=False, config_cloudinit=True
+    ),
     "bionic": _make_vm_profile(
-        "bionic", install_agent=True, config_cloudinit=True),
+        "bionic", install_agent=True, config_cloudinit=True
+    ),
     "focal": _make_vm_profile(
-        "focal", install_agent=False, config_cloudinit=False),
+        "focal", install_agent=False, config_cloudinit=False
+    ),
     "groovy": _make_vm_profile(
-        "groovy", install_agent=False, config_cloudinit=False),
+        "groovy", install_agent=False, config_cloudinit=False
+    ),
     "hirsute": _make_vm_profile(
-        "hirsute", install_agent=False, config_cloudinit=False),
+        "hirsute", install_agent=False, config_cloudinit=False
+    ),
     "impish": _make_vm_profile(
-        "impish", install_agent=False, config_cloudinit=False),
+        "impish", install_agent=False, config_cloudinit=False
+    ),
     "jammy": _make_vm_profile(
-        "jammy", install_agent=False, config_cloudinit=False),
+        "jammy", install_agent=False, config_cloudinit=False
+    ),
 }

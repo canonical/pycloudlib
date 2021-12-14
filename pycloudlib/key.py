@@ -22,11 +22,11 @@ class KeyPair:
         if private_key_path:
             self.private_key_path = private_key_path
         else:
-            self.private_key_path = self.public_key_path.replace('.pub', '')
+            self.private_key_path = self.public_key_path.replace(".pub", "")
 
     def __str__(self):
         """Create string representation of class."""
-        return 'KeyPair({}, {}, name={})'.format(
+        return "KeyPair({}, {}, name={})".format(
             self.private_key_path, self.public_key_path, self.name
         )
 

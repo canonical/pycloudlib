@@ -24,7 +24,7 @@ class VPC:
         self.vpc = vpc
 
     @classmethod
-    def create(cls, resource, name, ipv4_cidr='192.168.1.0/20'):
+    def create(cls, resource, name, ipv4_cidr="192.168.1.0/20"):
         """Create a pycloudlib.ec2.VPC proxy for an AWS VPC resource.
 
         Args:
@@ -37,7 +37,7 @@ class VPC:
             pycloudlib.ec2.VPC instance
 
         """
-        logger.debug('Creating VPC named (%s)', name)
+        logger.debug("Creating VPC named (%s)", name)
         vpc = cls._create_vpc(
             resource=resource, name=name, ipv4_cidr=ipv4_cidr
         )
@@ -49,7 +49,7 @@ class VPC:
         sec_group = cls._create_security_group(vpc, name)
         for aws_resource in (vpc, gateway, subnet, route_table, sec_group):
             _tag_resource(aws_resource, name)
-        logger.debug('Created VPC (%s) named (%s)', vpc.id, name)
+        logger.debug("Created VPC (%s) named (%s)", vpc.id, name)
         return cls(vpc)
 
     @classmethod
@@ -64,7 +64,7 @@ class VPC:
             pycloudlib.ec2.VPC instance
 
         """
-        logger.debug('Reusing existing VPC (%s)', vpc_id)
+        logger.debug("Reusing existing VPC (%s)", vpc_id)
         vpc = resource.Vpc(vpc_id)
         return cls(vpc)
 
@@ -89,7 +89,7 @@ class VPC:
             Internet gateway object
 
         """
-        logger.debug('creating internet gateway for vpc %s', vpc.id)
+        logger.debug("creating internet gateway for vpc %s", vpc.id)
         internet_gateway = resource.create_internet_gateway()
         internet_gateway.attach_to_vpc(VpcId=vpc.id)
 
@@ -102,15 +102,13 @@ class VPC:
         This sets up internet access between the VPC via the internet gateway
         by configuring routing tables for IPv4 and IPv6.
         """
-        logger.debug('creating routing table')
+        logger.debug("creating routing table")
         route_table = vpc.create_route_table()
         route_table.create_route(
-            DestinationCidrBlock='0.0.0.0/0',
-            GatewayId=gateway_id
+            DestinationCidrBlock="0.0.0.0/0", GatewayId=gateway_id
         )
         route_table.create_route(
-            DestinationIpv6CidrBlock='::/0',
-            GatewayId=gateway_id
+            DestinationIpv6CidrBlock="::/0", GatewayId=gateway_id
         )
         route_table.associate_with_subnet(SubnetId=subnet_id)
         return route_table
@@ -123,13 +121,12 @@ class VPC:
             Security group object
 
         """
-        logger.debug('creating security group')
+        logger.debug("creating security group")
         security_group = vpc.create_security_group(
-            GroupName=name,
-            Description='pycloudlib created security group'
+            GroupName=name, Description="pycloudlib created security group"
         )
         security_group.authorize_ingress(
-            IpProtocol='-1', FromPort=-1, ToPort=-1, CidrIp='0.0.0.0/0'
+            IpProtocol="-1", FromPort=-1, ToPort=-1, CidrIp="0.0.0.0/0"
         )
 
         return security_group
@@ -146,29 +143,26 @@ class VPC:
             Create subnet object
 
         """
-        ipv6_cidr = vpc.ipv6_cidr_block_association_set[0][
-            'Ipv6CidrBlock']
-        kwargs = {'CidrBlock': ipv4_cidr}
+        ipv6_cidr = vpc.ipv6_cidr_block_association_set[0]["Ipv6CidrBlock"]
+        kwargs = {"CidrBlock": ipv4_cidr}
         try:
             ipaddress.IPv6Network(ipv6_cidr)
-            kwargs['Ipv6CidrBlock'] = ipv6_cidr[:-2] + '64'
+            kwargs["Ipv6CidrBlock"] = ipv6_cidr[:-2] + "64"
         except ValueError as e:
             logger.warning(
-                'Skipping IPv6 association on vpc.'
-                ' Could not understand Ipv6CidrBlock: [%s]: %s',
+                "Skipping IPv6 association on vpc."
+                " Could not understand Ipv6CidrBlock: [%s]: %s",
                 ipv6_cidr,
-                str(e)
+                str(e),
             )
-        logger.debug('creating subnets with following ranges:')
+        logger.debug("creating subnets with following ranges:")
         for key, value in kwargs.items():
-            logger.debug('%s: %s', key, value)
+            logger.debug("%s: %s", key, value)
         subnet = vpc.create_subnet(**kwargs)
 
         # enable public IP on instance launch
         modify_subnet = subnet.meta.client.modify_subnet_attribute
-        modify_subnet(
-            SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': True}
-        )
+        modify_subnet(SubnetId=subnet.id, MapPublicIpOnLaunch={"Value": True})
 
         return subnet
 
@@ -186,12 +180,11 @@ class VPC:
 
         """
         logger.debug(
-            'creating new vpc named %s with subnet %s', name, ipv4_cidr
+            "creating new vpc named %s with subnet %s", name, ipv4_cidr
         )
         try:
             vpc = resource.create_vpc(
-                CidrBlock=ipv4_cidr,
-                AmazonProvidedIpv6CidrBlock=True
+                CidrBlock=ipv4_cidr, AmazonProvidedIpv6CidrBlock=True
             )
         except ClientError as error:
             raise RuntimeError(error) from error
@@ -203,31 +196,27 @@ class VPC:
     def delete(self):
         """Terminate all associated instances and delete an entire VPC."""
         for instance in self.vpc.instances.all():
-            logger.debug('waiting for instance %s termination', instance.id)
+            logger.debug("waiting for instance %s termination", instance.id)
             instance.terminate()
             instance.wait_until_terminated()
 
         for security_group in self.vpc.security_groups.all():
-            logger.debug(
-                'deleting security group %s', security_group.id
-            )
+            logger.debug("deleting security group %s", security_group.id)
             security_group.delete()
 
         for subnet in self.vpc.subnets.all():
-            logger.debug('deleting subnet %s', subnet.id)
+            logger.debug("deleting subnet %s", subnet.id)
             subnet.delete()
 
         for route_table in self.vpc.route_tables.all():
-            logger.debug('deleting routing table %s', route_table.id)
+            logger.debug("deleting routing table %s", route_table.id)
             route_table.delete()
 
         for gateway in self.vpc.internet_gateways.all():
-            logger.debug(
-                'deleting internet gateway %s', gateway.id
-            )
+            logger.debug("deleting internet gateway %s", gateway.id)
             gateway.detach_from_vpc(VpcId=self.vpc.id)
             gateway.delete()
 
         if self.vpc:
-            logger.debug('deleting vpc %s', self.vpc.id)
+            logger.debug("deleting vpc %s", self.vpc.id)
             self.vpc.delete()

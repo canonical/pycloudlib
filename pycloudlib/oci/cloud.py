@@ -19,11 +19,17 @@ from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 class OCI(BaseCloud):
     """OCI (Oracle) cloud class."""
 
-    _type = 'oci'
+    _type = "oci"
 
     def __init__(
-        self, tag, timestamp_suffix=True, config_file: ConfigFile = None, *,
-        availability_domain=None, compartment_id=None, config_path=None
+        self,
+        tag,
+        timestamp_suffix=True,
+        config_file: ConfigFile = None,
+        *,
+        availability_domain=None,
+        compartment_id=None,
+        config_path=None,
     ):
         """
         Initialize the connection to OCI.
@@ -43,40 +49,40 @@ class OCI(BaseCloud):
             config_path: Path of OCI config file
         """
         super().__init__(tag, timestamp_suffix, config_file)
-        self.availability_domain = availability_domain or self.config[
-            'availability_domain'
-        ]
+        self.availability_domain = (
+            availability_domain or self.config["availability_domain"]
+        )
 
-        compartment_id = compartment_id or self.config.get('compartment_id')
+        compartment_id = compartment_id or self.config.get("compartment_id")
         if not compartment_id:
-            command = ['oci', 'iam', 'compartment', 'get']
+            command = ["oci", "iam", "compartment", "get"]
             exception_text = (
                 "Could not obtain OCI compartment id. Has the CLI client been "
-                "setup?\nCommand attempted: '{}'".format(' '.join(command))
+                "setup?\nCommand attempted: '{}'".format(" ".join(command))
             )
             try:
                 result = subp(command, rcs=())
             except FileNotFoundError as e:
                 raise Exception(exception_text) from e
             if not result.ok:
-                exception_text += '\nstdout: {}\nstderr: {}'.format(
-                    result.stdout, result.stderr)
+                exception_text += "\nstdout: {}\nstderr: {}".format(
+                    result.stdout, result.stderr
+                )
                 raise Exception(exception_text)
-            compartment_id = json.loads(result.stdout)['data']['id']
+            compartment_id = json.loads(result.stdout)["data"]["id"]
         self.compartment_id = compartment_id
 
         config_path = (
-            config_path or
-            self.config.get('config_path') or
-            '~/.oci/config'
+            config_path or self.config.get("config_path") or "~/.oci/config"
         )
         if not os.path.isfile(os.path.expanduser(config_path)):
             raise ValueError(
-                '{} is not a valid config file. Pass a valid config '
-                'file.'.format(config_path))
+                "{} is not a valid config file. Pass a valid config "
+                "file.".format(config_path)
+            )
         self.oci_config = oci.config.from_file(config_path)
 
-        self._log.debug('Logging into OCI')
+        self._log.debug("Logging into OCI")
         self.compute_client = oci.core.ComputeClient(self.oci_config)
         self.network_client = oci.core.VirtualNetworkClient(self.oci_config)
 
@@ -88,7 +94,7 @@ class OCI(BaseCloud):
         """
         self.compute_client.delete_image(image_id)
 
-    def released_image(self, release, operating_system='Canonical Ubuntu'):
+    def released_image(self, release, operating_system="Canonical Ubuntu"):
         """Get the released image.
 
         OCI just has periodic builds, so "released" and "daily" don't
@@ -103,7 +109,7 @@ class OCI(BaseCloud):
         """
         return self.daily_image(release, operating_system)
 
-    def daily_image(self, release, operating_system='Canonical Ubuntu'):
+    def daily_image(self, release, operating_system="Canonical Ubuntu"):
         """Get the daily image.
 
         OCI just has periodic builds, so "released" and "daily" don't
@@ -124,8 +130,8 @@ class OCI(BaseCloud):
             string, id of latest image
 
         """
-        if operating_system == 'Canonical Ubuntu':
-            if not re.match(r'^\d{2}\.\d{2}$', release):  # 18.04, 20.04, etc
+        if operating_system == "Canonical Ubuntu":
+            if not re.match(r"^\d{2}\.\d{2}$", release):  # 18.04, 20.04, etc
                 try:
                     release = UBUNTU_RELEASE_VERSION_MAP[release]
                 except KeyError as e:
@@ -137,12 +143,13 @@ class OCI(BaseCloud):
             self.compartment_id,
             operating_system=operating_system,
             operating_system_version=release,
-            sort_by='TIMECREATED',
-            sort_order='DESC'
+            sort_by="TIMECREATED",
+            sort_order="DESC",
         )
         matching_image = [
-            i for i in image_response.data
-            if 'aarch64' not in i.display_name and 'GPU' not in i.display_name
+            i
+            for i in image_response.data
+            if "aarch64" not in i.display_name and "GPU" not in i.display_name
         ]
         image_id = matching_image[0].id
         return image_id
@@ -172,7 +179,8 @@ class OCI(BaseCloud):
         except oci.exceptions.ServiceError as e:
             raise Exception(
                 "Unable to retrieve instance with id: {} . "
-                "Is it a valid instance id?".format(instance_id)) from e
+                "Is it a valid instance id?".format(instance_id)
+            ) from e
 
         return OciInstance(
             key_pair=self.key_pair,
@@ -181,8 +189,14 @@ class OCI(BaseCloud):
             oci_config=self.oci_config,
         )
 
-    def launch(self, image_id, instance_type='VM.Standard2.1', user_data=None,
-               wait=True, **kwargs):
+    def launch(
+        self,
+        image_id,
+        instance_type="VM.Standard2.1",
+        user_data=None,
+        wait=True,
+        **kwargs,
+    ):
         """Launch an instance.
 
         Args:
@@ -199,18 +213,19 @@ class OCI(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        vcn_id = self.network_client.list_vcns(
-            self.compartment_id).data[0].id
+        vcn_id = self.network_client.list_vcns(self.compartment_id).data[0].id
         subnet = self.network_client.list_subnets(
-            self.compartment_id, vcn_id=vcn_id).data[0]
+            self.compartment_id, vcn_id=vcn_id
+        ).data[0]
         subnet_id = subnet.id
 
         metadata = {
-            'ssh_authorized_keys': self.key_pair.public_key_content,
+            "ssh_authorized_keys": self.key_pair.public_key_content,
         }
         if user_data:
-            metadata['user_data'] = base64.b64encode(
-                user_data.encode('utf8')).decode('ascii')
+            metadata["user_data"] = base64.b64encode(
+                user_data.encode("utf8")
+            ).decode("ascii")
 
         instance_details = oci.core.models.LaunchInstanceDetails(
             display_name=self.tag,
@@ -220,17 +235,18 @@ class OCI(BaseCloud):
             subnet_id=subnet_id,
             image_id=image_id,
             metadata=metadata,
-            **kwargs
+            **kwargs,
         )
 
         instance_data = self.compute_client.launch_instance(
-            instance_details).data
+            instance_details
+        ).data
         instance = self.get_instance(instance_data.id)
         if wait:
             wait_till_ready(
                 func=self.compute_client.get_instance,
                 current_data=instance_data,
-                desired_state='RUNNING',
+                desired_state="RUNNING",
             )
             instance.wait()
         return instance
@@ -248,18 +264,18 @@ class OCI(BaseCloud):
         if clean:
             instance.clean()
         image_details = {
-            'compartment_id': self.compartment_id,
-            'instance_id': instance.instance_id,
+            "compartment_id": self.compartment_id,
+            "instance_id": instance.instance_id,
         }
         if name:
-            image_details['display_name'] = name
+            image_details["display_name"] = name
         image_data = self.compute_client.create_image(
             oci.core.models.CreateImageDetails(**image_details)
         ).data
         image_data = wait_till_ready(
             func=self.compute_client.get_image,
             current_data=image_data,
-            desired_state='AVAILABLE'
+            desired_state="AVAILABLE",
         )
 
         return image_data.id

@@ -22,10 +22,7 @@ def _tag_resource(resource, tag_value=None):
     if not tag_value:
         tag_value = get_timestamped_tag(tag="")
 
-    tag = {
-        'Key': 'Name',
-        'Value': tag_value
-    }
+    tag = {"Key": "Name", "Value": tag_value}
     resource.create_tags(Tags=[tag])
 
 
@@ -40,11 +37,11 @@ def _decode_console_output_as_bytes(parsed, **kwargs):
     Args:
         parsed: the raw console output
     """
-    if 'Output' not in parsed:
+    if "Output" not in parsed:
         return
-    orig = parsed['Output']
+    orig = parsed["Output"]
     botocore.handlers.decode_console_output(parsed, **kwargs)
-    parsed['OutputBytes'] = base64.b64decode(orig)
+    parsed["OutputBytes"] = base64.b64decode(orig)
 
 
 def _get_session(access_key_id, secret_access_key, region):
@@ -60,13 +57,16 @@ def _get_session(access_key_id, secret_access_key, region):
 
     """
     mysess = botocore.session.get_session()
-    mysess.unregister('after-call.ec2.GetConsoleOutput',
-                      botocore.handlers.decode_console_output)
-    mysess.register('after-call.ec2.GetConsoleOutput',
-                    _decode_console_output_as_bytes)
+    mysess.unregister(
+        "after-call.ec2.GetConsoleOutput",
+        botocore.handlers.decode_console_output,
+    )
+    mysess.register(
+        "after-call.ec2.GetConsoleOutput", _decode_console_output_as_bytes
+    )
     return boto3.Session(
         botocore_session=mysess,
         aws_access_key_id=access_key_id,
         aws_secret_access_key=secret_access_key,
-        region_name=region
+        region_name=region,
     )

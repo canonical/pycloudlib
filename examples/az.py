@@ -22,11 +22,10 @@ def demo():
     PS: we assume in this example that you are logged into
     you Azure account
     """
-    client = pycloudlib.Azure(tag='azure')
+    client = pycloudlib.Azure(tag="azure")
 
     image_id = client.daily_image(release="focal")
-    pub_key, priv_key = client.create_key_pair(
-        key_name="test_integration")
+    pub_key, priv_key = client.create_key_pair(key_name="test_integration")
 
     pub_path = "pub_test.pem"
     priv_path = "priv_test.pem"
@@ -40,13 +39,13 @@ def demo():
 
     instance = client.launch(
         image_id=image_id,
-        instance_type='Standard_DS2_v2',  # default is Standard_DS1_v2
-        user_data=cloud_config
+        instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
+        user_data=cloud_config,
     )
 
     print(instance.ip)
     instance.wait()
-    print(instance.execute('cat /home/ubuntu/example.txt'))
+    print(instance.execute("cat /home/ubuntu/example.txt"))
 
     snapshotted_image_id = client.snapshot(instance)
     instance.delete()
@@ -55,7 +54,7 @@ def demo():
     new_instance.delete()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Avoid polluting the log with azure info
     logging.getLogger("adal-python").setLevel(logging.WARNING)
     logging.getLogger("cli.azure.cli.core").setLevel(logging.WARNING)

@@ -16,9 +16,9 @@ from pycloudlib.result import Result
 
 
 UBUNTU_RELEASE_VERSION_MAP = {
-    'focal': '20.04',
-    'bionic': '18.04',
-    'xenial': '16.04',
+    "focal": "20.04",
+    "bionic": "18.04",
+    "xenial": "16.04",
 }
 
 
@@ -52,7 +52,7 @@ def is_writable_dir(path):
     return True
 
 
-def mkdtemp(prefix='pycloudlib'):
+def mkdtemp(prefix="pycloudlib"):
     """Make a temporary directory.
 
     Args:
@@ -114,7 +114,7 @@ def shell_quote(cmd):
 
     """
     if isinstance(cmd, (tuple, list)):
-        return ' '.join([shlex.quote(x) for x in cmd])
+        return " ".join([shlex.quote(x) for x in cmd])
 
     return shlex.quote(cmd)
 
@@ -138,14 +138,16 @@ def shell_safe(cmd):
 
     """
     out = subprocess.check_output(
-        ["getopt", "--shell", "sh", "--options", "", "--", "--"] + list(cmd))
+        ["getopt", "--shell", "sh", "--options", "", "--", "--"] + list(cmd)
+    )
 
     # out contains ' -- <data>\n'. drop the ' -- ' and the '\n'
     return out.decode()[4:-1]
 
 
-def subp(args, data=None, env=None, shell=False, rcs=(0,),
-         shortcircuit_stdin=True):
+def subp(
+    args, data=None, env=None, shell=False, rcs=(0,), shortcircuit_stdin=True
+):
     """Subprocess wrapper.
 
     Args:
@@ -178,8 +180,12 @@ def subp(args, data=None, env=None, shell=False, rcs=(0,),
 
     try:
         process = subprocess.Popen(  # pylint: disable=R1732
-            bytes_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            stdin=stdin, env=env, shell=shell
+            bytes_args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=stdin,
+            env=env,
+            shell=shell,
         )
         (out, err) = process.communicate(data)
     finally:
@@ -187,8 +193,8 @@ def subp(args, data=None, env=None, shell=False, rcs=(0,),
             devnull_fp.close()
 
     rc = process.returncode
-    out = '' if not out else out.rstrip().decode("utf-8")
-    err = '' if not err else err.rstrip().decode("utf-8")
+    out = "" if not out else out.rstrip().decode("utf-8")
+    err = "" if not err else err.rstrip().decode("utf-8")
 
     if rcs and rc not in rcs:
         if err:
@@ -235,12 +241,12 @@ def _get_local_ubuntu_arch():
     only what is relevant for Ubuntu.
     """
     arch_map = dict(
-        i686='i386',
-        x86_64='amd64',
-        aarch64='arm64',
-        ppc='powerpc',
-        ppc64el='ppc64el',
-        ppcle='powerpcel'
+        i686="i386",
+        x86_64="amd64",
+        aarch64="arm64",
+        ppc="powerpc",
+        ppc64el="ppc64el",
+        ppcle="powerpcel",
     )
 
     local_arch = platform.machine()
@@ -269,8 +275,7 @@ def _convert_args(args):
         bytes_args = args.encode("utf-8")
     else:
         bytes_args = [
-            x if isinstance(x, bytes) else x.encode("utf-8")
-            for x in args
+            x if isinstance(x, bytes) else x.encode("utf-8") for x in args
         ]
 
     return bytes_args
@@ -302,9 +307,7 @@ def get_timestamped_tag(tag):
         An updated tag with current timestamp
 
     """
-    return'%s-%s' % (
-        tag, datetime.datetime.now().strftime("%m%d-%H%M%S")
-    )
+    return "%s-%s" % (tag, datetime.datetime.now().strftime("%m%d-%H%M%S"))
 
 
 def validate_tag(tag):
@@ -313,13 +316,13 @@ def validate_tag(tag):
     # regex verbatum. You can trigger the error message that contains
     # this regex by attempting to create an instance with a name
     # of '-'
-    regex = r'^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$'
+    regex = r"^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$"
     if not re.match(regex, tag):
         raise ValueError(
-            'Invalid tag specified. After being timestamped, '
-            'tag must pass regex.\n'
-            'Regex: {}\n'
-            'Tag  : {}'.format(regex, tag)
+            "Invalid tag specified. After being timestamped, "
+            "tag must pass regex.\n"
+            "Regex: {}\n"
+            "Tag  : {}".format(regex, tag)
         )
     return tag
 

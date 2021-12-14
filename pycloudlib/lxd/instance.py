@@ -16,7 +16,7 @@ MISSING_AGENT_MSG = (
 class LXDInstance(BaseInstance):
     """LXD backed instance."""
 
-    _type = 'lxd'
+    _type = "lxd"
     _is_vm = None
     _is_ephemeral = None
 
@@ -49,7 +49,7 @@ class LXDInstance(BaseInstance):
 
     def __repr__(self):
         """Create string representation for class."""
-        return 'LXDInstance(name={})'.format(self.name)
+        return "LXDInstance(name={})".format(self.name)
 
     def _run_command(self, command, stdin):
         """Run command in the instance."""
@@ -57,7 +57,14 @@ class LXDInstance(BaseInstance):
             return super()._run_command(command, stdin)
 
         base_cmd = [
-            'lxc', 'exec', self.name, '--', 'sudo', '-u', self.username, '--'
+            "lxc",
+            "exec",
+            self.name,
+            "--",
+            "sudo",
+            "-u",
+            self.username,
+            "--",
         ]
         return subp(base_cmd + list(command), rcs=None)
 
@@ -71,14 +78,14 @@ class LXDInstance(BaseInstance):
             boolean if virtual-machine
         """
         if self._is_vm is None:
-            result = subp(['lxc', 'info', self.name])
+            result = subp(["lxc", "info", self.name])
 
             try:
-                info_type = re.findall(r'Type: (.*)', result)[0]
+                info_type = re.findall(r"Type: (.*)", result)[0]
             except IndexError:
                 return False
 
-            self._is_vm = bool(info_type == 'virtual-machine')
+            self._is_vm = bool(info_type == "virtual-machine")
 
         return self._is_vm
 
@@ -101,8 +108,12 @@ class LXDInstance(BaseInstance):
 
         while retries != 0:
             command = [
-                 'lxc', 'list', '^{}$'.format(self.name), '-c4',
-                 '--format', 'csv'
+                "lxc",
+                "list",
+                "^{}$".format(self.name),
+                "-c4",
+                "--format",
+                "csv",
             ]
             result = subp(command)
             if result.ok and result.stdout:
@@ -114,7 +125,9 @@ class LXDInstance(BaseInstance):
                     self._log.debug(
                         "Unable to parse output of cmd: %s. Expected"
                         " <ip> (<interface>), got: %s. Retrying %d time(s)...",
-                        command, result.stdout, retries
+                        command,
+                        result.stdout,
+                        retries,
                     )
                 if ip_address:
                     return ip_address
@@ -123,7 +136,8 @@ class LXDInstance(BaseInstance):
         raise TimeoutError(
             "Unable to determine IP address after 150 retries."
             " exit:{} stdout: {} stderr: {}".format(
-                result.return_code, result.stdout, result.stderr)
+                result.return_code, result.stdout, result.stderr
+            )
         )
 
     @property
@@ -136,16 +150,16 @@ class LXDInstance(BaseInstance):
             boolean if ephemeral
         """
         if self._is_ephemeral is None:
-            result = subp(['lxc', 'info', self.name])
+            result = subp(["lxc", "info", self.name])
 
             try:
-                info_type = re.findall(r'Type: (.*)', result)[0]
+                info_type = re.findall(r"Type: (.*)", result)[0]
                 self._is_ephemeral = bool("ephemeral" in info_type)
             except IndexError:
                 self._log.debug(
-                    'Unable to parse lxc show %s to determine ephemeral type.'
-                    ' Assuming not ephemeral.',
-                    self.name
+                    "Unable to parse lxc show %s to determine ephemeral type."
+                    " Assuming not ephemeral.",
+                    self.name,
                 )
                 self._is_ephemeral = False
         return self._is_ephemeral
@@ -160,11 +174,11 @@ class LXDInstance(BaseInstance):
             Reported status from lxc info
 
         """
-        result = subp(['lxc', 'info', self.name])
+        result = subp(["lxc", "info", self.name])
         try:
-            return re.findall(r'Status: (.*)', result)[0]
+            return re.findall(r"Status: (.*)", result)[0]
         except IndexError:
-            return 'Unknown'
+            return "Unknown"
 
     def console_log(self):
         """Return console log.
@@ -176,7 +190,7 @@ class LXDInstance(BaseInstance):
             bytes of this instance's console
 
         """
-        self._log.debug('getting console log for %s', self.name)
+        self._log.debug("getting console log for %s", self.name)
         try:
             return subp(["lxc", "console", self.name, "--show-log"])
         except RuntimeError as exc:
@@ -197,14 +211,14 @@ class LXDInstance(BaseInstance):
         Args:
             wait: wait for delete
         """
-        self._log.debug('deleting %s', self.name)
+        self._log.debug("deleting %s", self.name)
 
         if self.ephemeral:
             # We don't need to wait here, since the
             # instance will be deleted once it is stopped
             self.shutdown(wait=False)
         else:
-            subp(['lxc', 'delete', self.name, '--force'])
+            subp(["lxc", "delete", self.name, "--force"])
 
         if wait:
             self.wait_for_delete()
@@ -215,8 +229,8 @@ class LXDInstance(BaseInstance):
         Args:
             snapshot_name: the name to delete
         """
-        self._log.debug('deleting snapshot %s/%s', self.name, snapshot_name)
-        subp(['lxc', 'delete', '%s/%s' % (self.name, snapshot_name)])
+        self._log.debug("deleting snapshot %s/%s", self.name, snapshot_name)
+        subp(["lxc", "delete", "%s/%s" % (self.name, snapshot_name)])
 
     def edit(self, key, value):
         """Edit the config of the instance.
@@ -225,8 +239,8 @@ class LXDInstance(BaseInstance):
             key: The config key to edit
             value: The new value to set the key to
         """
-        self._log.debug('editing %s with %s=%s', self.name, key, value)
-        subp(['lxc', 'config', 'set', self.name, key, value])
+        self._log.debug("editing %s with %s=%s", self.name, key, value)
+        subp(["lxc", "config", "set", self.name, key, value])
 
     def pull_file(self, remote_path, local_path):
         """Pull file from an instance.
@@ -239,7 +253,7 @@ class LXDInstance(BaseInstance):
             remote_path: path to remote file to pull down
             local_path: local path to put the file
         """
-        self._log.debug('pulling file %s to %s', remote_path, local_path)
+        self._log.debug("pulling file %s to %s", remote_path, local_path)
 
         if self.execute_via_ssh:
             super().pull_file(remote_path, local_path)
@@ -248,13 +262,20 @@ class LXDInstance(BaseInstance):
         if self.series == "xenial":
             self._log.warning(MISSING_AGENT_MSG, "lxc file pull")
 
-        if remote_path[0] != '/':
-            remote_pwd = self.execute('pwd')
-            remote_path = remote_pwd + '/' + remote_path
+        if remote_path[0] != "/":
+            remote_pwd = self.execute("pwd")
+            remote_path = remote_pwd + "/" + remote_path
             self._log.debug("Absolute remote path: %s", remote_path)
 
-        subp(['lxc', 'file', 'pull', '%s%s' %
-              (self.name, remote_path), local_path])
+        subp(
+            [
+                "lxc",
+                "file",
+                "pull",
+                "%s%s" % (self.name, remote_path),
+                local_path,
+            ]
+        )
 
     def push_file(self, local_path, remote_path):
         """Push file to an instance.
@@ -267,7 +288,7 @@ class LXDInstance(BaseInstance):
             local_path: local path to file to push up
             remote_path: path to push file
         """
-        self._log.debug('pushing file %s to %s', local_path, remote_path)
+        self._log.debug("pushing file %s to %s", local_path, remote_path)
 
         if self.execute_via_ssh:
             super().push_file(local_path, remote_path)
@@ -276,13 +297,20 @@ class LXDInstance(BaseInstance):
         if self.series == "xenial":
             self._log.warning(MISSING_AGENT_MSG, "lxc file push")
 
-        if remote_path[0] != '/':
-            remote_pwd = self.execute('pwd')
-            remote_path = remote_pwd + '/' + remote_path
+        if remote_path[0] != "/":
+            remote_pwd = self.execute("pwd")
+            remote_path = remote_pwd + "/" + remote_path
             self._log.debug("Absolute remote path: %s", remote_path)
 
-        subp(['lxc', 'file', 'push', local_path,
-              '%s%s' % (self.name, remote_path)])
+        subp(
+            [
+                "lxc",
+                "file",
+                "push",
+                local_path,
+                "%s%s" % (self.name, remote_path),
+            ]
+        )
 
     def restart(self, wait=True, force=False, **kwargs):
         """Restart an instance.
@@ -293,7 +321,7 @@ class LXDInstance(BaseInstance):
             wait: boolean, wait for instance to restart
             force: boolean, force instance to shutdown before restart
         """
-        self._log.debug('restarting %s', self.name)
+        self._log.debug("restarting %s", self.name)
 
         # Since restart is always blocking, use restart if wait is True
         cmd = ["lxc", "restart", self.name]
@@ -314,9 +342,10 @@ class LXDInstance(BaseInstance):
         Args:
             snapshot_name: Name of snapshot to restore from
         """
-        self._log.debug('restoring %s from snapshot %s',
-                        self.name, snapshot_name)
-        subp(['lxc', 'restore', self.name, snapshot_name])
+        self._log.debug(
+            "restoring %s from snapshot %s", self.name, snapshot_name
+        )
+        subp(["lxc", "restore", self.name, snapshot_name])
 
     def shutdown(self, wait=True, force=False, **kwargs):
         """Shutdown instance.
@@ -325,10 +354,10 @@ class LXDInstance(BaseInstance):
             wait: boolean, wait for instance to shutdown
             force: boolean, force instance to shutdown
         """
-        if self.state == 'Stopped':
+        if self.state == "Stopped":
             return
 
-        self._log.debug('shutting down %s', self.name)
+        self._log.debug("shutting down %s", self.name)
         cmd = ["lxc", "stop", self.name]
 
         if force:
@@ -350,12 +379,12 @@ class LXDInstance(BaseInstance):
         self.shutdown()
 
         if snapshot_name is None:
-            snapshot_name = '{}-snapshot'.format(self.name)
-        cmd = ['lxc', 'snapshot', self.name, snapshot_name]
+            snapshot_name = "{}-snapshot".format(self.name)
+        cmd = ["lxc", "snapshot", self.name, snapshot_name]
         if stateful:
-            cmd.append('--stateful')
+            cmd.append("--stateful")
 
-        self._log.debug('creating snapshot %s', snapshot_name)
+        self._log.debug("creating snapshot %s", snapshot_name)
         subp(cmd)
         return snapshot_name
 
@@ -374,12 +403,17 @@ class LXDInstance(BaseInstance):
         if not self.ephemeral:
             self.shutdown()
         if snapshot_name is None:
-            snapshot_name = '{}-snapshot'.format(self.name)
+            snapshot_name = "{}-snapshot".format(self.name)
         cmd = [
-            'lxc', 'publish', "--force", self.name, '--alias', snapshot_name
+            "lxc",
+            "publish",
+            "--force",
+            self.name,
+            "--alias",
+            snapshot_name,
         ]
 
-        self._log.debug('Publishing snapshot %s', snapshot_name)
+        self._log.debug("Publishing snapshot %s", snapshot_name)
         subp(cmd)
         return "local:{}".format(snapshot_name)
 
@@ -389,11 +423,11 @@ class LXDInstance(BaseInstance):
         Args:
             wait: boolean, wait for instance to fully start
         """
-        if self.state == 'Running':
+        if self.state == "Running":
             return
 
-        self._log.debug('starting %s', self.name)
-        subp(['lxc', 'start', self.name])
+        self._log.debug("starting %s", self.name)
+        subp(["lxc", "start", self.name])
 
         if wait:
             self.wait()
@@ -412,12 +446,18 @@ class LXDInstance(BaseInstance):
         :param retries: Integer for number of retry attempts before raising a
             TimeoutError.
         """
-        self._log.debug('waiting for %s: %s', desired_state, self.name)
+        self._log.debug("waiting for %s: %s", desired_state, self.name)
         for _ in range(num_retries):
-            result = subp([
-                'lxc', 'list', '^{}$'.format(self.name), '-cs',
-                '--format', 'csv'
-            ])
+            result = subp(
+                [
+                    "lxc",
+                    "list",
+                    "^{}$".format(self.name),
+                    "-cs",
+                    "--format",
+                    "csv",
+                ]
+            )
 
             if result == desired_state:
                 return
@@ -428,7 +468,7 @@ class LXDInstance(BaseInstance):
         """Wait for cloud instance to transition to stop state."""
         # Ephemeral instances will not go to STOPPED. They get destroyed.
         if not self.ephemeral:
-            self.wait_for_state('STOPPED')
+            self.wait_for_state("STOPPED")
 
     def _wait_for_instance_start(self):
         """Wait for the cloud instance to be up.
@@ -446,9 +486,9 @@ class LXDInstance(BaseInstance):
         processes = -1
         for _ in range(300):
             try:
-                processes = int(subp(
-                    'lxc list -c N {} -f csv'.format(self.name).split()
-                ))
+                processes = int(
+                    subp("lxc list -c N {} -f csv".format(self.name).split())
+                )
             except ValueError:
                 pass
             if processes > -1:

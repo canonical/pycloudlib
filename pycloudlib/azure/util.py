@@ -3,15 +3,17 @@
 import logging
 import re
 
-from azure.common.client_factory import (get_client_from_cli_profile,
-                                         get_client_from_json_dict)
+from azure.common.client_factory import (
+    get_client_from_cli_profile,
+    get_client_from_json_dict,
+)
 from knack.util import CLIError
 
 
 logger = logging.getLogger(__name__)
 
 RE_AZURE_IMAGE_ID = (
-    r'(?P<publisher>[^:]+):(?P<offer>[^:]+):(?P<sku>[^:]+)(:(?P<version>.*))?'
+    r"(?P<publisher>[^:]+):(?P<offer>[^:]+):(?P<sku>[^:]+)(:(?P<version>.*))?"
 )
 
 
@@ -52,23 +54,16 @@ def get_client(resource, config_dict):
         )
 
     parameters = {
-        "activeDirectoryEndpointUrl":
-            "https://login.microsoftonline.com",
+        "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
         "resourceManagerEndpointUrl": "https://management.azure.com/",
-        "activeDirectoryGraphResourceId":
-            "https://graph.windows.net/",
-        "sqlManagementEndpointUrl":
-            "https://management.core.windows.net:8443/",
+        "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+        "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
         "galleryEndpointUrl": "https://gallery.azure.com/",
-        "managementEndpointUrl":
-            "https://management.core.windows.net/"
+        "managementEndpointUrl": "https://management.core.windows.net/",
     }
     parameters.update(config_dict)
 
-    client = get_client_from_json_dict(
-        resource,
-        parameters
-    )
+    client = get_client_from_json_dict(resource, parameters)
 
     return client
 
@@ -104,7 +99,7 @@ def get_resource_group_name_from_id(resource_id):
         A string represeting the resource group
 
     """
-    return resource_id.split('/')[4]
+    return resource_id.split("/")[4]
 
 
 def get_resource_name_from_id(resource_id):
@@ -117,7 +112,7 @@ def get_resource_name_from_id(resource_id):
         A string represeting the resource name
 
     """
-    return resource_id.split('/')[-1]
+    return resource_id.split("/")[-1]
 
 
 def get_image_reference_params(image_id):
@@ -147,9 +142,7 @@ def get_image_reference_params(image_id):
         return img_dict
 
     # Custom images can be directly referenced by their id
-    return {
-        "id": image_id
-    }
+    return {"id": image_id}
 
 
 def is_pro_image(image_id, registered_image):
@@ -203,12 +196,12 @@ def get_plan_params(image_id, registered_image):
         return {
             "name": registered_image["sku"],
             "product": registered_image["offer"],
-            "publisher": "canonical"
+            "publisher": "canonical",
         }
 
     img_dict = parse_image_id(image_id)
     return {
         "name": img_dict.get("sku"),
         "product": img_dict.get("offer"),
-        "publisher": img_dict.get("publisher", "").lower()
+        "publisher": img_dict.get("publisher", "").lower(),
     }

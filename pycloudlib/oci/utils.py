@@ -20,8 +20,8 @@ def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
             return current_data
         time.sleep(1)
     raise Exception(
-        'Expected {} state, but found {} after waiting {} seconds. '
-        'Check OCI console for more details'.format(
+        "Expected {} state, but found {} after waiting {} seconds. "
+        "Check OCI console for more details".format(
             desired_state, current_data.lifecycle_state, sleep_seconds
         )
     )
