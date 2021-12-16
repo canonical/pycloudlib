@@ -8,7 +8,6 @@ from botocore.exceptions import ClientError
 
 from pycloudlib.ec2.util import _tag_resource
 
-
 logger = logging.getLogger(__name__)
 
 

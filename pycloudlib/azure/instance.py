@@ -2,6 +2,7 @@
 """Azure instance."""
 
 import time
+
 from pycloudlib.instance import BaseInstance
 
 

@@ -1,9 +1,9 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all instances to provide consistent set of functions."""
 
-from abc import ABC, abstractmethod
 import logging
 import time
+from abc import ABC, abstractmethod
 
 import paramiko
 from paramiko.ssh_exception import (
@@ -15,7 +15,7 @@ from paramiko.ssh_exception import (
 )
 
 from pycloudlib.result import Result
-from pycloudlib.util import shell_quote, shell_pack
+from pycloudlib.util import shell_pack, shell_quote
 
 
 class BaseInstance(ABC):

@@ -9,7 +9,6 @@ from azure.common.client_factory import (
 )
 from knack.util import CLIError
 
-
 logger = logging.getLogger(__name__)
 
 RE_AZURE_IMAGE_ID = (

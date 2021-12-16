@@ -1,8 +1,8 @@
 """Tests related to pycloudlib.azure.cloud module."""
 from io import StringIO
 
-import pytest
 import mock
+import pytest
 
 from pycloudlib.azure.cloud import Azure
 
