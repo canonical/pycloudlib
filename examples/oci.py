@@ -8,7 +8,6 @@ from base64 import b64encode
 
 import pycloudlib
 
-
 cloud_config = """#cloud-config
 runcmd:
   - echo 'hello' > /home/ubuntu/example.txt

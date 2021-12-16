@@ -3,7 +3,7 @@ import hashlib
 
 import pytest
 
-from pycloudlib.lxd.defaults import base_vm_profiles, LXC_PROFILE_VERSION
+from pycloudlib.lxd.defaults import LXC_PROFILE_VERSION, base_vm_profiles
 
 
 class TestLXDProfilesWereNotModified:

@@ -2,7 +2,6 @@
 import os
 from urllib.error import HTTPError
 
-
 import google.auth
 from google.oauth2 import service_account
 

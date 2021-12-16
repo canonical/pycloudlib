@@ -6,7 +6,7 @@ from time import sleep
 import googleapiclient.discovery
 from googleapiclient.errors import HttpError
 
-from pycloudlib.gce.util import raise_on_error, get_credentials
+from pycloudlib.gce.util import get_credentials, raise_on_error
 from pycloudlib.instance import BaseInstance
 
 

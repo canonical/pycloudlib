@@ -4,16 +4,15 @@
 import base64
 import collections.abc
 import datetime
-from errno import ENOENT
-import platform
 import os
+import platform
 import re
 import shlex
 import subprocess
 import tempfile
+from errno import ENOENT
 
 from pycloudlib.result import Result
-
 
 UBUNTU_RELEASE_VERSION_MAP = {
     "focal": "20.04",

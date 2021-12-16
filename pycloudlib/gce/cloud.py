@@ -15,10 +15,9 @@ import googleapiclient.discovery
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
-from pycloudlib.gce.util import raise_on_error, get_credentials
 from pycloudlib.gce.instance import GceInstance
+from pycloudlib.gce.util import get_credentials, raise_on_error
 from pycloudlib.util import subp
-
 
 logging.getLogger("googleapiclient.discovery").setLevel(logging.WARNING)
 

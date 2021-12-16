@@ -1,14 +1,14 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
-import io
 import getpass
+import io
 import logging
 from abc import ABC, abstractmethod
 
 import paramiko
 
-from pycloudlib.config import parse_config, ConfigFile
+from pycloudlib.config import ConfigFile, parse_config
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
 from pycloudlib.util import get_timestamped_tag, validate_tag

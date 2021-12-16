@@ -2,13 +2,13 @@
 """Azure Cloud type."""
 import base64
 
-from azure.mgmt.resource import ResourceManagementClient
-from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.network import NetworkManagementClient
+from azure.mgmt.resource import ResourceManagementClient
 
 from pycloudlib.azure import util
-from pycloudlib.cloud import BaseCloud
 from pycloudlib.azure.instance import AzureInstance
+from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.util import get_timestamped_tag, update_nested
 

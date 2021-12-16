@@ -1,15 +1,15 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
-from abc import abstractmethod
 import warnings
+from abc import abstractmethod
 
 import yaml
 
 from pycloudlib.cloud import BaseCloud
+from pycloudlib.constants import LOCAL_UBUNTU_ARCH
+from pycloudlib.lxd.defaults import LXC_PROFILE_VERSION, base_vm_profiles
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
-from pycloudlib.constants import LOCAL_UBUNTU_ARCH
-from pycloudlib.lxd.defaults import base_vm_profiles, LXC_PROFILE_VERSION
 
 
 class _BaseLXD(BaseCloud):

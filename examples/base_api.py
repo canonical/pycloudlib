@@ -7,7 +7,6 @@ from contextlib import suppress
 import pycloudlib
 from pycloudlib.cloud import BaseCloud
 
-
 cloud_config = """#cloud-config
 runcmd:
   - echo 'hello' > /home/ubuntu/example.txt

@@ -6,7 +6,6 @@ import logging
 
 import pycloudlib
 
-
 cloud_config = """#cloud-config
 runcmd:
   - echo 'hello' > /home/ubuntu/example.txt
