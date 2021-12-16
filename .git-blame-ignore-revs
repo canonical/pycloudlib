@@ -2,3 +2,6 @@
 
 # Apply black formatting
 df271e3ebe0fd007b06177a3fda82f9139d111ce
+
+# Apply isort formatting
+7fe0c1d2475cb195d6fc5746da949ea9cd7bf3b4
