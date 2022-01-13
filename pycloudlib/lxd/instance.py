@@ -484,7 +484,7 @@ class LXDInstance(BaseInstance):
         of processes isn't -1.
         """
         processes = -1
-        for _ in range(300):
+        for _ in range(600):
             try:
                 processes = int(
                     subp("lxc list -c N {} -f csv".format(self.name).split())
