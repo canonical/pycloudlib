@@ -26,7 +26,7 @@ INSTALL_REQUIRES = [
     "azure-mgmt-resource >= 10.0.0, < 15",
     "azure-mgmt-network >= 11.0.0, < 16",
     "azure-mgmt-compute >= 13.0.0, < 17",
-    "azure-cli-core >= 2.9.1",
+    "azure-cli-core >= 2.9.1, < 2.21.0",
     "knack >= 0.7.1",
     "python-openstackclient >= 5.2.1",
     "toml == 0.10",
