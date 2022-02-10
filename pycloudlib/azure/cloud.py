@@ -24,7 +24,7 @@ class Azure(BaseCloud):
         "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts",  # noqa: E501
         "groovy": "Canonical:0001-com-ubuntu-server-groovy-daily:20_10-daily",
         "hirsute": "Canonical:0001-com-ubuntu-server-hirsute-daily:21_04-daily",  # noqa: E501
-        "jammy": "Canonical:0001-com-ubuntu-server-hirsute-daily:22_04-daily",
+        "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",  # noqa: E501
     }
 
     def __init__(
