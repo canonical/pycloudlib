@@ -487,7 +487,11 @@ class LXDInstance(BaseInstance):
         for _ in range(600):
             try:
                 processes = int(
-                    subp("lxc list -c N {} -f csv".format(self.name).split())
+                    subp(
+                        "lxc list --columns N {} --format csv".format(
+                            self.name
+                        ).split()
+                    )
                 )
             except ValueError:
                 pass
