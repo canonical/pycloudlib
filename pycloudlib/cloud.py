@@ -4,6 +4,7 @@
 import getpass
 import io
 import logging
+import os
 from abc import ABC, abstractmethod
 
 import paramiko
@@ -34,10 +35,12 @@ class BaseCloud(ABC):
 
         user = getpass.getuser()
         self.key_pair = KeyPair(
-            public_key_path=self.config.get(
-                "public_key_path", "/home/{}/.ssh/id_rsa.pub".format(user)
+            public_key_path=os.path.expanduser(
+                self.config.get("public_key_path", f"~{user}/.ssh/id_rsa.pub")
             ),
-            private_key_path=self.config.get("private_key_path"),
+            private_key_path=os.path.expanduser(
+                self.config.get("private_key_path", "")
+            ),
             name=self.config.get("key_name", user),
         )
         if timestamp_suffix:

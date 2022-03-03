@@ -83,19 +83,21 @@ class TestBaseCloud:
         mycloud = CloudSubclass(config_file=StringIO(CONFIG), **args)
         assert expected_tag == mycloud.tag
 
-    @mock.patch(MPATH + "getpass.getuser", return_value="crashoverride")
+    @mock.patch(MPATH + "getpass.getuser", return_value="root")
     def test_init_sets_key_pair_based_on_getuser(self, _m_getuser):
-        """The default key_pair for the cloud is based on the current user."""
+        """
+        The default key_pair for the cloud is based on the current user.
+
+        The root user is used as it's guaranteed to exist and has a
+        well known $HOME. Also its $HOME is not under /home, so this
+        verifies that we're not hardcoding /home/<user> paths.
+        """
         mycloud = CloudSubclass(
             tag="tag", timestamp_suffix=False, config_file=StringIO(CONFIG)
         )
-        assert mycloud.key_pair.name == "crashoverride"
-        assert mycloud.key_pair.private_key_path == (
-            "/home/crashoverride/.ssh/id_rsa"
-        )
-        assert mycloud.key_pair.public_key_path == (
-            "/home/crashoverride/.ssh/id_rsa.pub"
-        )
+        assert mycloud.key_pair.name == "root"
+        assert mycloud.key_pair.private_key_path == ("/root/.ssh/id_rsa")
+        assert mycloud.key_pair.public_key_path == ("/root/.ssh/id_rsa.pub")
 
     def test_init_sets_key_pair_from_config(self):
         """The key_pair is set from the config file."""
