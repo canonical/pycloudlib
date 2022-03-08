@@ -22,8 +22,7 @@ class Azure(BaseCloud):
         "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS",
         "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS",
         "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts",  # noqa: E501
-        "groovy": "Canonical:0001-com-ubuntu-server-groovy-daily:20_10-daily",
-        "hirsute": "Canonical:0001-com-ubuntu-server-hirsute-daily:21_04-daily",  # noqa: E501
+        "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily",
         "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",  # noqa: E501
     }
 
