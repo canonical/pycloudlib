@@ -1,11 +1,43 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD default values to be used by cloud and instance modules."""
+import base64
 import textwrap
 
-LXC_PROFILE_VERSION = "v3"
+LXC_PROFILE_VERSION = "v4"
+
+LXC_AGENT_PATH = "/lib/systemd/system/lxd-agent.service"
+#  pylint: disable=anomalous-backslash-in-string
+LXC_AGENT_SCRIPT = textwrap.dedent(
+    """\
+    #!/bin/sh
+    if ! grep lxd_config /proc/mounts; then
+        mkdir -p /run/lxdagent
+        mount -t 9p config /run/lxdagent
+        VIRT=$(systemd-detect-virt)
+        case $VIRT in
+            qemu|kvm)
+                (cd /run/lxdagent/ && ./install.sh)
+                umount /run/lxdagent
+
+                # Currently, there is a regression on the lxd_agent
+                # service. Until this fix is addressed through the
+                # lxd snap, we need this hacky approach to allow
+                # starting the agent on some Ubuntu series.
+                sed -i '/^\(After\|Requires\)=run-lxd_agent\.mount$/d' {}
+                systemctl daemon-reload
+
+                systemctl start lxd-agent
+                ;;
+            *)
+        esac
+    fi
+    """.format(  # noqa: W605
+        LXC_AGENT_PATH
+    )
+)
 
 
-# For Xenial and Bionic vendor-data required to setup lxd-agent in a vm
+# For Bionic vendor-data required to setup lxd-agent in a vm
 LXC_SETUP_VENDORDATA = textwrap.dedent(
     """\
     config:
@@ -16,13 +48,7 @@ LXC_SETUP_VENDORDATA = textwrap.dedent(
           encoding: b64
           permissions: '0755'
           owner: root:root
-          content: |
-              IyEvYmluL3NoCmlmICEgZ3JlcCBseGRfY29uZmlnIC9wcm9jL21vdW50czsgdGhlbgogICAgbWtk
-              aXIgLXAgL3J1bi9seGRhZ2VudAogICAgbW91bnQgLXQgOXAgY29uZmlnIC9ydW4vbHhkYWdlbnQK
-              ICAgIFZJUlQ9JChzeXN0ZW1kLWRldGVjdC12aXJ0KQogICAgY2FzZSAkVklSVCBpbgogICAgICAg
-              IHFlbXV8a3ZtKQogICAgICAgICAgICAoY2QgL3J1bi9seGRhZ2VudC8gJiYgLi9pbnN0YWxsLnNo
-              KQogICAgICAgICAgICB1bW91bnQgL3J1bi9seGRhZ2VudAogICAgICAgICAgICBzeXN0ZW1jdGwg
-              c3RhcnQgbHhkLWFnZW50CiAgICAgICAgICAgIDs7CiAgICAgICAgKikKICAgIGVzYWMKZmkK
+          content: {base64_lxd_agent_script}
    """
 )
 
@@ -55,7 +81,10 @@ def _make_vm_profile(
         # vendor-data instructing it to install the agent
         config_device = "config: {source: cloud-init:config, type: disk}"
     if install_agent:
-        vendordata = LXC_SETUP_VENDORDATA
+        lxd_agent_script = base64.b64encode(LXC_AGENT_SCRIPT.encode("ascii"))
+        vendordata = LXC_SETUP_VENDORDATA.format(
+            base64_lxd_agent_script=lxd_agent_script.decode("ascii")
+        )
     return VM_PROFILE_TMPL.format(
         config_device=config_device, series=series, vendordata=vendordata
     )
