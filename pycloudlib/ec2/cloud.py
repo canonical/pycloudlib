@@ -172,7 +172,7 @@ class EC2(BaseCloud):
     def launch(
         self,
         image_id,
-        instance_type="t2.micro",
+        instance_type="t3.micro",  # Using nitro instance for IPv6
         user_data=None,
         wait=True,
         vpc=None,
