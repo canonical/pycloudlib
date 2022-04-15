@@ -32,7 +32,7 @@ def get_credentials(credentials_path):
 
     Try service account credentials first. If those fail, try the environment
     """
-    credentials_path = os.path.expanduser(credentials_path)
+    credentials_path = os.path.expandvars(os.path.expanduser(credentials_path))
     if credentials_path:
         try:
             return service_account.Credentials.from_service_account_file(

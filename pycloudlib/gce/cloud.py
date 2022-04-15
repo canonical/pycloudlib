@@ -64,8 +64,8 @@ class GCE(BaseCloud):
                 "GOOGLE_APPLICATION_CREDENTIALS"
             ]
         elif "credentials_path" in self.config:
-            self.credentials_path = os.path.expanduser(
-                self.config["credentials_path"]
+            self.credentials_path = os.path.expandvars(
+                os.path.expanduser(self.config["credentials_path"])
             )
 
         credentials = get_credentials(self.credentials_path)
