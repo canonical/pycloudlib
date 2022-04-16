@@ -12,19 +12,26 @@ from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.util import get_timestamped_tag, update_nested
 
+UBUNTU_DAILY_IMAGES = {
+    "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS",
+    "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS",
+    "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts",
+    "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily",
+    "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",
+}
+
+UBUNTU_RELEASE_IMAGES = {
+    "xenial": "Canonical:UbuntuServer:16.04-LTS",
+    "bionic": "Canonical:UbuntuServer:18.04-LTS",
+    "focal": "Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2",
+    "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2",
+}
+
 
 class Azure(BaseCloud):
     """Azure Cloud Class."""
 
     _type = "azure"
-
-    UBUNTU_RELEASE = {
-        "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS",
-        "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS",
-        "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts",  # noqa: E501
-        "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily",
-        "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",  # noqa: E501
-    }
 
     def __init__(
         self,
@@ -452,13 +459,18 @@ class Azure(BaseCloud):
                 "Error deleting %s. Request returned %d", image_id, resp_code
             )
 
+    def _get_image(self, release, image_map):
+        release = image_map.get(release)
+        if release is None:
+            msg = "No Ubuntu image found for {}. Expected one of: {}"
+            raise ValueError(
+                msg.format(release, " ".join(UBUNTU_DAILY_IMAGES.keys()))
+            )
+
+        return release
+
     def released_image(self, release):
         """Get the released image.
-
-        With the way we are indexing our images, it is hard to differentiate
-        between daily and released images, since we would need to have the
-        version of the image to properly provision it. Due to that limitation
-        we are just calling the daily images method here.
 
         Args:
             release: string, Ubuntu release to look for
@@ -466,7 +478,8 @@ class Azure(BaseCloud):
             string, id of latest image
 
         """
-        return self.daily_image(release)
+        self._log.debug("finding release Ubuntu image for %s", release)
+        return self._get_image(release, UBUNTU_RELEASE_IMAGES)
 
     def daily_image(self, release):
         """Find the image info for the latest daily image for a given release.
@@ -479,15 +492,7 @@ class Azure(BaseCloud):
 
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
-        release = self.UBUNTU_RELEASE.get(release)
-
-        if release is None:
-            msg = "No Ubuntu release image found for {}. Expected one of: {}"
-            raise ValueError(
-                msg.format(release, " ".join(self.UBUNTU_RELEASE.keys()))
-            )
-
-        return release
+        return self._get_image(release, UBUNTU_DAILY_IMAGES)
 
     def _check_for_network_interfaces(self):
         """
