@@ -460,14 +460,12 @@ class Azure(BaseCloud):
             )
 
     def _get_image(self, release, image_map):
-        release = image_map.get(release)
-        if release is None:
+        image_id = image_map.get(release)
+        if image_id is None:
             msg = "No Ubuntu image found for {}. Expected one of: {}"
-            raise ValueError(
-                msg.format(release, " ".join(UBUNTU_DAILY_IMAGES.keys()))
-            )
+            raise ValueError(msg.format(release, " ".join(image_map.keys())))
 
-        return release
+        return image_id
 
     def released_image(self, release):
         """Get the released image.
