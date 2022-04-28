@@ -25,6 +25,7 @@ UBUNTU_RELEASE_IMAGES = {
     "bionic": "Canonical:UbuntuServer:18.04-LTS",
     "focal": "Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2",
     "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2",
+    "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2",
 }
 
 
