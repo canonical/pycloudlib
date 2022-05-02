@@ -170,7 +170,7 @@ class EC2Instance(BaseInstance):
         current_boot_id = pre_reboot_boot_id
         self._instance.reboot()
         while current_boot_id == pre_reboot_boot_id:
-            time.sleep(5)
+            time.sleep(1)
             try:
                 self._log.debug("Reading the current boot_id.")
                 current_boot_id = self._get_boot_id()
