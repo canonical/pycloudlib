@@ -403,9 +403,9 @@ class BaseInstance(ABC):
         self._log.debug("_wait_for_execute to complete")
         test_instance_command = "whoami"
 
-        # Wait 10 minutes before failing
+        # Wait 40 minutes before failing
         start = time.time()
-        end = start + 600
+        end = start + 40 * 60
         while time.time() < end:
             try:
                 result = self.execute(test_instance_command)
@@ -417,7 +417,7 @@ class BaseInstance(ABC):
 
         raise OSError(
             "{}\n{}".format(
-                "Instance can't be reached after 10 minutes. ",
+                "Instance can't be reached after 40 minutes. ",
                 "Failed to execute {} command".format(test_instance_command),
             )
         )

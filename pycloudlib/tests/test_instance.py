@@ -49,10 +49,10 @@ class TestWait:
     ):
         """Test wait calls when execute command fails."""
         instance = concrete_instance_cls(key_pair=None)
-        m_time.side_effect = [1, 2, 600, 601]
+        m_time.side_effect = [1, 2, 40 * 60, 40 * 60 + 1]
         m_execute.return_value = Result(stdout="", stderr="", return_code=1)
         expected_msg = "{}\n{}".format(
-            "Instance can't be reached after 10 minutes. ",
+            "Instance can't be reached after 40 minutes. ",
             "Failed to execute whoami command",
         )
         expected_call_args = [mock.call("whoami")] * 2
