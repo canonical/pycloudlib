@@ -110,7 +110,7 @@ class EC2Instance(BaseInstance):
         """
         start = time.time()
         while time.time() < start + 300:
-            response = self._instance.console_output()
+            response = self._instance.console_output(Latest=True)
             try:
                 return response["Output"]
             except KeyError:
