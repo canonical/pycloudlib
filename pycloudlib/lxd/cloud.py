@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
+from contextlib import suppress
 import warnings
 from abc import abstractmethod
 
@@ -583,17 +584,14 @@ class LXDVirtualMachine(_BaseLXD):
         """
         if image_hash_key is not None:
             return super()._image_info(image_id, image_hash_key=image_hash_key)
-        kvm_image_info = super()._image_info(
-            image_id, image_hash_key=self.DISK_KVM_HASH_KEY
-        )
-        if kvm_image_info:
-            return kvm_image_info
-
-        uefi1_image_info = super()._image_info(
-            image_id, image_hash_key=self.DISK_UEFI1_KEY
-        )
-        if uefi1_image_info:
-            return uefi1_image_info
+        with suppress(ValueError):
+            return super()._image_info(
+                image_id, image_hash_key=self.DISK_KVM_HASH_KEY
+            )
+        with suppress(ValueError):
+            return super()._image_info(
+                image_id, image_hash_key=self.DISK_UEFI1_KEY
+            )
 
         return super()._image_info(
             image_id, image_hash_key=self.DISK1_HASH_KEY
