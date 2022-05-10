@@ -15,29 +15,10 @@ class TestLXDProfilesWereNotModified:
     # the existing dict we have here. The rationale for that is to avoid
     # us forgetting to bump the profile version when modifying it.
     version_to_md5sum = {
-        "v1": {
-            "xenial": "350af6388522c8c28d8e00152fac98cc",
-            "bionic": "b79ba7ea46882d35e6d10b08c7531f6f",
-            "focal": "9ce4202e39d98c1499e3bce3c144e14f",
-            "groovy": "05b1582d39237fb2d1b55c8782982bfd",
-            "hirsute": "1f3851328bec6253f51b1f1dc9bcbf55",
-        },
-        "v2": {
-            "xenial": "c4f83c97c2f39a39f1e997aa33e4bb66",
-            "bionic": "0e35f88aa29c66374fbd9fe3b4a36257",
-            "focal": "9ce4202e39d98c1499e3bce3c144e14f",
-            "groovy": "05b1582d39237fb2d1b55c8782982bfd",
-            "hirsute": "1f3851328bec6253f51b1f1dc9bcbf55",
-            "impish": "c2a4e4d6a9c16f73f2f79fe34d3f638f",
-        },
         "v3": {
-            "xenial": "da94488cc93ebbb136c1f6830e6b9fcc",
-            "bionic": "0e35f88aa29c66374fbd9fe3b4a36257",
-            "focal": "9ce4202e39d98c1499e3bce3c144e14f",
-            "groovy": "05b1582d39237fb2d1b55c8782982bfd",
-            "hirsute": "1f3851328bec6253f51b1f1dc9bcbf55",
-            "impish": "c2a4e4d6a9c16f73f2f79fe34d3f638f",
-            "jammy": "7329f45a0a46be7a0e9f0acdb7e5908d",
+            "xenial": "1f4d35dc74a550eb6458222a531a24c4",
+            "bionic": "f0e13a4b8d11bc7b3d82c0f06ef72211",
+            "default": "a740b8296455ba0b51ad093c77b0261b",
         },
     }
 

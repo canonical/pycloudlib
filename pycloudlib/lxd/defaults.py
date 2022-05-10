@@ -29,7 +29,7 @@ LXC_SETUP_VENDORDATA = textwrap.dedent(
 VM_PROFILE_TMPL = textwrap.dedent(
     """\
     {vendordata}
-    description: Default LXD profile for {series} VMs
+    description: Pycloudlib LXD profile for {series} VMs
     devices:
       {config_device}
       eth0:
@@ -68,19 +68,7 @@ base_vm_profiles = {
     "bionic": _make_vm_profile(
         "bionic", install_agent=True, config_cloudinit=True
     ),
-    "focal": _make_vm_profile(
-        "focal", install_agent=False, config_cloudinit=False
-    ),
-    "groovy": _make_vm_profile(
-        "groovy", install_agent=False, config_cloudinit=False
-    ),
-    "hirsute": _make_vm_profile(
-        "hirsute", install_agent=False, config_cloudinit=False
-    ),
-    "impish": _make_vm_profile(
-        "impish", install_agent=False, config_cloudinit=False
-    ),
-    "jammy": _make_vm_profile(
-        "jammy", install_agent=False, config_cloudinit=False
+    "default": _make_vm_profile(
+        "default", install_agent=False, config_cloudinit=False
     ),
 }
