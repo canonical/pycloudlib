@@ -30,12 +30,12 @@ class CloudSubclass(BaseCloud):
     def image_serial(self, image_id):
         """Skeletal image_serial."""
 
-    def get_instance(self, instance_id):  # () -> BaseInstance
+    def get_instance(self, instance_id):
         """Skeletal get_instance."""
 
     def launch(
         self, image_id, instance_type=None, user_data=None, wait=True, **kwargs
-    ):  # () -> BaseInstance
+    ):
         """Skeletal launch."""
 
     def snapshot(self, instance, clean=True, **kwargs):

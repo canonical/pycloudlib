@@ -102,14 +102,10 @@ class GceInstance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def restart(self, wait=True, **kwargs):
-        """Restart the instance.
-
-        Args:
-            wait: wait for the instance to be fully started
-        """
-        self.shutdown()
-        self.start()
+    def _do_restart(self, **kwargs):
+        """Restart the instance."""
+        self.shutdown(wait=True)
+        self.start(wait=False)
 
     def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
@@ -142,7 +138,7 @@ class GceInstance(BaseInstance):
         self._wait_for_status("RUNNING")
         self._ip = self._get_ip()
 
-    def wait_for_delete(self, sleep_seconds=300):
+    def wait_for_delete(self, sleep_seconds=30, raise_on_fail=False):
         """Wait for instance to be deleted."""
         for _ in range(sleep_seconds):
             try:
@@ -159,17 +155,20 @@ class GceInstance(BaseInstance):
                     break
                 raise e
         else:
-            raise Exception(
-                "Instance not terminated after {} seconds. "
-                "Check GCE console.".format(sleep_seconds)
+            msg = (
+                f"Instance not terminated after {sleep_seconds} seconds. "
+                "Check GCE console."
             )
+            if raise_on_fail:
+                raise TimeoutError(msg)
+            self._log.warning(msg)
 
     def wait_for_stop(self):
         """Wait for instance stop."""
         self._wait_for_status("TERMINATED")
 
     def _wait_for_status(self, status, sleep_seconds=300):
-        response = None
+        response = {"status": None}
         for _ in range(sleep_seconds):
             response = self.instance.get(
                 project=self.project, zone=self.zone, instance=self.instance_id
@@ -178,13 +177,8 @@ class GceInstance(BaseInstance):
                 break
             sleep(1)
         else:
-            raise Exception(
-                "Expected {} state, but found {} after waiting {} seconds. "
-                "Check GCE console for more details. \n"
-                "Status message: {}".format(
-                    status,
-                    response["status"],
-                    sleep_seconds,
-                    response["statusMessage"],
-                )
+            raise TimeoutError(
+                f"Expected {status} state, but found {response['status']} "
+                f"after waiting {sleep_seconds} seconds. "
+                "Check GCE console for more details."
             )

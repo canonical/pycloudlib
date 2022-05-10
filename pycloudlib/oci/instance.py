@@ -83,26 +83,9 @@ class OciInstance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def _sync_filesystem(self):
-        """Sync the filesystem before powering down.
-
-        Without a sync, if you power down too quickly
-        after first boot, all the keys created in /etc/ssh will turn into
-        zero-byte files and you'll be permanently kicked out of your
-        instance with your only hope being serial console access.
-        """
-        self.execute("sync")
-
-    def restart(self, wait=True, **kwargs):
-        """Restart the instance.
-
-        Args:
-            wait: wait for the instance to be fully started
-        """
-        self._sync_filesystem()
+    def _do_restart(self, **kwargs):
+        """Restart the instance."""
         self.compute_client.instance_action(self.instance_data.id, "RESET")
-        if wait:
-            self.wait()
 
     def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.

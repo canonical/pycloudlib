@@ -1,9 +1,11 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
+# pylint: disable=too-many-public-methods
 """Base class for all instances to provide consistent set of functions."""
 
 import logging
 import time
 from abc import ABC, abstractmethod
+from contextlib import suppress
 
 import paramiko
 from paramiko.ssh_exception import (
@@ -49,6 +51,20 @@ class BaseInstance(ABC):
         """Return IP address of instance."""
         raise NotImplementedError
 
+    def get_boot_id(self):
+        """Get the instance boot_id.
+
+        Returns:
+            string with the boot UUID
+        """
+        result = self.execute("cat /proc/sys/kernel/random/boot_id")
+        if result.failed:
+            raise OSError(
+                f"Failed to get boot_id. Return code: {result.return_code}, "
+                f"stdout: {result.stdout}, stderr: {result.stderr}"
+            )
+        return result
+
     def console_log(self):
         """Return the instance console log.
 
@@ -66,9 +82,40 @@ class BaseInstance(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def restart(self, wait=True, **kwargs):
         """Restart an instance."""
+        self._sync_filesystem()
+        # If we're not waiting, just call subclass's restart and return.
+        if not wait:
+            self._do_restart()
+            return
+
+        pre_boot_id = None
+
+        # If we attempt to restart, but the instance is already in a
+        # non-connectable state, then don't check boot ids.
+        try:
+            pre_boot_id = self.get_boot_id()
+        except (SSHException, OSError):
+            # Case 2: wait=True, but the instance is unreachable.
+            # The best we can do is to send a reboot signal and wait.
+            self._log.debug(
+                "Instance seems down; will attempt restart and wait."
+            )
+            self._do_restart()
+            self.wait()
+            return
+
+        self._log.debug("Pre-reboot boot_id: %s", pre_boot_id)
+
+        # The instance is reachable, so do the restart and wait for changed
+        # boot id
+        self._do_restart(**kwargs)
+        if wait:
+            self.wait_for_restart(old_boot_id=pre_boot_id)
+
+    @abstractmethod
+    def _do_restart(self, **kwargs):
         raise NotImplementedError
 
     @abstractmethod
@@ -100,6 +147,15 @@ class BaseInstance(ABC):
         """Wait for instance to be up and cloud-init to be complete."""
         self._wait_for_instance_start()
         self._wait_for_execute()
+        self._wait_for_cloudinit()
+
+    def wait_for_restart(self, old_boot_id):
+        """Wait for instance to be restarted and cloud-init to be complete.
+
+        old_boot_id is the boot id prior to restart
+        """
+        self._wait_for_instance_start()
+        self._wait_for_execute(old_boot_id=old_boot_id)
         self._wait_for_cloudinit()
 
     @abstractmethod
@@ -304,7 +360,7 @@ class BaseInstance(ABC):
         client = self._ssh_connect()
         try:
             fp_in, fp_out, fp_err = client.exec_command(cmd)
-        except (ConnectionResetError, NoValidConnectionsError) as e:
+        except (ConnectionResetError, NoValidConnectionsError, EOFError) as e:
             raise SSHException from e
         channel = fp_in.channel
 
@@ -398,28 +454,29 @@ class BaseInstance(ABC):
         self._tmp_count += 1
         return path
 
-    def _wait_for_execute(self):
-        """Wait until we can execute a command in the instance."""
-        self._log.debug("_wait_for_execute to complete")
-        test_instance_command = "whoami"
+    def _wait_for_execute(self, old_boot_id=None):
+        """Wait until we can execute a command in the instance.
 
-        # Wait 40 minutes before failing
+        If old_boot_id is specified, we use its value to wait until we
+        find a new boot id
+        """
+        self._log.debug("_wait_for_execute to complete")
+
+        # Wait 40 minutes before failing. AWS EC2 metal instances can take
+        # over 20 minutes to start or restart, so we shouldn't lower
+        # this timeout
         start = time.time()
         end = start + 40 * 60
         while time.time() < end:
-            try:
-                result = self.execute(test_instance_command)
-                if result.ok:
+            with suppress(SSHException, OSError):
+                boot_id = self.get_boot_id()
+                if not old_boot_id or boot_id != old_boot_id:
                     return
-            except SSHException:
-                pass
             time.sleep(1)
 
         raise OSError(
-            "{}\n{}".format(
-                "Instance can't be reached after 40 minutes. ",
-                "Failed to execute {} command".format(test_instance_command),
-            )
+            "Instance can't be reached after 40 minutes. "
+            "Failed to obtain new boot id",
         )
 
     def _wait_for_cloudinit(self):
@@ -430,10 +487,16 @@ class BaseInstance(ABC):
             # ensure our cloud-init.target is active as an extra layer of
             # protection against connecting before the system is ready
             for _ in range(300):
-                if self.execute(
-                    ["systemctl", "is-active", "cloud-init.target"]
-                ).ok:
-                    break
+                with suppress(SSHException):
+                    if self.execute(
+                        ["systemctl", "is-active", "cloud-init.target"]
+                    ).ok:
+                        break
                 time.sleep(1)
         cmd = ["cloud-init", "status", "--wait", "--long"]
         self.execute(cmd, description="waiting for start")
+
+    def _sync_filesystem(self):
+        """Sync the filesystem before powering down."""
+        with suppress(SSHException):
+            self.execute("sync")

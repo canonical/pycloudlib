@@ -129,15 +129,11 @@ class AzureInstance(BaseInstance):
             start.wait()
             self.wait()
 
-    def restart(self, wait=True, **kwargs):
+    def _do_restart(self, **kwargs):
         """Restart the instance."""
-        restart = self._client.virtual_machines.restart(
+        self._client.virtual_machines.restart(
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         )
-
-        if wait:
-            restart.wait()
-            self.wait()
 
     def delete(self, wait=True):
         """Delete instance."""

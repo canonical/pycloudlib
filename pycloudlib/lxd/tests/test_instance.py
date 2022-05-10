@@ -11,41 +11,19 @@ from pycloudlib.result import Result
 class TestRestart:
     """Tests covering pycloudlib.lxd.instance.Instance.restart."""
 
-    @pytest.mark.parametrize(
-        "wait,force,cmd",
-        (
-            (True, True, ["lxc", "restart", "my_vm", "--force"]),
-            (True, False, ["lxc", "restart", "my_vm"]),
-            # When wait is false, call shutdown and start
-            (False, False, []),
-            (False, True, []),
-        ),
-    )
+    @pytest.mark.parametrize("force", (False, True))
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.start")
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.wait")
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_restart_calls_lxc_cmd_with_force_param(
-        self, m_subp, m_wait, m_shutdown, m_start, wait, force, cmd
+        self, _m_subp, _m_wait, m_shutdown, m_start, force
     ):
-        """When wait=True, honor force param on lxc restart cmdline.
-
-        When wait is False will wait on shutdown and not wait on start.
-        """
+        """Honor force param on shutdown."""
         instance = LXDInstance(name="my_vm")
-        instance.restart(force=force, wait=wait)
-        if wait:
-            assert [mock.call(cmd)] == m_subp.call_args_list
-            assert 0 == m_shutdown.call_count
-            assert 0 == m_start.call_count
-            assert 1 == m_wait.call_count
-        else:
-            assert 0 == m_subp.call_count
-            assert [
-                mock.call(wait=True, force=force)
-            ] == m_shutdown.call_args_list
-            assert [mock.call(wait=wait)] == m_start.call_args_list
-            assert 0 == m_wait.call_count
+        instance._do_restart(force=force)  # pylint: disable=protected-access
+        assert [mock.call(wait=True, force=force)] == m_shutdown.call_args_list
+        assert [mock.call(wait=False)] == m_start.call_args_list
 
 
 class TestExecute:
