@@ -205,4 +205,8 @@ class BaseCloud(ABC):
             keyring_path="/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg",
         )
 
-        return stream.query(filters)
+        result = stream.query(filters)
+        if not result:
+            raise ValueError(f"No images found matching filters: {filters}")
+
+        return result
