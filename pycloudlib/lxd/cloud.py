@@ -611,7 +611,7 @@ class LXDVirtualMachine(_BaseLXD):
         base_release = self._extract_release_from_image_id(image_id)
         if base_release not in ["xenial", "bionic"]:
             base_release = "default"
-        profile_name = f"pycloudlib-vm-{base_release}-{LXC_PROFILE_VERSION}"
+        profile_name = f"pycloudlib-vm-{base_release}"
 
         self.create_profile(
             profile_name=profile_name,
