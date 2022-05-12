@@ -8,7 +8,7 @@ import yaml
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
-from pycloudlib.lxd.defaults import LXC_PROFILE_VERSION, base_vm_profiles
+from pycloudlib.lxd.defaults import base_vm_profiles
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
 
