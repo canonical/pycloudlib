@@ -18,6 +18,7 @@ UBUNTU_DAILY_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts",
     "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",
+    "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily",
 }
 
 UBUNTU_RELEASE_IMAGES = {
