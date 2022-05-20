@@ -8,7 +8,7 @@ import yaml
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
-from pycloudlib.lxd.defaults import LXC_PROFILE_VERSION, base_vm_profiles
+from pycloudlib.lxd.defaults import base_vm_profiles
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
 
@@ -609,9 +609,9 @@ class LXDVirtualMachine(_BaseLXD):
         """
         image_id = self._normalize_image_id(image_id)
         base_release = self._extract_release_from_image_id(image_id)
-        profile_name = "pycloudlib-vm-{}-{}".format(
-            base_release, LXC_PROFILE_VERSION
-        )
+        if base_release not in ["xenial", "bionic"]:
+            base_release = "default"
+        profile_name = f"pycloudlib-vm-{base_release}"
 
         self.create_profile(
             profile_name=profile_name,
