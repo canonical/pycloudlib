@@ -4,7 +4,6 @@ import string
 import time
 
 import botocore
-from paramiko.ssh_exception import SSHException
 
 from pycloudlib.instance import BaseInstance
 
@@ -126,65 +125,10 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def restart(self, wait=True, **kwargs):
+    def _do_restart(self, **kwargs):
         """Restart the instance."""
         self._log.debug("restarting instance %s", self._instance.id)
-
-        # Case 1: wait=False. Call boto3's reboot() and return.
-        if not wait:
-            self._instance.reboot()
-            return
-
-        pre_reboot_boot_id = None
-
-        # Exceptions that may be raised when the instances is not reachable
-        # via ssh.
-        ssh_exceptions = (
-            ConnectionRefusedError,
-            ConnectionResetError,
-            EOFError,
-            RuntimeError,
-            SSHException,
-            TimeoutError,
-        )
-
-        try:
-            # Try to get the current boot_id. We shouldn't assume this will
-            # succeed, as one may want to restart the instance exactly because
-            # it become unreachable.
-            pre_reboot_boot_id = self._get_boot_id()
-        except ssh_exceptions:
-            # Case 2: wait=True, but the instance is unreachable.
-            # The best we can do is to send a reboot signal and wait.
-            self._log.debug(
-                "Instance seems down; " "will send reboot signal and wait."
-            )
-            self._instance.reboot()
-            self.wait()
-            return
-
-        self._log.debug("Pre-reboot boot_id: %s", pre_reboot_boot_id)
-
-        # Case 3: wait=True, the instance is reachable. Call boto3's reboot()
-        # and wait for the instance to change its boot_id, then wait().
-        current_boot_id = pre_reboot_boot_id
         self._instance.reboot()
-        while current_boot_id == pre_reboot_boot_id:
-            time.sleep(1)
-            try:
-                self._log.debug("Reading the current boot_id.")
-                current_boot_id = self._get_boot_id()
-                self._log.debug("Current boot_id: %s", current_boot_id)
-            except ssh_exceptions:
-                # The instance went down. Exit the loop and delegate the rest
-                # of the waiting to wait().
-                self._log.debug("Instance went down (rebooting).")
-                break
-
-        self.wait()
-        current_boot_id = self._get_boot_id()
-        if current_boot_id == pre_reboot_boot_id:
-            raise RuntimeError("Reboot failed (boot_id didn't change)")
 
     def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
@@ -402,16 +346,6 @@ class EC2Instance(BaseInstance):
             used_device_names.add(device["DeviceName"])
 
         return list(set(all_device_names) - used_device_names)[0]
-
-    def _get_boot_id(self):
-        """Get the instance boot_id.
-
-        Returns:
-            string with the boot UUID
-
-        """
-        boot_id = self.execute("cat /proc/sys/kernel/random/boot_id")
-        return boot_id
 
     def remove_network_interface(self, ip_address):
         """Remove network interface based on IP address.

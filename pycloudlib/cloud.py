@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 import paramiko
 
 from pycloudlib.config import ConfigFile, parse_config
+from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
 from pycloudlib.util import get_timestamped_tag, validate_tag
@@ -103,7 +104,7 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_instance(self, instance_id, **kwargs):  # () -> BaseInstance
+    def get_instance(self, instance_id, **kwargs) -> BaseInstance:
         """Get an instance by id.
 
         Args:
@@ -118,7 +119,7 @@ class BaseCloud(ABC):
     @abstractmethod
     def launch(
         self, image_id, instance_type=None, user_data=None, wait=True, **kwargs
-    ):  # () -> BaseInstance
+    ) -> BaseInstance:
         """Launch an instance.
 
         Args:

@@ -112,14 +112,10 @@ class OpenstackInstance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-    def restart(self, wait=True, **kwargs):
-        """Restart the instance.
-
-        Args:
-            wait: wait for the instance to be fully started
-        """
-        self.shutdown(wait=wait)
-        self.start(wait=wait)
+    def _do_restart(self, **kwargs):
+        """Restart the instance."""
+        self.shutdown(wait=True)
+        self.start(wait=False)
 
     def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.

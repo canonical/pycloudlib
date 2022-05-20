@@ -312,29 +312,18 @@ class LXDInstance(BaseInstance):
             ]
         )
 
-    def restart(self, wait=True, force=False, **kwargs):
+    def _do_restart(self, force=False, **kwargs):
         """Restart an instance.
 
         For LXD this means stopping the instance, and then starting it.
 
         Args:
-            wait: boolean, wait for instance to restart
             force: boolean, force instance to shutdown before restart
         """
         self._log.debug("restarting %s", self.name)
 
-        # Since restart is always blocking, use restart if wait is True
-        cmd = ["lxc", "restart", self.name]
-        if force:
-            cmd.append("--force")
-        if wait:
-            subp(cmd)
-            self.wait()
-        else:
-            # If wait is False, this is a faster way to restart without
-            # blocking
-            self.shutdown(wait=True, force=force)
-            self.start(wait=False)
+        self.shutdown(wait=True, force=force)
+        self.start(wait=False)
 
     def restore(self, snapshot_name):
         """Restore instance from a specific snapshot.
