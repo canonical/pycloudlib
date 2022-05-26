@@ -494,7 +494,7 @@ class BaseInstance(ABC):
                 with suppress(SSHException):
                     if self.execute(
                         ["systemctl", "is-active", "cloud-init.target"],
-                        no_log=True
+                        no_log=True,
                     ).ok:
                         break
                 time.sleep(1)
