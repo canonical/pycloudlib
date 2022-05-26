@@ -44,7 +44,8 @@ class TestWait:
         assert 1 == mocks["_wait_for_cloudinit"].call_count
 
     @pytest.mark.parametrize(
-        "execute_effect", [lambda _: Result("", "", 1), SSHException]
+        "execute_effect",
+        [lambda *args, **kwargs: Result("", "", 1), SSHException],
     )
     @mock.patch.object(BaseInstance, "execute")
     @mock.patch("pycloudlib.instance.time.sleep")
@@ -55,14 +56,13 @@ class TestWait:
         """Test wait calls when execute command fails."""
         instance = concrete_instance_cls(key_pair=None)
         m_time.side_effect = [1, 2, 40 * 60, 40 * 60 + 1]
-        # m_execute.side_effect = Result("", "", 1)
         m_execute.side_effect = execute_effect
         expected_msg = (
             "Instance can't be reached after 40 minutes. "
             "Failed to obtain new boot id"
         )
         expected_call_args = [
-            mock.call("cat /proc/sys/kernel/random/boot_id")
+            mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)
         ] * 2
 
         with pytest.raises(OSError) as excinfo:
@@ -191,7 +191,7 @@ class TestWaitForRestart:
             "Failed to obtain new boot id"
         )
         expected_call_args = [
-            mock.call("cat /proc/sys/kernel/random/boot_id")
+            mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)
         ] * 2
 
         with pytest.raises(OSError) as excinfo:
@@ -236,7 +236,12 @@ class TestWaitForCloudinit:
         expected = [
             mock.call(["which", "systemctl"]),
             *(
-                [mock.call(["systemctl", "is-active", "cloud-init.target"])]
+                [
+                    mock.call(
+                        ["systemctl", "is-active", "cloud-init.target"],
+                        no_log=True,
+                    )
+                ]
                 * 300
             ),
             mock.call(
