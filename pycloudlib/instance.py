@@ -57,7 +57,9 @@ class BaseInstance(ABC):
         Returns:
             string with the boot UUID
         """
-        result = self.execute("cat /proc/sys/kernel/random/boot_id")
+        result = self.execute(
+            "cat /proc/sys/kernel/random/boot_id", no_log=True
+        )
         if result.failed:
             raise OSError(
                 f"Failed to get boot_id. Return code: {result.return_code}, "
@@ -210,6 +212,7 @@ class BaseInstance(ABC):
         description=None,
         *,
         use_sudo=False,
+        no_log=False,
         **kwargs,
     ):
         """Execute command in instance, recording output, error and exit code.
@@ -236,11 +239,12 @@ class BaseInstance(ABC):
         if use_sudo:
             command = ["sudo", "--"] + command
 
-        self._log.info("executing: %s", shell_quote(command))
-        if description:
-            self._log.debug(description)
-        else:
-            self._log.debug("executing: %s", shell_quote(command))
+        if not no_log:
+            self._log.info("executing: %s", shell_quote(command))
+            if description:
+                self._log.debug(description)
+            else:
+                self._log.debug("executing: %s", shell_quote(command))
 
         return self._run_command(command, stdin, **kwargs)
 
@@ -460,7 +464,7 @@ class BaseInstance(ABC):
         If old_boot_id is specified, we use its value to wait until we
         find a new boot id
         """
-        self._log.debug("_wait_for_execute to complete")
+        self._log.info("_wait_for_execute to complete")
 
         # Wait 40 minutes before failing. AWS EC2 metal instances can take
         # over 20 minutes to start or restart, so we shouldn't lower
@@ -481,7 +485,7 @@ class BaseInstance(ABC):
 
     def _wait_for_cloudinit(self):
         """Wait until cloud-init has finished."""
-        self._log.debug("_wait_for_cloudinit to complete")
+        self._log.info("_wait_for_cloudinit to complete")
         if self.execute(["which", "systemctl"]).ok:
             # We may have issues with cloud-init status early boot, so also
             # ensure our cloud-init.target is active as an extra layer of
@@ -489,7 +493,8 @@ class BaseInstance(ABC):
             for _ in range(300):
                 with suppress(SSHException):
                     if self.execute(
-                        ["systemctl", "is-active", "cloud-init.target"]
+                        ["systemctl", "is-active", "cloud-init.target"],
+                        no_log=True,
                     ).ok:
                         break
                 time.sleep(1)
