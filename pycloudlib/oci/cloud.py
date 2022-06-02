@@ -214,11 +214,18 @@ class OCI(BaseCloud):
 
         """
         vcn_id = self.network_client.list_vcns(self.compartment_id).data[0].id
-        subnet = self.network_client.list_subnets(
+        subnets = self.network_client.list_subnets(
             self.compartment_id, vcn_id=vcn_id
-        ).data[0]
-        subnet_id = subnet.id
-
+        ).data
+        subnet_id = None
+        for subnet in subnets:
+            if subnet.availability_domain == self.availability_domain:
+                subnet_id = subnet.id
+        if not subnet_id:
+            raise Exception(
+                f"Unabled to determine subnet id for domain: "
+                f"{self.availability_domain}"
+            )
         metadata = {
             "ssh_authorized_keys": self.key_pair.public_key_content,
         }
