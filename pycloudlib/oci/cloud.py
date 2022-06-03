@@ -221,6 +221,9 @@ class OCI(BaseCloud):
         for subnet in subnets:
             if subnet.availability_domain == self.availability_domain:
                 subnet_id = subnet.id
+                break
+        else:
+            subnet_id = subnets[0].id
         if not subnet_id:
             raise Exception(
                 f"Unabled to determine subnet id for domain: "
