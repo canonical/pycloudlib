@@ -18,8 +18,8 @@ def read_readme():
 INSTALL_REQUIRES = [
     "boto3 >= 1.14.20",
     "botocore >= 1.17.20",
-    "google-api-python-client >= 1.7.7, < 2.49.0",
-    "protobuf < 3.12.0",
+    "google-api-python-client >= 1.7.7",
+    "protobuf < 3.20.0",
     "paramiko >= 2.9.2",
     "pyyaml >= 5.1",
     "requests >= 2.22",
