@@ -21,9 +21,9 @@ from pycloudlib.util import get_timestamped_tag, validate_tag
 class ImageType(enum.Enum):
     """Allowed image types when launching cloud images."""
 
-    GENERIC = object()
-    PRO = object()
-    PRO_FIPS = object()
+    GENERIC = "generic"
+    PRO = "PRO"
+    PRO_FIPS = "FIPS PRO"
 
 
 class BaseCloud(ABC):

@@ -3,8 +3,10 @@
 """Basic examples of various lifecycle with an EC2 instance."""
 
 import logging
+import os
 
 import pycloudlib
+from pycloudlib.cloud import ImageType
 
 
 def hot_add(ec2, daily):
@@ -68,13 +70,13 @@ def custom_vpc(ec2, daily):
 
 
 def launch_basic(ec2, daily):
-    """Show bassic functionality on instances.
+    """Show basic functionality on instances.
 
     Simple launching of an instance, run a command, and delete.
     """
     instance = ec2.launch(daily)
     instance.console_log()
-    instance.execute("ip a")
+    print(instance.execute("lsb_release -a"))
 
     instance.shutdown()
     instance.start()
@@ -89,6 +91,44 @@ def launch_basic(ec2, daily):
     instance.delete()
 
 
+def launch_pro(ec2, daily):
+    """Show basic functionality on PRO instances."""
+    print("Launching PRO instance...")
+    instance = ec2.launch(daily)
+    print(instance.execute("sudo ua status --wait"))
+    print("Deleting PRO instance...")
+    instance.delete()
+
+
+def launch_pro_fips(ec2, daily):
+    """Show basic functionality on PRO instances."""
+    print("Launching PRO FIPS instance...")
+    instance = ec2.launch(daily)
+    print(instance.execute("sudo ua status --wait"))
+    print("Deleting PRO FIPS instance...")
+    instance.delete()
+
+
+def handle_ssh_key(ec2, key_name):
+    """Manage ssh keys to be used in the instances."""
+    if key_name in ec2.list_keys():
+        ec2.delete_key(key_name)
+
+    key_pair = ec2.client.create_key_pair(KeyName=key_name)
+    private_key_path = "ec2-test.pem"
+    with open(private_key_path, "w", encoding="utf-8") as stream:
+        stream.write(key_pair["KeyMaterial"])
+    os.chmod(private_key_path, 0o600)
+
+    # Since we are using a pem file, we don't have distinct public and
+    # private key paths
+    ec2.use_key(
+        public_key_path=private_key_path,
+        private_key_path=private_key_path,
+        name=key_name,
+    )
+
+
 def demo():
     """Show example of using the EC2 library.
 
@@ -96,9 +136,18 @@ def demo():
     through a number of examples.
     """
     ec2 = pycloudlib.EC2(tag="examples")
+    key_name = "test-ec2"
+    handle_ssh_key(ec2, key_name)
+
     daily = ec2.daily_image(release="bionic")
+    daily_pro = ec2.daily_image(release="bionic", image_type=ImageType.PRO)
+    daily_pro_fips = ec2.daily_image(
+        release="bionic", image_type=ImageType.PRO_FIPS
+    )
 
     launch_basic(ec2, daily)
+    launch_pro(ec2, daily_pro)
+    launch_pro_fips(ec2, daily_pro_fips)
     custom_vpc(ec2, daily)
     snapshot(ec2, daily)
     launch_multiple(ec2, daily)

@@ -2,11 +2,12 @@
 """AWS EC2 Cloud type."""
 import botocore
 
-from pycloudlib.cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
+from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 
 
 class EC2(BaseCloud):
@@ -97,21 +98,90 @@ class EC2(BaseCloud):
         image = self._find_image(release, arch, root_store, daily=False)
         return image["id"]
 
-    def daily_image(self, release, arch="amd64", root_store="ssd"):
+    def _get_name_for_image_type(self, release: str, image_type: ImageType):
+        if image_type == ImageType.GENERIC:
+            if release in LTS_RELEASES:
+                return "ubuntu/images/hvm-ssd/ubuntu-{}-{}-*-server-*".format(
+                    release, UBUNTU_RELEASE_VERSION_MAP[release]
+                )
+
+            return "ubuntu/images-testing/hvm-ssd/ubuntu-{}-daily-*".format(
+                release
+            )
+
+        if image_type == ImageType.PRO:
+            return "ubuntu-pro-server/images/hvm-ssd/ubuntu-{}-{}-*".format(
+                release, UBUNTU_RELEASE_VERSION_MAP[release]
+            )
+
+        if image_type == ImageType.PRO_FIPS:
+            return "ubuntu-pro-fips/images/hvm-ssd/ubuntu-{}-{}-*".format(
+                release, UBUNTU_RELEASE_VERSION_MAP[release]
+            )
+
+        raise ValueError("Invalid image_type")
+
+    def _get_owner(self, image_type: ImageType):
+        return (
+            "099720109477"
+            if image_type == ImageType.GENERIC
+            else "aws-marketplace"
+        )
+
+    def _get_search_filters(
+        self, release: str, arch: str, image_type: ImageType
+    ):
+        return [
+            {
+                "Name": "name",
+                "Values": [self._get_name_for_image_type(release, image_type)],
+            },
+            {
+                "Name": "architecture",
+                "Values": [arch],
+            },
+        ]
+
+    def _find_latest_image(
+        self, release: str, arch: str, image_type: ImageType
+    ):
+        filters = self._get_search_filters(
+            release=release, arch=arch, image_type=image_type
+        )
+        owner = self._get_owner(image_type=image_type)
+
+        images = self.client.describe_images(
+            Owners=[owner],
+            Filters=filters,
+        )
+
+        if not images.get("Images"):
+            raise Exception(
+                "Could not find {} image for {} release".format(
+                    image_type.value, release
+                )
+            )
+
+        return sorted(images["Images"], key=lambda x: x["CreationDate"])[-1]
+
+    def daily_image(
+        self, release, arch="x86_64", image_type: ImageType = ImageType.GENERIC
+    ):
         """Find the id of the latest daily image for a particular release.
 
         Args:
             release: string, Ubuntu release to look for
             arch: string, architecture to use
-            root_store: string, root store to use
 
         Returns:
             string, id of latest image
 
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
-        image = self._find_image(release, arch, root_store)
-        return image["id"]
+        image = self._find_latest_image(
+            release=release, arch=arch, image_type=image_type
+        )
+        return image["ImageId"]
 
     def image_serial(self, image_id):
         """Find the image serial of a given EC2 image ID.

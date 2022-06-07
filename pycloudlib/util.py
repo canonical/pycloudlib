@@ -22,6 +22,8 @@ UBUNTU_RELEASE_VERSION_MAP = {
     "xenial": "16.04",
 }
 
+LTS_RELEASES = ["xenial", "bionic", "focal", "jammy"]
+
 
 def chmod(path, mode):
     """Run chmod on a file or directory.
