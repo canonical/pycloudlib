@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+import enum
 import getpass
 import io
 import logging
@@ -14,6 +15,15 @@ from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
 from pycloudlib.util import get_timestamped_tag, validate_tag
+
+
+@enum.unique
+class ImageType(enum.Enum):
+    """Allowed image types when launching cloud images."""
+
+    GENERIC = object()
+    PRO = object()
+    PRO_FIPS = object()
 
 
 class BaseCloud(ABC):
