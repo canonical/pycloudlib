@@ -21,7 +21,7 @@ def demo(availability_domain, compartment_id):
     through a number of examples.
     """
     client = pycloudlib.OCI(
-        "Oracle test",
+        "oracle-test",
         availability_domain=availability_domain,
         compartment_id=compartment_id,
     )
