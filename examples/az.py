@@ -5,11 +5,26 @@
 import logging
 
 import pycloudlib
+from pycloudlib.cloud import ImageType
 
 cloud_config = """#cloud-config
 runcmd:
   - echo 'hello' > /home/ubuntu/example.txt
 """
+
+
+def save_keys(key_name: str, pub_key: str, priv_key: str):
+    """Save keys generated through Azure."""
+    pub_path = "pub_{}.pem".format(key_name)
+    priv_path = "priv_{}.pem".format(key_name)
+
+    with open(pub_path, "w", encoding="utf-8") as f:
+        f.write(pub_key)
+
+    with open(priv_path, "w", encoding="utf-8") as f:
+        f.write(priv_key)
+
+    return pub_path, priv_path
 
 
 def demo():
@@ -22,18 +37,14 @@ def demo():
     you Azure account
     """
     client = pycloudlib.Azure(tag="azure")
-
     image_id = client.daily_image(release="focal")
+
     pub_key, priv_key = client.create_key_pair(key_name="test_integration")
-
-    pub_path = "pub_test.pem"
-    priv_path = "priv_test.pem"
-
-    with open(pub_path, "w", encoding="utf-8") as f:
-        f.write(pub_key)
-
-    with open(priv_path, "w", encoding="utf-8") as f:
-        f.write(priv_key)
+    pub_path, priv_path = save_keys(
+        key_name="test",
+        pub_key=pub_key,
+        priv_key=priv_key,
+    )
     client.use_key(pub_path, priv_path)
 
     instance = client.launch(
@@ -53,9 +64,64 @@ def demo():
     new_instance.delete()
 
 
+def demo_pro():
+    """Show example of launchig a Ubuntu PRO image through Azure."""
+    client = pycloudlib.Azure(tag="azure")
+    image_id = client.daily_image(release="focal", image_type=ImageType.PRO)
+
+    pub_key, priv_key = client.create_key_pair(key_name="test_pro")
+    pub_path, priv_path = save_keys(
+        key_name="test_pro",
+        pub_key=pub_key,
+        priv_key=priv_key,
+    )
+    client.use_key(pub_path, priv_path)
+
+    print("Launching Focal PRO instance.")
+    instance = client.launch(
+        image_id=image_id,
+        instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
+    )
+
+    print(instance.ip)
+    instance.wait()
+    print(instance.execute("sudo ua status --wait"))
+    instance.delete()
+
+
+def demo_pro_fips():
+    """Show example of launchig a Ubuntu PRO FIPS image through Azure."""
+    client = pycloudlib.Azure(tag="azure")
+    image_id = client.daily_image(
+        release="focal", image_type=ImageType.PRO_FIPS
+    )
+
+    pub_key, priv_key = client.create_key_pair(key_name="test_pro_fips")
+    pub_path, priv_path = save_keys(
+        key_name="test_pro_fips",
+        pub_key=pub_key,
+        priv_key=priv_key,
+    )
+    client.use_key(pub_path, priv_path)
+
+    print("Launching Focal PRO instance.")
+    instance = client.launch(
+        image_id=image_id,
+        instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
+    )
+
+    print(instance.ip)
+    instance.wait()
+    print(instance.execute("sudo ua status --wait"))
+    instance.delete()
+
+
 if __name__ == "__main__":
     # Avoid polluting the log with azure info
     logging.getLogger("adal-python").setLevel(logging.WARNING)
     logging.getLogger("cli.azure.cli.core").setLevel(logging.WARNING)
     logging.basicConfig(level=logging.DEBUG)
+
     demo()
+    demo_pro()
+    demo_pro_fips()
