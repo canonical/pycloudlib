@@ -131,3 +131,69 @@ class OciInstance(BaseInstance):
             current_data=self.instance_data,
             desired_state="STOPPED",
         )
+
+    def add_network_interface(self) -> str:
+        """Add network interface to running instance.
+
+        Creates a nic and attaches it to the instance. This is effectively a
+        hot-add of a network device. Returns the IP address of the added
+        network interface as a string.
+
+        Note: It assumes the associated compartment has at least one subnet and
+        creates the vnic in the first encountered subnet.
+        """
+        subnet_id = (
+            self.network_client.list_subnets(self.compartment_id, limit=1)
+            .data[0]
+            .id
+        )
+        create_vnic_details = oci.core.models.CreateVnicDetails(
+            subnet_id=subnet_id,
+        )
+        attach_vnic_details = oci.core.models.AttachVnicDetails(
+            create_vnic_details=create_vnic_details,
+            instance_id=self.instance_id,
+        )
+        vnic_attachment_data = self.compute_client.attach_vnic(
+            attach_vnic_details
+        ).data
+        vnic_attachment_data = wait_till_ready(
+            func=self.compute_client.get_vnic_attachment,
+            current_data=vnic_attachment_data,
+            desired_state=vnic_attachment_data.LIFECYCLE_STATE_ATTACHED,
+        )
+        vnic_data = self.network_client.get_vnic(
+            vnic_attachment_data.vnic_id
+        ).data
+        return vnic_data.private_ip
+
+    def remove_network_interface(self, ip_address: str):
+        """Remove network interface based on IP address.
+
+        Find the NIC from the IP, detach from the instance.
+
+        Note: In OCI, detaching triggers deletion.
+        """
+        vnic_attachments = oci.pagination.list_call_get_all_results_generator(
+            self.compute_client.list_vnic_attachments,
+            "record",
+            self.compartment_id,
+            instance_id=self.instance_id,
+        )
+        for vnic_attachment in vnic_attachments:
+            vnic_data = self.network_client.get_vnic(
+                vnic_attachment.vnic_id
+            ).data
+            if vnic_data.private_ip == ip_address:
+                try:
+                    self.compute_client.detach_vnic(vnic_attachment.id)
+                except oci.exceptions.ServiceError:
+                    self._log.debug(
+                        "Failed manually detaching and deleting network "
+                        "interface. Interface should get destroyed on instance"
+                        " cleanup."
+                    )
+                return
+        raise Exception(
+            f"Network interface with ip_address={ip_address} did not detach"
+        )
