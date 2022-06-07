@@ -8,7 +8,7 @@ from azure.mgmt.resource import ResourceManagementClient
 
 from pycloudlib.azure import util
 from pycloudlib.azure.instance import AzureInstance
-from pycloudlib.cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.util import get_timestamped_tag, update_nested
 
@@ -19,6 +19,19 @@ UBUNTU_DAILY_IMAGES = {
     "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",
     "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily",
+}
+
+UBUNTU_DAILY_PRO_IMAGES = {
+    "xenial": "Canonical:0001-com-ubuntu-pro-xenial:pro-16_04-lts",
+    "bionic": "Canonical:0001-com-ubuntu-pro-bionic:pro-18_04-lts",
+    "focal": "Canonical:0001-com-ubuntu-pro-focal:pro-20_04-lts",
+    "jammy": "Canonical:0001-com-ubuntu-pro-jammy:pro-22_04-lts",
+}
+
+UBUNTU_DAILY_PRO_FIPS_IMAGES = {
+    "xenial": "Canonical:0001-com-ubuntu-pro-xenial-fips:pro-fips-16_04-private",  # noqa
+    "bionic": "Canonical:0001-com-ubuntu-pro-bionic-fips:pro-fips-18_04",
+    "focal": "Canonical:0001-com-ubuntu-pro-focal-fips:pro-fips-20_04",
 }
 
 UBUNTU_RELEASE_IMAGES = {
@@ -481,7 +494,19 @@ class Azure(BaseCloud):
         self._log.debug("finding release Ubuntu image for %s", release)
         return self._get_image(release, UBUNTU_RELEASE_IMAGES)
 
-    def daily_image(self, release):
+    def _get_images_dict(self, image_type: ImageType):
+        if image_type == ImageType.GENERIC:
+            return UBUNTU_DAILY_IMAGES
+
+        if image_type == ImageType.PRO:
+            return UBUNTU_DAILY_PRO_IMAGES
+
+        if image_type == ImageType.PRO_FIPS:
+            return UBUNTU_DAILY_PRO_FIPS_IMAGES
+
+        raise ValueError("Invalid image_type")
+
+    def daily_image(self, release, image_type: ImageType = ImageType.GENERIC):
         """Find the image info for the latest daily image for a given release.
 
         Args:
@@ -492,7 +517,7 @@ class Azure(BaseCloud):
 
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
-        return self._get_image(release, UBUNTU_DAILY_IMAGES)
+        return self._get_image(release, self._get_images_dict(image_type))
 
     def _check_for_network_interfaces(self):
         """
