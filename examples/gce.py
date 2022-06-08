@@ -6,23 +6,11 @@ import logging
 import os
 
 import pycloudlib
+from pycloudlib.cloud import ImageType
 
 
-def demo():
-    """Show example of using the GCE library.
-
-    Connects to GCE and finds the latest daily image. Then runs
-    through a number of examples.
-    """
-    gce = pycloudlib.GCE(
-        tag="examples",
-        credentials_path="MY-GCE-CREDENTIALS-PATH",
-        project="PROJECT-ID",
-        region="us-west2",
-        zone="a",
-    )
-    daily = gce.daily_image("bionic")
-
+def manage_ssh_key(gce):
+    """Manage ssh keys for gce instances."""
     pub_key_path = "gce-pubkey"
     priv_key_path = "gce-privkey"
     pub_key, priv_key = gce.create_key_pair()
@@ -38,10 +26,45 @@ def demo():
 
     gce.use_key(public_key_path=pub_key_path, private_key_path=priv_key_path)
 
+
+def generic(gce):
+    """Show example of using the GCE library.
+
+    Connects to GCE and finds the latest daily image. Then runs
+    through a number of examples.
+    """
+    daily = gce.daily_image("bionic")
     inst = gce.launch(daily)
     print(inst.execute("lsb_release -a"))
+    inst.delete()
+
+
+def pro(gce):
+    """Show example of running a GCE PRO machine."""
+    daily = gce.daily_image("bionic", image_type=ImageType.PRO)
+    inst = gce.launch(daily)
+    print(inst.execute("sudo ua status --wait"))
+    inst.delete()
+
+
+def pro_fips(gce):
+    """Show example of running a GCE PRO FIPS machine."""
+    daily = gce.daily_image("bionic", image_type=ImageType.PRO_FIPS)
+    inst = gce.launch(daily)
+    print(inst.execute("sudo ua status --wait"))
+    inst.delete()
+
+
+def demo():
+    """Show examples of launching GCP instances."""
+    logging.basicConfig(level=logging.DEBUG)
+    gce = pycloudlib.GCE(tag="examples")
+    manage_ssh_key(gce)
+
+    generic(gce)
+    pro(gce)
+    pro_fips(gce)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
     demo()
