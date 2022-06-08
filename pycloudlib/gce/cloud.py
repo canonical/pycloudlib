@@ -13,11 +13,11 @@ from itertools import count
 
 import googleapiclient.discovery
 
-from pycloudlib.cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.gce.instance import GceInstance
 from pycloudlib.gce.util import get_credentials, raise_on_error
-from pycloudlib.util import subp
+from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP, subp
 
 logging.getLogger("googleapiclient.discovery").setLevel(logging.WARNING)
 
@@ -107,42 +107,94 @@ class GCE(BaseCloud):
         self.zone = "%s-%s" % (region, zone)
         self.instance_counter = count()
         self.service_account_email = service_account_email or self.config.get(
-            "service_account_meail"
+            "service_account_email"
         )
 
-    def _find_image(self, release, daily, arch="amd64"):
-        images = self._image_list(release, daily, arch)
-
-        image_id = images[0]["id"]
-
-        return "projects/ubuntu-os-cloud-devel/global/images/%s" % image_id
-
-    def released_image(self, release, arch="amd64"):
+    def released_image(
+        self, release, image_type: ImageType = ImageType.GENERIC
+    ):
         """ID of the latest released image for a particular release.
 
         Args:
             release: The release to look for
-            arch: string, architecture to use
 
         Returns:
             A single string with the latest released image ID for the
             specified release.
         """
-        return self.daily_image(release, arch)
+        return self.daily_image(release=release, image_type=image_type)
 
-    def daily_image(self, release, arch="amd64"):
+    def _get_project(self, image_type: ImageType):
+        return (
+            "ubuntu-os-cloud-devel"
+            if image_type == ImageType.GENERIC
+            else "ubuntu-os-pro-cloud"
+        )
+
+    def _get_name_filter(self, release: str, image_type: ImageType):
+        if image_type == ImageType.GENERIC:
+            if release in LTS_RELEASES:
+                return "ubuntu-{}-{}-*".format(
+                    UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""),
+                    release,
+                )
+
+            return "daily-ubuntu-{}-{}-*".format(
+                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+            )
+
+        if image_type == ImageType.PRO:
+            return "ubuntu-pro-{}-{}-*".format(
+                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+            )
+
+        if image_type == ImageType.PRO_FIPS:
+            return "ubuntu-pro-fips-{}-{}-*".format(
+                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+            )
+
+        raise ValueError("Invalid image_type: {}".format(image_type.value))
+
+    def _find_latest_image(self, release: str, image_type: ImageType):
+        project = self._get_project(image_type=image_type)
+        name_filter = self._get_name_filter(
+            release=release, image_type=image_type
+        )
+
+        image = (
+            self.compute.images()
+            .list(
+                project=project,
+                filter="name={}".format(name_filter),
+            )
+            .execute()
+        )
+
+        image_list = image.get("items", [])
+
+        if not image_list:
+            raise Exception(
+                "Could not find {} image for {} release".format(
+                    image_type.value,
+                    release,
+                )
+            )
+
+        image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
+        return "projects/{}/global/images/{}".format(project, image["id"])
+
+    def daily_image(self, release, image_type: ImageType = ImageType.GENERIC):
         """Find the id of the latest image for a particular release.
 
         Args:
             release: string, Ubuntu release to look for
-            arch: string, architecture to use
 
         Returns:
             string, path to latest daily image
 
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
-        return self._find_image(release, daily=True, arch=arch)
+        return self._find_latest_image(release=release, image_type=image_type)
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
@@ -325,27 +377,6 @@ class GCE(BaseCloud):
         return "projects/{}/global/images/{}".format(
             self.project, snapshot_name
         )
-
-    def _image_list(self, release, daily, arch="amd64"):
-        """Find list of images with a filter.
-
-        Args:
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-
-        Returns:
-            list of dictionaries of images
-
-        """
-        filters = [
-            "arch=%s" % arch,
-            "endpoint=%s" % "https://www.googleapis.com",
-            "region=%s" % self.region,
-            "release=%s" % release,
-            "virt=kvm",
-        ]
-
-        return self._streams_query(filters, daily)
 
     def _wait_for_operation(
         self, operation, operation_type="global", sleep_seconds=300
