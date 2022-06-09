@@ -142,7 +142,7 @@ def demo():
     daily = ec2.daily_image(release="bionic")
     daily_pro = ec2.daily_image(release="bionic", image_type=ImageType.PRO)
     daily_pro_fips = ec2.daily_image(
-        release="bionic", image_type=ImageType.PRO_FIPS
+        release="bionic", image_type=ImageType.FIPS_PRO
     )
 
     launch_basic(ec2, daily)

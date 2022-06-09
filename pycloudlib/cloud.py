@@ -23,7 +23,7 @@ class ImageType(enum.Enum):
 
     GENERIC = "generic"
     PRO = "PRO"
-    PRO_FIPS = "FIPS PRO"
+    FIPS_PRO = "FIPS PRO"
 
 
 class BaseCloud(ABC):
