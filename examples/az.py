@@ -93,7 +93,7 @@ def demo_pro_fips():
     """Show example of launchig a Ubuntu PRO FIPS image through Azure."""
     client = pycloudlib.Azure(tag="azure")
     image_id = client.daily_image(
-        release="focal", image_type=ImageType.PRO_FIPS
+        release="focal", image_type=ImageType.FIPS_PRO
     )
 
     pub_key, priv_key = client.create_key_pair(key_name="test_pro_fips")

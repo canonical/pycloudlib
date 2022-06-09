@@ -148,7 +148,7 @@ class GCE(BaseCloud):
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )
 
-        if image_type == ImageType.PRO_FIPS:
+        if image_type == ImageType.FIPS_PRO:
             return "ubuntu-pro-fips-{}-{}-*".format(
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )

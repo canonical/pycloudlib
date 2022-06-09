@@ -501,7 +501,7 @@ class Azure(BaseCloud):
         if image_type == ImageType.PRO:
             return UBUNTU_DAILY_PRO_IMAGES
 
-        if image_type == ImageType.PRO_FIPS:
+        if image_type == ImageType.FIPS_PRO:
             return UBUNTU_DAILY_PRO_FIPS_IMAGES
 
         raise ValueError("Invalid image_type")
