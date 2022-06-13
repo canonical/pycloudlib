@@ -100,14 +100,13 @@ class EC2(BaseCloud):
 
     def _get_name_for_image_type(self, release: str, image_type: ImageType):
         if image_type == ImageType.GENERIC:
+            base_location = "ubuntu/images-testing/hvm-ssd"
             if release in LTS_RELEASES:
-                return "ubuntu/images/hvm-ssd/ubuntu-{}-{}-*-server-*".format(
-                    release, UBUNTU_RELEASE_VERSION_MAP[release]
+                return "{}/ubuntu-{}-daily-*-server-*".format(
+                    base_location, release
                 )
 
-            return "ubuntu/images-testing/hvm-ssd/ubuntu-{}-daily-*".format(
-                release
-            )
+            return "{}/ubuntu-{}-daily-*".format(base_location, release)
 
         if image_type == ImageType.PRO:
             return "ubuntu-pro-server/images/hvm-ssd/ubuntu-{}-{}-*".format(
