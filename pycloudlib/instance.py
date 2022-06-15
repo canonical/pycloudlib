@@ -89,7 +89,7 @@ class BaseInstance(ABC):
         self._sync_filesystem()
         # If we're not waiting, just call subclass's restart and return.
         if not wait:
-            self._do_restart()
+            self._do_restart(**kwargs)
             return
 
         pre_boot_id = None

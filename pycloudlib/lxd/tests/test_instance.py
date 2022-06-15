@@ -12,18 +12,23 @@ class TestRestart:
     """Tests covering pycloudlib.lxd.instance.Instance.restart."""
 
     @pytest.mark.parametrize("force", (False, True))
-    @mock.patch("pycloudlib.lxd.instance.LXDInstance.start")
-    @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
-    @mock.patch("pycloudlib.lxd.instance.LXDInstance.wait")
     @mock.patch("pycloudlib.lxd.instance.subp")
-    def test_restart_calls_lxc_cmd_with_force_param(
-        self, _m_subp, _m_wait, m_shutdown, m_start, force
-    ):
-        """Honor force param on shutdown."""
+    def test_restart_calls_lxc_cmd_with_force_param(self, m_subp, force):
+        """Honor force param on restart."""
         instance = LXDInstance(name="my_vm")
         instance._do_restart(force=force)  # pylint: disable=protected-access
-        assert [mock.call(wait=True, force=force)] == m_shutdown.call_args_list
-        assert [mock.call(wait=False)] == m_start.call_args_list
+        if force:
+            assert "--force" in m_subp.call_args[0][0]
+        else:
+            assert "--force" not in m_subp.call_args[0][0]
+
+    @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
+    @mock.patch("pycloudlib.lxd.instance.subp")
+    def test_restart_does_not_shutdown(self, _m_subp, m_shutdown):
+        """Don't shutdown (stop) instance on restart."""
+        instance = LXDInstance(name="my_vm")
+        instance._do_restart()  # pylint: disable=protected-access
+        assert not m_shutdown.called
 
 
 class TestExecute:
