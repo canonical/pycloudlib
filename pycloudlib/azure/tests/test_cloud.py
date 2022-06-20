@@ -48,7 +48,7 @@ class TestCreateNetworkInterfaceClient:
         type(resource_client_mock).resource_groups = mock.PropertyMock(
             return_value=resource_group_mock
         )
-        resource_group_mock.create_or_update.return_value = resource_mock
+        resource_group_mock.begin_create_or_update.return_value = resource_mock
         type(network_client_mock).network_security_groups = mock.PropertyMock(
             return_value=network_group_mock
         )
@@ -116,5 +116,5 @@ class TestCreateNetworkInterfaceClient:
 
         assert (
             expected_calls
-            == network_group_mock.create_or_update.call_args_list
+            == network_group_mock.begin_create_or_update.call_args_list
         )
