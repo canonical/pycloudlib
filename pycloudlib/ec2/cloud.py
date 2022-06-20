@@ -1,5 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """AWS EC2 Cloud type."""
+import re
+
 import botocore
 
 from pycloudlib.cloud import BaseCloud, ImageType
@@ -111,13 +113,11 @@ class EC2(BaseCloud):
             )
             if release in LTS_RELEASES:
                 return "{}/ubuntu-{}{}-*-server-*".format(
-                    base_location, release,
-                    "-daily" if daily else ""
+                    base_location, release, "-daily" if daily else ""
                 )
 
             return "{}/ubuntu-{}{}-*".format(
-                base_location, release,
-                "-daily" if daily else ""
+                base_location, release, "-daily" if daily else ""
             )
 
         if image_type == ImageType.PRO:
@@ -196,7 +196,39 @@ class EC2(BaseCloud):
         )
         return image["ImageId"]
 
-    def image_serial(self, image_id):
+    def _find_image_serial(
+        self, image_id, image_type: ImageType = ImageType.GENERIC
+    ):
+        owner = self._get_owner(image_type=image_type)
+        filters = [
+            {
+                "Name": "image-id",
+                "Values": (image_id,),
+            }
+        ]
+
+        images = self.client.describe_images(
+            Owners=[owner],
+            Filters=filters,
+        )
+
+        if not images.get("Images"):
+            raise Exception("Could not find image: {}".format(image_id))
+
+        image_name = images["Images"][0].get("Name", "")
+        serial_regex = r"ubuntu/.*/.*/.*-(?P<serial>\d+)$"
+        serial_match = re.match(serial_regex, image_name)
+
+        if not serial_match:
+            raise Exception(
+                "Could not find image serial for image: {}".format(image_id)
+            )
+
+        return serial_match.groupdict().get("serial")
+
+    def image_serial(
+        self, image_id, image_type: ImageType = ImageType.GENERIC
+    ):
         """Find the image serial of a given EC2 image ID.
 
         Args:
@@ -209,11 +241,7 @@ class EC2(BaseCloud):
         self._log.debug(
             "finding image serial for EC2 Ubuntu image %s", image_id
         )
-        filters = ["id=%s" % image_id]
-        image_info = self._streams_query(filters, daily=True)
-        if not image_info:
-            image_info = self._streams_query(filters, daily=False)
-        return image_info[0]["version_name"]
+        return self._find_image_serial(image_id, image_type)
 
     def delete_image(self, image_id):
         """Delete an image.
