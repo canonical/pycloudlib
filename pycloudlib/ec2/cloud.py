@@ -82,7 +82,9 @@ class EC2(BaseCloud):
             return VPC.from_existing(self.resource, vpc_id=vpcs[0]["VpcId"])
         return VPC.create(self.resource, name=name, ipv4_cidr=ipv4_cidr)
 
-    def released_image(self, release, arch="amd64", root_store="ssd"):
+    def released_image(
+        self, release, arch="x86_64", image_type: ImageType = ImageType.GENERIC
+    ):
         """Find the id of the latest released image for a particular release.
 
         Args:
@@ -95,18 +97,28 @@ class EC2(BaseCloud):
 
         """
         self._log.debug("finding released Ubuntu image for %s", release)
-        image = self._find_image(release, arch, root_store, daily=False)
-        return image["id"]
+        image = self._find_latest_image(
+            release=release, arch=arch, image_type=image_type, daily=False
+        )
+        return image["ImageId"]
 
-    def _get_name_for_image_type(self, release: str, image_type: ImageType):
+    def _get_name_for_image_type(
+        self, release: str, image_type: ImageType, daily: bool
+    ):
         if image_type == ImageType.GENERIC:
-            base_location = "ubuntu/images-testing/hvm-ssd"
+            base_location = "ubuntu/{}/hvm-ssd".format(
+                "images-testing" if daily else "images"
+            )
             if release in LTS_RELEASES:
-                return "{}/ubuntu-{}-daily-*-server-*".format(
-                    base_location, release
+                return "{}/ubuntu-{}{}-*-server-*".format(
+                    base_location, release,
+                    "-daily" if daily else ""
                 )
 
-            return "{}/ubuntu-{}-daily-*".format(base_location, release)
+            return "{}/ubuntu-{}{}-*".format(
+                base_location, release,
+                "-daily" if daily else ""
+            )
 
         if image_type == ImageType.PRO:
             return "ubuntu-pro-server/images/hvm-ssd/ubuntu-{}-{}-*".format(
@@ -128,12 +140,14 @@ class EC2(BaseCloud):
         )
 
     def _get_search_filters(
-        self, release: str, arch: str, image_type: ImageType
+        self, release: str, arch: str, image_type: ImageType, daily: bool
     ):
         return [
             {
                 "Name": "name",
-                "Values": [self._get_name_for_image_type(release, image_type)],
+                "Values": [
+                    self._get_name_for_image_type(release, image_type, daily)
+                ],
             },
             {
                 "Name": "architecture",
@@ -142,10 +156,10 @@ class EC2(BaseCloud):
         ]
 
     def _find_latest_image(
-        self, release: str, arch: str, image_type: ImageType
+        self, release: str, arch: str, image_type: ImageType, daily: bool
     ):
         filters = self._get_search_filters(
-            release=release, arch=arch, image_type=image_type
+            release=release, arch=arch, image_type=image_type, daily=daily
         )
         owner = self._get_owner(image_type=image_type)
 
@@ -178,7 +192,7 @@ class EC2(BaseCloud):
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
         image = self._find_latest_image(
-            release=release, arch=arch, image_type=image_type
+            release=release, arch=arch, image_type=image_type, daily=True
         )
         return image["ImageId"]
 
