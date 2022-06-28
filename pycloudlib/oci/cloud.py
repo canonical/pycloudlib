@@ -12,7 +12,7 @@ import oci
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.oci.instance import OciInstance
-from pycloudlib.oci.utils import wait_till_ready
+from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
 
@@ -213,22 +213,9 @@ class OCI(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        vcn_id = self.network_client.list_vcns(self.compartment_id).data[0].id
-        subnets = self.network_client.list_subnets(
-            self.compartment_id, vcn_id=vcn_id
-        ).data
-        subnet_id = None
-        for subnet in subnets:
-            if subnet.availability_domain == self.availability_domain:
-                subnet_id = subnet.id
-                break
-        else:
-            subnet_id = subnets[0].id
-        if not subnet_id:
-            raise Exception(
-                f"Unabled to determine subnet id for domain: "
-                f"{self.availability_domain}"
-            )
+        subnet_id = get_subnet_id(
+            self.network_client, self.compartment_id, self.availability_domain
+        )
         metadata = {
             "ssh_authorized_keys": self.key_pair.public_key_content,
         }

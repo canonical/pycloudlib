@@ -5,7 +5,7 @@
 import oci
 
 from pycloudlib.instance import BaseInstance
-from pycloudlib.oci.utils import wait_till_ready
+from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
 
 
 class OciInstance(BaseInstance):
@@ -142,10 +142,8 @@ class OciInstance(BaseInstance):
         Note: It assumes the associated compartment has at least one subnet and
         creates the vnic in the first encountered subnet.
         """
-        subnet_id = (
-            self.network_client.list_subnets(self.compartment_id, limit=1)
-            .data[0]
-            .id
+        subnet_id = get_subnet_id(
+            self.network_client, self.compartment_id, self.availability_domain
         )
         create_vnic_details = oci.core.models.CreateVnicDetails(
             subnet_id=subnet_id,
