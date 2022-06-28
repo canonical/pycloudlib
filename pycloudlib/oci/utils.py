@@ -1,10 +1,8 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Utilities for OCI images and instances."""
 import time
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import oci
+import oci
 
 
 def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
@@ -32,7 +30,7 @@ def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
 
 
 def get_subnet_id(
-    network_client,  # type: oci.core.VirtualNetworkClient
+    network_client: oci.core.VirtualNetworkClient,  # pylint: disable=E1101
     compartment_id: str,
     availability_domain: str,
 ) -> str:
