@@ -125,7 +125,7 @@ class EC2(BaseCloud):
                 release, UBUNTU_RELEASE_VERSION_MAP[release]
             )
 
-        if image_type == ImageType.FIPS_PRO:
+        if image_type == ImageType.PRO_FIPS:
             return "ubuntu-pro-fips/images/hvm-ssd/ubuntu-{}-{}-*".format(
                 release, UBUNTU_RELEASE_VERSION_MAP[release]
             )

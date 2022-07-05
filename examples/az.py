@@ -77,7 +77,7 @@ def demo_pro():
     )
     client.use_key(pub_path, priv_path)
 
-    print("Launching Focal PRO instance.")
+    print("Launching Focal Pro instance.")
     instance = client.launch(
         image_id=image_id,
         instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
@@ -93,7 +93,7 @@ def demo_pro_fips():
     """Show example of launchig a Ubuntu PRO FIPS image through Azure."""
     client = pycloudlib.Azure(tag="azure")
     image_id = client.daily_image(
-        release="focal", image_type=ImageType.FIPS_PRO
+        release="focal", image_type=ImageType.PRO_FIPS
     )
 
     pub_key, priv_key = client.create_key_pair(key_name="test_pro_fips")
@@ -104,7 +104,7 @@ def demo_pro_fips():
     )
     client.use_key(pub_path, priv_path)
 
-    print("Launching Focal PRO instance.")
+    print("Launching Focal Pro FIPS instance.")
     instance = client.launch(
         image_id=image_id,
         instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2

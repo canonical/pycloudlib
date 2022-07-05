@@ -49,7 +49,7 @@ def pro(gce):
 
 def pro_fips(gce):
     """Show example of running a GCE PRO FIPS machine."""
-    daily = gce.daily_image("bionic", image_type=ImageType.FIPS_PRO)
+    daily = gce.daily_image("bionic", image_type=ImageType.PRO_FIPS)
     inst = gce.launch(daily)
     print(inst.execute("sudo ua status --wait"))
     inst.delete()
