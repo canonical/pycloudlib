@@ -93,19 +93,19 @@ def launch_basic(ec2, daily):
 
 def launch_pro(ec2, daily):
     """Show basic functionality on PRO instances."""
-    print("Launching PRO instance...")
+    print("Launching Pro instance...")
     instance = ec2.launch(daily)
     print(instance.execute("sudo ua status --wait"))
-    print("Deleting PRO instance...")
+    print("Deleting Pro instance...")
     instance.delete()
 
 
 def launch_pro_fips(ec2, daily):
     """Show basic functionality on PRO instances."""
-    print("Launching PRO FIPS instance...")
+    print("Launching Pro FIPS instance...")
     instance = ec2.launch(daily)
     print(instance.execute("sudo ua status --wait"))
-    print("Deleting PRO FIPS instance...")
+    print("Deleting Pro FIPS instance...")
     instance.delete()
 
 
@@ -142,7 +142,7 @@ def demo():
     daily = ec2.daily_image(release="bionic")
     daily_pro = ec2.daily_image(release="bionic", image_type=ImageType.PRO)
     daily_pro_fips = ec2.daily_image(
-        release="bionic", image_type=ImageType.FIPS_PRO
+        release="bionic", image_type=ImageType.PRO_FIPS
     )
 
     launch_basic(ec2, daily)
