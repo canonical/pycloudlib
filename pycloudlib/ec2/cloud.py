@@ -216,7 +216,7 @@ class EC2(BaseCloud):
             raise Exception("Could not find image: {}".format(image_id))
 
         image_name = images["Images"][0].get("Name", "")
-        serial_regex = r"ubuntu/.*/.*/.*-(?P<serial>\d+)$"
+        serial_regex = r"ubuntu/.*/.*/.*-(?P<serial>\d+(\.\d+)?)$"
         serial_match = re.match(serial_regex, image_name)
 
         if not serial_match:
