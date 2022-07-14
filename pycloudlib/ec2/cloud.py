@@ -126,7 +126,7 @@ class EC2(BaseCloud):
             )
 
         if image_type == ImageType.PRO_FIPS:
-            return "ubuntu-pro-fips/images/hvm-ssd/ubuntu-{}-{}-*".format(
+            return "ubuntu-pro-fips*/images/hvm-ssd/ubuntu-{}-{}-*".format(
                 release, UBUNTU_RELEASE_VERSION_MAP[release]
             )
 
