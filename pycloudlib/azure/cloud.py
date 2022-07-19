@@ -179,7 +179,7 @@ class Azure(BaseCloud):
             )
             priority += 10
 
-        nsg_call = nsg_group.begin_create_or_update(
+        nsg_poller = nsg_group.begin_create_or_update(
             resource_group_name=self.resource_group.name,
             network_security_group_name=security_group_name,
             parameters={
@@ -188,7 +188,7 @@ class Azure(BaseCloud):
             },
         )
 
-        return nsg_call.result()
+        return nsg_poller.result()
 
     def _create_resource_group(self):
         """Create a resource group.
@@ -205,7 +205,7 @@ class Azure(BaseCloud):
         resource_name = "{}-rg".format(self.tag)
         self._log.debug("Creating Azure resource group")
 
-        return self.resource_client.resource_groups.begin_create_or_update(
+        return self.resource_client.resource_groups.create_or_update(
             resource_name,
             {"location": self.location, "tags": {"name": self.tag}},
         )
@@ -229,7 +229,7 @@ class Azure(BaseCloud):
         virtual_network_name = "{}-vnet".format(self.tag)
 
         self._log.debug("Creating Azure virtual network")
-        network_call = (
+        network_poller = (
             self.network_client.virtual_networks.begin_create_or_update(
                 self.resource_group.name,
                 virtual_network_name,
@@ -241,7 +241,7 @@ class Azure(BaseCloud):
             )
         )
 
-        return network_call.result()
+        return network_poller.result()
 
     def _create_subnet(self, vnet_name, address_prefix="10.0.0.0/24"):
         """Create a subnet.
@@ -260,14 +260,14 @@ class Azure(BaseCloud):
         subnet_name = "{}-subnet".format(self.tag)
 
         self._log.debug("Creating Azure subnet")
-        subnet_call = self.network_client.subnets.begin_create_or_update(
+        subnet_poller = self.network_client.subnets.begin_create_or_update(
             self.resource_group.name,
             vnet_name,
             subnet_name,
             {"address_prefix": address_prefix, "tags": {"name": self.tag}},
         )
 
-        return subnet_call.result()
+        return subnet_poller.result()
 
     def _create_ip_address(self):
         """Create an ip address.
@@ -282,7 +282,7 @@ class Azure(BaseCloud):
         ip_name = "{}-ip".format(self.tag)
 
         self._log.debug("Creating Azure ip address")
-        ip_call = (
+        ip_poller = (
             self.network_client.public_ip_addresses.begin_create_or_update(
                 self.resource_group.name,
                 ip_name,
@@ -296,7 +296,7 @@ class Azure(BaseCloud):
             )
         )
 
-        return ip_call.result()
+        return ip_poller.result()
 
     def _create_network_interface_client(
         self, ip_address_id, subnet_id, nsg_id
@@ -319,7 +319,7 @@ class Azure(BaseCloud):
         ip_config_name = "{}-ip-config".format(self.tag)
 
         self._log.debug("Creating Azure network interface")
-        nic_call = (
+        nic_poller = (
             self.network_client.network_interfaces.begin_create_or_update(
                 self.resource_group.name,
                 nic_name,
@@ -338,7 +338,7 @@ class Azure(BaseCloud):
             )
         )
 
-        return nic_call.result()
+        return nic_poller.result()
 
     def _create_vm_parameters(
         self, name, image_id, instance_type, nic_id, user_data
@@ -449,13 +449,15 @@ class Azure(BaseCloud):
         if vm_params:
             update_nested(params, vm_params)
         self._log.debug("Creating Azure virtual machine: %s", name)
-        vm_call = self.compute_client.virtual_machines.begin_create_or_update(
-            self.resource_group.name,
-            name,
-            params,
+        vm_poller = (
+            self.compute_client.virtual_machines.begin_create_or_update(
+                self.resource_group.name,
+                name,
+                params,
+            )
         )
 
-        return vm_call.result()
+        return vm_poller.result()
 
     def delete_image(self, image_id):
         """Delete an image from Azure.
