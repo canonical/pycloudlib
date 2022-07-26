@@ -3,10 +3,7 @@
 import logging
 import re
 
-from azure.common.client_factory import (
-    get_client_from_cli_profile,
-    get_client_from_json_dict,
-)
+from azure.identity import AzureCliCredential, ClientSecretCredential
 from knack.util import CLIError
 
 logger = logging.getLogger(__name__)
@@ -16,7 +13,7 @@ RE_AZURE_IMAGE_ID = (
 )
 
 
-def get_client(resource, config_dict):
+def get_client(resource, config_dict: dict):
     """Get azure client based on the give resource.
 
     This method will first verify if we can get the client
@@ -35,7 +32,9 @@ def get_client(resource, config_dict):
 
     """
     try:
-        return get_client_from_cli_profile(resource)
+        credential = AzureCliCredential()
+        subscription_id = config_dict.get("subscriptionId")
+        return resource(credential, subscription_id=subscription_id)
     except CLIError:
         logger.debug(
             "No valid azure-cli config found. Trying explicit config params"
@@ -61,8 +60,14 @@ def get_client(resource, config_dict):
         "managementEndpointUrl": "https://management.core.windows.net/",
     }
     parameters.update(config_dict)
+    credential = ClientSecretCredential(
+        tenant_id=parameters["tenantId"],
+        client_id=parameters["clientId"],
+        client_secret=parameters["clientSecret"],
+        authority=parameters["activeDirectoryEndpointUrl"],
+    )
 
-    client = get_client_from_json_dict(resource, parameters)
+    client = resource(credential, parameters)
 
     return client
 
@@ -89,26 +94,26 @@ def parse_image_id(image_id):
 
 
 def get_resource_group_name_from_id(resource_id):
-    """Retrive the resource group name of a resource.
+    """Retrieve the resource group name of a resource.
 
     Args:
         resource_id: string, the resource id
 
     Returns:
-        A string represeting the resource group
+        A string representing the resource group
 
     """
     return resource_id.split("/")[4]
 
 
 def get_resource_name_from_id(resource_id):
-    """Retrive the name of a resource.
+    """Retrieve the name of a resource.
 
     Args:
         resource_id: string, the resource id
 
     Returns:
-        A string represeting the resource name
+        A string representing the resource name
 
     """
     return resource_id.split("/")[-1]

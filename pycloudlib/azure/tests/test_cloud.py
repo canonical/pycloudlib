@@ -116,5 +116,5 @@ class TestCreateNetworkInterfaceClient:
 
         assert (
             expected_calls
-            == network_group_mock.create_or_update.call_args_list
+            == network_group_mock.begin_create_or_update.call_args_list
         )

@@ -102,7 +102,7 @@ class AzureInstance(BaseInstance):
         Args:
             wait: wait for the instance shutdown
         """
-        shutdown = self._client.virtual_machines.power_off(
+        shutdown = self._client.virtual_machines.begin_power_off(
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         )
 
@@ -121,7 +121,7 @@ class AzureInstance(BaseInstance):
         Args:
             wait: wait for the instance to start.
         """
-        start = self._client.virtual_machines.start(
+        start = self._client.virtual_machines.begin_start(
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         )
 
@@ -131,13 +131,13 @@ class AzureInstance(BaseInstance):
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""
-        self._client.virtual_machines.restart(
+        self._client.virtual_machines.begin_restart(
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         )
 
     def delete(self, wait=True):
         """Delete instance."""
-        delete = self._client.virtual_machines.delete(
+        delete = self._client.virtual_machines.begin_delete(
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         )
 

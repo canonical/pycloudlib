@@ -179,7 +179,7 @@ class Azure(BaseCloud):
             )
             priority += 10
 
-        nsg_call = nsg_group.create_or_update(
+        nsg_poller = nsg_group.begin_create_or_update(
             resource_group_name=self.resource_group.name,
             network_security_group_name=security_group_name,
             parameters={
@@ -188,7 +188,7 @@ class Azure(BaseCloud):
             },
         )
 
-        return nsg_call.result()
+        return nsg_poller.result()
 
     def _create_resource_group(self):
         """Create a resource group.
@@ -229,17 +229,19 @@ class Azure(BaseCloud):
         virtual_network_name = "{}-vnet".format(self.tag)
 
         self._log.debug("Creating Azure virtual network")
-        network_call = self.network_client.virtual_networks.create_or_update(
-            self.resource_group.name,
-            virtual_network_name,
-            {
-                "location": self.location,
-                "address_space": {"address_prefixes": address_prefixes},
-                "tags": {"name": self.tag},
-            },
+        network_poller = (
+            self.network_client.virtual_networks.begin_create_or_update(
+                self.resource_group.name,
+                virtual_network_name,
+                {
+                    "location": self.location,
+                    "address_space": {"address_prefixes": address_prefixes},
+                    "tags": {"name": self.tag},
+                },
+            )
         )
 
-        return network_call.result()
+        return network_poller.result()
 
     def _create_subnet(self, vnet_name, address_prefix="10.0.0.0/24"):
         """Create a subnet.
@@ -258,14 +260,14 @@ class Azure(BaseCloud):
         subnet_name = "{}-subnet".format(self.tag)
 
         self._log.debug("Creating Azure subnet")
-        subnet_call = self.network_client.subnets.create_or_update(
+        subnet_poller = self.network_client.subnets.begin_create_or_update(
             self.resource_group.name,
             vnet_name,
             subnet_name,
             {"address_prefix": address_prefix, "tags": {"name": self.tag}},
         )
 
-        return subnet_call.result()
+        return subnet_poller.result()
 
     def _create_ip_address(self):
         """Create an ip address.
@@ -280,19 +282,21 @@ class Azure(BaseCloud):
         ip_name = "{}-ip".format(self.tag)
 
         self._log.debug("Creating Azure ip address")
-        ip_call = self.network_client.public_ip_addresses.create_or_update(
-            self.resource_group.name,
-            ip_name,
-            {
-                "location": self.location,
-                "sku": {"name": "Standard"},
-                "public_ip_allocation_method": "Static",
-                "rpublic_ip_address_version": "IPV4",
-                "tags": {"name": self.tag},
-            },
+        ip_poller = (
+            self.network_client.public_ip_addresses.begin_create_or_update(
+                self.resource_group.name,
+                ip_name,
+                {
+                    "location": self.location,
+                    "sku": {"name": "Standard"},
+                    "public_ip_allocation_method": "Static",
+                    "rpublic_ip_address_version": "IPV4",
+                    "tags": {"name": self.tag},
+                },
+            )
         )
 
-        return ip_call.result()
+        return ip_poller.result()
 
     def _create_network_interface_client(
         self, ip_address_id, subnet_id, nsg_id
@@ -315,24 +319,26 @@ class Azure(BaseCloud):
         ip_config_name = "{}-ip-config".format(self.tag)
 
         self._log.debug("Creating Azure network interface")
-        nic_call = self.network_client.network_interfaces.create_or_update(
-            self.resource_group.name,
-            nic_name,
-            {
-                "location": self.location,
-                "ip_configurations": [
-                    {
-                        "name": ip_config_name,
-                        "subnet": {"id": subnet_id},
-                        "public_ip_address": {"id": ip_address_id},
-                    }
-                ],
-                "network_security_group": {"id": nsg_id},
-                "tags": {"name": self.tag},
-            },
+        nic_poller = (
+            self.network_client.network_interfaces.begin_create_or_update(
+                self.resource_group.name,
+                nic_name,
+                {
+                    "location": self.location,
+                    "ip_configurations": [
+                        {
+                            "name": ip_config_name,
+                            "subnet": {"id": subnet_id},
+                            "public_ip_address": {"id": ip_address_id},
+                        }
+                    ],
+                    "network_security_group": {"id": nsg_id},
+                    "tags": {"name": self.tag},
+                },
+            )
         )
 
-        return nic_call.result()
+        return nic_poller.result()
 
     def _create_vm_parameters(
         self, name, image_id, instance_type, nic_id, user_data
@@ -429,7 +435,7 @@ class Azure(BaseCloud):
                        booting the virtual machine.
             name: string, optional name to provide when creating the vm.
             vm_params: dict containing values as vm_params to send to
-                    virtual_machines.create_or_update.
+                    virtual_machines.begin_create_or_update.
 
         Returns:
             The virtual machine created by Azure
@@ -443,13 +449,15 @@ class Azure(BaseCloud):
         if vm_params:
             update_nested(params, vm_params)
         self._log.debug("Creating Azure virtual machine: %s", name)
-        vm_call = self.compute_client.virtual_machines.create_or_update(
-            self.resource_group.name,
-            name,
-            params,
+        vm_poller = (
+            self.compute_client.virtual_machines.begin_create_or_update(
+                self.resource_group.name,
+                name,
+                params,
+            )
         )
 
-        return vm_call.result()
+        return vm_poller.result()
 
     def delete_image(self, image_id):
         """Delete an image from Azure.
@@ -460,18 +468,20 @@ class Azure(BaseCloud):
         image_name = util.get_resource_name_from_id(image_id)
         resource_group_name = util.get_resource_group_name_from_id(image_id)
 
-        delete = self.compute_client.images.delete(
+        delete_poller = self.compute_client.images.begin_delete(
             resource_group_name=resource_group_name, image_name=image_name
         )
 
-        delete_resp = delete._response  # pylint: disable=protected-access
-        resp_code = delete_resp.status_code
-        if resp_code in (200, 202):
+        delete_poller.wait()
+
+        if delete_poller.status() == "Succeeded":
             self._log.debug("Image %s was deleted", image_id)
             del self.registered_images[image_id]
         else:
             self._log.debug(
-                "Error deleting %s. Request returned %d", image_id, resp_code
+                "Error deleting %s. Status: %d",
+                image_id,
+                delete_poller.status(),
             )
 
     def _get_image(self, release, image_map):
@@ -562,7 +572,7 @@ class Azure(BaseCloud):
             inbound_ports: List of strings, optional inbound ports
                            to enable in the instance.
             kwargs: dict, other named arguments to provide to
-                    virtual_machines.create_or_update
+                    virtual_machines.begin_create_or_update
 
         Returns:
             Azure Instance object
@@ -875,7 +885,7 @@ class Azure(BaseCloud):
 
         self._log.debug("creating custom image from instance %s", instance.id)
 
-        response = self.compute_client.images.create_or_update(
+        image_poller = self.compute_client.images.begin_create_or_update(
             resource_group_name=self.resource_group.name,
             image_name="%s-%s" % (self.tag, "image"),
             parameters={
@@ -885,7 +895,7 @@ class Azure(BaseCloud):
             },
         )
 
-        image = response.result()
+        image = image_poller.result()
 
         image_id = image.id
         image_name = image.name
@@ -901,7 +911,7 @@ class Azure(BaseCloud):
     def delete_resource_group(self):
         """Delete a resource group."""
         if self.resource_group:
-            self.resource_client.resource_groups.delete(
+            self.resource_client.resource_groups.begin_delete(
                 resource_group_name=self.resource_group.name
             )
 
