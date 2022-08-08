@@ -3,6 +3,7 @@
 import logging
 import re
 
+from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import AzureCliCredential, ClientSecretCredential
 from knack.util import CLIError
 
@@ -34,10 +35,18 @@ def get_client(resource, config_dict: dict):
     try:
         credential = AzureCliCredential()
         subscription_id = config_dict.get("subscriptionId")
-        return resource(credential, subscription_id=subscription_id)
+        client = resource(credential, subscription_id=subscription_id)
+        # smoke test: This raises ClientAuthenticationError when CLI absent
+        _ = next(client.operations.list())
+        return client
     except CLIError:
         logger.debug(
             "No valid azure-cli config found. Trying explicit config params"
+        )
+    except ClientAuthenticationError:
+        logger.debug(
+            "Authentication error: No valid azure-cli config found."
+            " Trying explicit config params"
         )
 
     required_keys = frozenset(
@@ -52,24 +61,24 @@ def get_client(resource, config_dict: dict):
         )
 
     parameters = {
-        "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
-        "resourceManagerEndpointUrl": "https://management.azure.com/",
-        "activeDirectoryGraphResourceId": "https://graph.windows.net/",
-        "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",  # noqa: E501
-        "galleryEndpointUrl": "https://gallery.azure.com/",
-        "managementEndpointUrl": "https://management.core.windows.net/",
+        "active_directory": "https://login.microsoftonline.com",
+        "resource_manager": "https://management.azure.com/",
+        "active_directory_graph_resource_id": "https://graph.windows.net/",
+        "sql_management": "https://management.core.windows.net:8443/",
+        "gallery": "https://gallery.azure.com/",
+        "management": "https://management.core.windows.net/",
     }
     parameters.update(config_dict)
     credential = ClientSecretCredential(
         tenant_id=parameters["tenantId"],
         client_id=parameters["clientId"],
         client_secret=parameters["clientSecret"],
-        authority=parameters["activeDirectoryEndpointUrl"],
+        authority=parameters["active_directory"],
     )
 
-    client = resource(credential, parameters)
-
-    return client
+    return resource(
+        credential, subscription_id=parameters["subscriptionId"], **parameters
+    )
 
 
 def parse_image_id(image_id):
