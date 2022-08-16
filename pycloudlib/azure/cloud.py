@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Azure Cloud type."""
 import base64
+import logging
 
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
@@ -41,6 +42,10 @@ UBUNTU_RELEASE_IMAGES = {
     "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2",
 }
+
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
+    logging.WARNING
+)
 
 
 class Azure(BaseCloud):
