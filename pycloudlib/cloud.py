@@ -41,7 +41,7 @@ class BaseCloud(ABC):
             timestamp_suffix: Append a timestamped suffix to the tag string.
             config_file: path to pycloudlib configuration file
         """
-        self._log = logging.getLogger(__name__)
+        self._log = logging.getLogger("{}.{}".format(__name__, self.__class__.__name__))
         self.config = parse_config(config_file)[self._type]
 
         user = getpass.getuser()

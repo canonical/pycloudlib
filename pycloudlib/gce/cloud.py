@@ -8,6 +8,7 @@ instance. It however, does not allow any further actions from occuring.
 
 import logging
 import os
+import re
 import time
 from itertools import count
 
@@ -131,25 +132,19 @@ class GCE(BaseCloud):
             else "ubuntu-os-pro-cloud"
         )
 
-    def _get_name_filter(self, release: str, image_type: ImageType):
+    def _get_name_regex(self, release: str, image_type: ImageType):
         if image_type == ImageType.GENERIC:
-            if release in LTS_RELEASES:
-                return "ubuntu-{}-{}-*".format(
-                    UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""),
-                    release,
-                )
-
-            return "daily-ubuntu-{}-{}-*".format(
+            return "daily-ubuntu-{}-{}(-amd64)?-v\d+\w*".format(
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )
 
         if image_type == ImageType.PRO:
-            return "ubuntu-pro-{}-{}-*".format(
+            return "ubuntu-pro-{}-{}(-amd64)?-v\d+\w*".format(
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )
 
         if image_type == ImageType.PRO_FIPS:
-            return "ubuntu-pro-fips-{}-{}-*".format(
+            return "ubuntu-pro-fips-{}-{}(-amd64)?-v\d+\w*".format(
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )
 
@@ -157,31 +152,48 @@ class GCE(BaseCloud):
 
     def _find_latest_image(self, release: str, image_type: ImageType):
         project = self._get_project(image_type=image_type)
-        name_filter = self._get_name_filter(
+        name_regex = self._get_name_regex(
             release=release, image_type=image_type
         )
 
-        image = (
-            self.compute.images()
-            .list(
-                project=project,
-                filter="name={}".format(name_filter),
+        page = 1
+        max_results = 500
+        page_token = ""
+        while True:
+            image_list_result = (
+                self.compute.images()
+                .list(
+                    project=project,
+                    maxResults=max_results,
+                    orderBy="creationTimestamp desc",
+                    pageToken=page_token,
+                )
+                .execute()
             )
-            .execute()
+
+            image_list = image_list_result.get("items", [])
+
+            if len(image_list) == 0:
+                break
+
+            for image in image_list:
+                if re.match(name_regex, image["name"]):
+                    self._log.debug("Found image name: {}".format(image["name"]))
+                    return "projects/{}/global/images/{}".format(project, image["id"])
+
+            page_token = image_list_result.get("nextPageToken", None)
+            if page_token is None:
+                break
+            self._log.debug("Not found in the most recent {} images. Fetching next page...".format(page * max_results))
+            page += 1
+
+        raise Exception(
+            "Could not find {} image for {} release".format(
+                image_type.value,
+                release,
+            )
         )
 
-        image_list = image.get("items", [])
-
-        if not image_list:
-            raise Exception(
-                "Could not find {} image for {} release".format(
-                    image_type.value,
-                    release,
-                )
-            )
-
-        image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
-        return "projects/{}/global/images/{}".format(project, image["id"])
 
     def daily_image(self, release, image_type: ImageType = ImageType.GENERIC):
         """Find the id of the latest image for a particular release.
