@@ -17,7 +17,7 @@ from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.gce.instance import GceInstance
 from pycloudlib.gce.util import get_credentials, raise_on_error
-from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP, subp
+from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
 logging.getLogger("googleapiclient.discovery").setLevel(logging.WARNING)
 
@@ -133,12 +133,6 @@ class GCE(BaseCloud):
 
     def _get_name_filter(self, release: str, image_type: ImageType):
         if image_type == ImageType.GENERIC:
-            if release in LTS_RELEASES:
-                return "ubuntu-{}-{}-*".format(
-                    UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""),
-                    release,
-                )
-
             return "daily-ubuntu-{}-{}-*".format(
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )
@@ -161,16 +155,40 @@ class GCE(BaseCloud):
             release=release, image_type=image_type
         )
 
-        image = (
-            self.compute.images()
-            .list(
-                project=project,
-                filter="name={}".format(name_filter),
-            )
-            .execute()
-        )
+        # image list API docs:
+        # https://googleapis.github.io/google-api-python-client/docs/dyn/compute_v1.images.html#list
+        # The image list API doesn't allow filtering and sorting in one request
+        # so we need to do one of those locally.
+        # Filtering via the API results in fewer requests on average than
+        # sorting via the API.
+        # So we filter via the API and loop through all pages to get the full
+        # image list matching that filter.
+        # 500 is the maximum allowed page size
+        # Then we sort locally and grab the latest image.
 
-        image_list = image.get("items", [])
+        image_list = []
+        page_token = ""
+        reqs = 0
+        while page_token is not None:
+            image_list_result = (
+                self.compute.images()
+                .list(
+                    project=project,
+                    filter="name={}".format(name_filter),
+                    maxResults=500,
+                    pageToken=page_token,
+                )
+                .execute()
+            )
+            reqs += 1
+            image_list = image_list + image_list_result.get("items", [])
+            page_token = image_list_result.get("nextPageToken", None)
+
+        self._log.debug(
+            'Fetched entire image list matching "%s" in %i requests',
+            name_filter,
+            reqs,
+        )
 
         if not image_list:
             raise Exception(
@@ -181,6 +199,7 @@ class GCE(BaseCloud):
             )
 
         image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
+        self._log.debug("Found image name: %s", image["name"])
         return "projects/{}/global/images/{}".format(project, image["id"])
 
     def daily_image(self, release, image_type: ImageType = ImageType.GENERIC):
