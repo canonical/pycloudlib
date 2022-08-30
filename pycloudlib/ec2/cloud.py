@@ -41,7 +41,12 @@ class EC2(BaseCloud):
             secret_access_key: user's secret access key
             region: region to login to
         """
-        super().__init__(tag, timestamp_suffix, config_file)
+        super().__init__(
+            tag,
+            timestamp_suffix,
+            config_file,
+            required_values=[access_key_id, secret_access_key, region],
+        )
         self._log.debug("logging into EC2")
 
         try:

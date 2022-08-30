@@ -34,7 +34,10 @@ class Openstack(BaseCloud):
             network: Name of the network to use (from openstack network list)
 
         """  # noqa: E501
-        super().__init__(tag, timestamp_suffix, config_file)
+        super().__init__(
+            tag, timestamp_suffix, config_file, required_values=[network]
+        )
+
         self.network = network or self.config["network"]
         self._openstack_keypair = None
         self.conn = openstack.connect()

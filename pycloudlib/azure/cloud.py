@@ -82,7 +82,18 @@ class Azure(BaseCloud):
             tenant_id: user's tenant id key
             region: The region where the instance will be created
         """
-        super().__init__(tag, timestamp_suffix, config_file)
+        super().__init__(
+            tag,
+            timestamp_suffix,
+            config_file,
+            required_values=[
+                client_id,
+                client_secret,
+                subscription_id,
+                tenant_id,
+            ],
+        )
+
         self._log.debug("logging into Azure")
         self.location = region or self.config.get("region") or "centralus"
         self.username = "ubuntu"
