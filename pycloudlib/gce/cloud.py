@@ -155,22 +155,47 @@ class GCE(BaseCloud):
 
         raise ValueError("Invalid image_type: {}".format(image_type.value))
 
-    def _find_latest_image(self, release: str, image_type: ImageType):
-        project = self._get_project(image_type=image_type)
-        name_filter = self._get_name_filter(
-            release=release, image_type=image_type
+    def _query_image_list(
+        self, release: str, project: str, name_filter: str, arch: str
+    ):
+        """Query full list of images.
+
+        image list API docs:
+        https://googleapis.github.io/google-api-python-client/docs/dyn/compute_v1.images.html#list
+
+        The image list API doesn't allow filtering and sorting in one request
+        so we need to do one of those locally.
+        Filtering via the API results in fewer requests on average than
+        sorting via the API.
+        So we filter via the API and loop through all pages to get the full
+        image list matching that filter.
+        500 is the maximum allowed page size
+        Then we can sort locally and grab the latest image.
+
+        Args:
+            release: string, Ubuntu release to look for
+            project: GCE project
+            name_filter: name to filter with
+            arch: images' architecture
+
+        Returns:
+            list of images matching the given filters
+        """
+        filter_string = "(name={}) AND (architecture={})".format(
+            name_filter, arch.upper()
         )
 
-        # image list API docs:
-        # https://googleapis.github.io/google-api-python-client/docs/dyn/compute_v1.images.html#list
-        # The image list API doesn't allow filtering and sorting in one request
-        # so we need to do one of those locally.
-        # Filtering via the API results in fewer requests on average than
-        # sorting via the API.
-        # So we filter via the API and loop through all pages to get the full
-        # image list matching that filter.
-        # 500 is the maximum allowed page size
-        # Then we sort locally and grab the latest image.
+        # SPECIAL CASE
+        # Google didn't start including architecture in image descriptions
+        # until after xenial stopped getting published
+        # All xenial images are x86_64, so:
+        #   1. we can return early for non-x86_64 xenial queries
+        #   2. for xenial + x86_64 we don't include the architecture in the
+        #      filter
+        if release == "xenial":
+            if arch != "x86_64":
+                return []
+            filter_string = "name={}".format(name_filter)
 
         image_list = []
         page_token = ""
@@ -180,35 +205,31 @@ class GCE(BaseCloud):
                 self.compute.images()
                 .list(
                     project=project,
-                    filter="name={}".format(name_filter),
+                    filter=filter_string,
                     maxResults=500,
                     pageToken=page_token,
                 )
                 .execute()
             )
             reqs += 1
-            image_list = image_list + image_list_result.get("items", [])
+            image_list += image_list_result.get("items", [])
             page_token = image_list_result.get("nextPageToken", None)
 
         self._log.debug(
-            'Fetched entire image list matching "%s" in %i requests',
-            name_filter,
+            (
+                'Fetched entire image list (%i results) matching "%s" in %i'
+                " requests"
+            ),
+            len(image_list),
+            filter_string,
             reqs,
         )
 
-        if not image_list:
-            raise Exception(
-                "Could not find {} image for {} release".format(
-                    image_type.value,
-                    release,
-                )
-            )
+        return image_list
 
-        image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
-        self._log.debug("Found image name: %s", image["name"])
-        return "projects/{}/global/images/{}".format(project, image["id"])
-
-    def daily_image(self, release, image_type: ImageType = ImageType.GENERIC):
+    def daily_image(
+        self, release, arch="x86_64", image_type: ImageType = ImageType.GENERIC
+    ):
         """Find the id of the latest image for a particular release.
 
         Args:
@@ -218,8 +239,38 @@ class GCE(BaseCloud):
             string, path to latest daily image
 
         """
-        self._log.debug("finding daily Ubuntu image for %s", release)
-        return self._find_latest_image(release=release, image_type=image_type)
+        self._log.debug(
+            "finding daily Ubuntu image for arch: %s and release: %s",
+            arch,
+            release,
+        )
+        project = self._get_project(image_type=image_type)
+        name_filter = self._get_name_filter(
+            release=release, image_type=image_type
+        )
+
+        image_list = self._query_image_list(
+            release, project, name_filter, arch
+        )
+
+        if not image_list:
+            msg = (
+                "Could not find {} image for arch: {} and release: {}".format(
+                    image_type.value,
+                    arch,
+                    release,
+                )
+            )
+            self._log.warning(msg)
+            raise Exception(msg)
+
+        image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
+        self._log.debug(
+            'Found image name "%s" for arch "%s"',
+            image["name"],
+            arch,
+        )
+        return "projects/{}/global/images/{}".format(project, image["id"])
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
