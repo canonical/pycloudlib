@@ -33,7 +33,7 @@ def generic(gce):
     Connects to GCE and finds the latest daily image. Then runs
     through a number of examples.
     """
-    daily = gce.daily_image("bionic")
+    daily = gce.daily_image("bionic", arch="x86_64")
     inst = gce.launch(daily)
     print(inst.execute("lsb_release -a"))
     inst.delete()
