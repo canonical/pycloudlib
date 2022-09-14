@@ -53,7 +53,13 @@ class GCE(BaseCloud):
             service_account_email: service account to bind launched
                                    instances to
         """
-        super().__init__(tag, timestamp_suffix, config_file)
+        super().__init__(
+            tag,
+            timestamp_suffix,
+            config_file,
+            required_values=[credentials_path, project],
+        )
+
         self._log.debug("logging into GCE")
 
         self.credentials_path = ""

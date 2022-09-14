@@ -32,7 +32,11 @@ class BaseCloud(ABC):
     _type = "base"
 
     def __init__(
-        self, tag, timestamp_suffix=True, config_file: ConfigFile = None
+        self,
+        tag,
+        timestamp_suffix=True,
+        config_file: ConfigFile = None,
+        required_values=None,
     ):
         """Initialize base cloud class.
 
@@ -44,7 +48,7 @@ class BaseCloud(ABC):
         self._log = logging.getLogger(
             "{}.{}".format(__name__, self.__class__.__name__)
         )
-        self.config = parse_config(config_file)[self._type]
+        self.check_and_set_config(config_file, required_values)
 
         user = getpass.getuser()
         self.key_pair = KeyPair(
@@ -223,3 +227,24 @@ class BaseCloud(ABC):
             raise ValueError(f"No images found matching filters: {filters}")
 
         return result
+
+    def check_and_set_config(self, config_file, required_values):
+        """Set pycloudlib configuration.
+
+        Checks if values required to launch a cloud instance are present.
+        Values should be present in pycloudlib config file or passed to the
+        cloud's constructor directly.
+
+        Args:
+            config_file: path to pycloudlib configuration file
+            required_values: a list containing all the required values for
+                the cloud that were passed to the cloud's constructor
+        """
+        # if all required values were passed to the cloud's constructor,
+        # there is no need to parse the config file. If some (but not all)
+        # of them were provided, config file is loaded and the values that
+        # were passed in work as overrides
+        if required_values and all(v is not None for v in required_values):
+            self.config = {}
+        else:
+            self.config = parse_config(config_file)[self._type]

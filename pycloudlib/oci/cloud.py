@@ -30,6 +30,7 @@ class OCI(BaseCloud):
         availability_domain=None,
         compartment_id=None,
         config_path=None,
+        config_dict=None,
     ):
         """
         Initialize the connection to OCI.
@@ -47,8 +48,16 @@ class OCI(BaseCloud):
             availability_domain: One of the availability domains from:
                 'oci iam availability-domain list'
             config_path: Path of OCI config file
+            config_dict: A dictionary containing the OCI config.
+                Overrides the values from config_path
         """
-        super().__init__(tag, timestamp_suffix, config_file)
+        super().__init__(
+            tag,
+            timestamp_suffix,
+            config_file,
+            required_values=[availability_domain, compartment_id],
+        )
+
         self.availability_domain = (
             availability_domain or self.config["availability_domain"]
         )
@@ -72,15 +81,28 @@ class OCI(BaseCloud):
             compartment_id = json.loads(result.stdout)["data"]["id"]
         self.compartment_id = compartment_id
 
-        config_path = (
-            config_path or self.config.get("config_path") or "~/.oci/config"
-        )
-        if not os.path.isfile(os.path.expanduser(config_path)):
-            raise ValueError(
-                "{} is not a valid config file. Pass a valid config "
-                "file.".format(config_path)
+        if config_dict:
+            try:
+                oci.config.validate_config(config_dict)
+                self.oci_config = config_dict
+            except oci.exceptions.InvalidConfig as e:
+                raise ValueError(
+                    "Config dict is invalid. Pass a valid config dict. "
+                    "{}".format(e)
+                ) from e
+
+        else:
+            config_path = (
+                config_path
+                or self.config.get("config_path")
+                or "~/.oci/config"
             )
-        self.oci_config = oci.config.from_file(config_path)
+            if not os.path.isfile(os.path.expanduser(config_path)):
+                raise ValueError(
+                    "{} is not a valid config file. Pass a valid config "
+                    "file.".format(config_path)
+                )
+            self.oci_config = oci.config.from_file(config_path)
 
         self._log.debug("Logging into OCI")
         self.compute_client = oci.core.ComputeClient(self.oci_config)
