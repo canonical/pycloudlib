@@ -155,7 +155,9 @@ class GCE(BaseCloud):
 
         raise ValueError("Invalid image_type: {}".format(image_type.value))
 
-    def _find_latest_image(self, release: str, image_type: ImageType):
+    def _find_latest_image(
+        self, release: str, image_type: ImageType, arch="X86_64"
+    ):
         project = self._get_project(image_type=image_type)
         name_filter = self._get_name_filter(
             release=release, image_type=image_type
@@ -180,7 +182,7 @@ class GCE(BaseCloud):
                 self.compute.images()
                 .list(
                     project=project,
-                    filter="name={}".format(name_filter),
+                    filter=f"name={name_filter} AND architecture={arch}",
                     maxResults=500,
                     pageToken=page_token,
                 )
