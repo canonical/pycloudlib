@@ -1,6 +1,6 @@
 """Tests related to pycloudlib.lxd.cloud module."""
-import contextlib
 import io
+import logging
 from unittest import mock
 
 import pytest
@@ -19,21 +19,19 @@ class TestProfileCreation:
     """Tests covering pycloudlib.lxd.cloud.create_profile method."""
 
     @mock.patch("pycloudlib.lxd.cloud.subp")
-    def test_create_profile_that_already_exists(self, m_subp):
+    def test_create_profile_that_already_exists(self, m_subp, caplog):
         """Tests creating a profile that already exists."""
         m_subp.return_value = """
             - name: test_profile
         """
         cloud = LXDContainer(tag="test", config_file=io.StringIO(CONFIG))
 
-        fake_stdout = io.StringIO()
-        with contextlib.redirect_stdout(fake_stdout):
+        expected_msg = "The profile named test_profile already exists"
+        with caplog.at_level(logging.DEBUG):
             cloud.create_profile(
                 profile_name="test_profile", profile_config="profile_config"
             )
-
-        expected_msg = "The profile named test_profile already exists"
-        assert expected_msg in fake_stdout.getvalue().strip()
+            assert expected_msg in caplog.text
         assert m_subp.call_args_list == [
             mock.call(["lxc", "profile", "list", "--format", "yaml"])
         ]
@@ -120,6 +118,92 @@ class Test_LxcImageInfo:  # pylint: disable=W0212
         assert {} == LXDVirtualMachine(
             tag="test", config_file=io.StringIO(CONFIG)
         )._lxc_image_info("image_id")
+
+
+SAMPLE_METADATA_CFG = {
+    "architecture": "x86_64",
+    "properties": {
+        "os": "ubuntu",
+        "release": "bionic",
+    },
+    "templates": {
+        "/etc/hostname": {
+            "when": ["create", "copy"],
+            "create_only": False,
+            "template": "hostname.tpl",
+            "properties": {},
+        },
+    },
+}
+
+
+class TestSetInstanceMetadataConfig:
+    """Test LXD.set_instance_metadata_config."""
+
+    @mock.patch("pycloudlib.lxd.cloud.subp")
+    def test_set_instance_metadata_logs_cmd(self, subp, caplog):
+        """set_instance_metadata invokes CLI: lxc config metadata edit."""
+        cloud = LXDVirtualMachine(tag="test", config_file=io.StringIO(CONFIG))
+        with caplog.at_level(logging.DEBUG):
+            cloud.set_instance_metadata_config("inst1", SAMPLE_METADATA_CFG)
+        cmd = ["lxc", "config", "metadata", "edit", "inst1"]
+        assert subp.call_args_list == [
+            mock.call(cmd, data=yaml.safe_dump(SAMPLE_METADATA_CFG))
+        ]
+        assert f"Setting instance metadata: {' '.join(cmd)}\n" in caplog.text
+
+
+class TestCreateInstanceTemplate:
+    """Test LXD.create_instance_template."""
+
+    @pytest.mark.parametrize(
+        "profile_list,create_template",
+        (
+            ("- sometmpl\n", True),
+            ("- tmpl1\n", False),
+        ),
+    )
+    @mock.patch("pycloudlib.lxd.cloud.subp")
+    def test_create_instance_template_calls_create_template_when_absent(
+        self, subp, profile_list, create_template, caplog
+    ):
+        """Call lxc config create template only when named template absent."""
+        subp.side_effect = (
+            profile_list,
+            "",
+            "",
+            RuntimeError("Too many subp calls"),
+        )
+        cloud = LXDVirtualMachine(tag="test", config_file=io.StringIO(CONFIG))
+        with caplog.at_level(logging.DEBUG):
+            cloud.create_instance_template("inst1", "tmpl1", "tmpl-content")
+        create_cmd = ["lxc", "config", "template", "create", "inst1", "tmpl1"]
+        edit_cmd = ["lxc", "config", "template", "edit", "inst1", "tmpl1"]
+        expected_calls = [
+            mock.call(
+                [
+                    "lxc",
+                    "config",
+                    "template",
+                    "list",
+                    "inst1",
+                    "--format",
+                    "yaml",
+                ]
+            ),
+            mock.call(edit_cmd, data="tmpl-content"),
+        ]
+        expected_logs = [f"Setting template content for instance: {edit_cmd}"]
+        if create_template:
+            # Only lxc config template create if it does not exist
+            expected_calls.insert(1, mock.call(create_cmd))
+            expected_logs.append(
+                f"Creating template for instance: {create_cmd}"
+            )
+
+        assert subp.call_args_list == expected_calls
+        for log in expected_logs:
+            assert log in caplog.text
 
 
 class TestExtractReleaseFromImageId:

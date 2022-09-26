@@ -45,6 +45,74 @@ VM_PROFILE_TMPL = textwrap.dedent(
 )
 
 
+# LP: #1988401 dropped NoCloud metadata templates to allow detecting LXD
+# datsource in cloud-init. Bionic doesn't have an active lxd-agent.service.
+# and our CI use-case on Bionic VMs provide supplemental profiles which set
+# user.vendor-data which can only be provided via NoCloud datasource.
+# This change in behavior on Bionic VMs forces pycloudlib to repopulate
+# NoCloud metadata templates if they don't exist to ensure the lxd-agent is
+# running on Bionic VMs and that network-config, meta-data and vendor-data are
+# appropriately setup in /var/lib/cloud/seed/nocloud-net.
+BIONIC_VM_METADATA_CONFIG_NOCLOUD = {
+    "/var/lib/cloud/seed/nocloud-net/meta-data": {
+        "when": ["create", "copy"],
+        "create_only": False,
+        "template": "cloud-init-meta.tpl",
+        "properties": {},
+    },
+    "/var/lib/cloud/seed/nocloud-net/network-config": {
+        "when": ["create", "copy"],
+        "create_only": False,
+        "template": "cloud-init-network.tpl",
+        "properties": {},
+    },
+    "/var/lib/cloud/seed/nocloud-net/user-data": {
+        "when": ["create", "copy"],
+        "create_only": False,
+        "template": "cloud-init-user.tpl",
+        "properties": {"default": "#cloud-config\n{}\n"},
+    },
+    "/var/lib/cloud/seed/nocloud-net/vendor-data": {
+        "when": ["create", "copy"],
+        "create_only": False,
+        "template": "cloud-init-vendor.tpl",
+        "properties": {"default": "#cloud-config\n{}\n"},
+    },
+}
+
+BIONIC_VM_TEMPLATES_NOCLOUD = {
+    "cloud-init-meta.tpl": textwrap.dedent(
+        """\
+        instance-id: {{ container.name }}
+        local-hostname: {{ container.name }}
+        {{ config_get("user.meta-data", "") }}
+        """
+    ),
+    "cloud-init-network.tpl": textwrap.dedent(
+        """\
+        {% if config_get("user.network-config", "") == "" %}version: 1
+        config:
+            - type: physical
+              name: eth0
+              subnets:
+                  - type: {% if config_get("user.network_mode", "") == "link-local" %}manual{% else %}dhcp{% endif %}
+                    control: auto{% else %}{{ config_get("user.network-config", "") }}{% endif %}
+        """  # noqa: E501
+    ),
+    "cloud-init-user.tpl": textwrap.dedent(
+        """\
+        {{ config_get("user.user-data", properties.default) }}
+
+        """
+    ),
+    "cloud-init-vendor.tpl": textwrap.dedent(
+        """\
+        {{ config_get("user.vendor-data", properties.default) }}
+        """
+    ),
+}
+
+
 def _make_vm_profile(
     series: str, *, install_agent: bool, config_cloudinit: bool
 ) -> str:

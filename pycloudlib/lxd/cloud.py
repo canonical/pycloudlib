@@ -3,12 +3,17 @@
 import warnings
 from abc import abstractmethod
 from contextlib import suppress
+from typing import List
 
 import yaml
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
-from pycloudlib.lxd.defaults import base_vm_profiles
+from pycloudlib.lxd.defaults import (
+    BIONIC_VM_METADATA_CONFIG_NOCLOUD,
+    BIONIC_VM_TEMPLATES_NOCLOUD,
+    base_vm_profiles,
+)
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
 
@@ -40,6 +45,82 @@ class _BaseLXD(BaseCloud):
         self._log.debug("cloning %s to %s", base, new_instance_name)
         subp(["lxc", "copy", base, new_instance_name])
         return LXDInstance(new_instance_name)
+
+    def get_instance_metadata_config(self, instance_name: str) -> dict:
+        """Get LXD instance metadata, returning a dict."""
+        return yaml.safe_load(
+            subp(["lxc", "config", "metadata", "show", instance_name])
+        )
+
+    def set_instance_metadata_config(
+        self, instance_name: str, metadata_config: dict
+    ):
+        """Set LXC configuration metadata for an LXC instance.
+
+        Args:
+            instance_name: string, unique LXC instance name.
+            metadata_config: dict, complete LXC metadata configuration
+                values to set on the instance.
+        """
+        cmd = ["lxc", "config", "metadata", "edit", instance_name]
+        self._log.debug("Setting instance metadata: %s", " ".join(cmd))
+        subp(cmd, data=yaml.safe_dump(metadata_config))
+
+    def get_instance_template_names(self, instance_name: str) -> List[str]:
+        """Get LXD instance template names."""
+        return yaml.safe_load(
+            subp(
+                [
+                    "lxc",
+                    "config",
+                    "template",
+                    "list",
+                    instance_name,
+                    "--format",
+                    "yaml",
+                ]
+            )
+        )
+
+    def create_instance_template(
+        self,
+        instance_name: str,
+        template_name: str,
+        content: str,
+        current_templates: List[str] = None,
+    ):
+        """Set LXC configuration templates for an LXC instance.
+
+        Args:
+            instance_name: string, unique LXC instance name.
+            template_name: string, unique LXC instance name.
+            content: string, template value to render for this template file
+            current_templates: List of template names configured for this
+                instance
+        """
+        if not current_templates:
+            current_templates = self.get_instance_template_names(instance_name)
+        if template_name not in current_templates:
+            create_cmd = [
+                "lxc",
+                "config",
+                "template",
+                "create",
+                instance_name,
+                template_name,
+            ]
+            self._log.debug("Creating template for instance: %s", create_cmd)
+            subp(create_cmd)
+        edit_cmd = [
+            "lxc",
+            "config",
+            "template",
+            "edit",
+            instance_name,
+            template_name,
+        ]
+        self._log.debug("Setting template content for instance: %s", edit_cmd)
+        subp(edit_cmd, data=content)
 
     def create_profile(self, profile_name, profile_config, force=False):
         """Create a lxd profile.
@@ -296,6 +377,12 @@ class _BaseLXD(BaseCloud):
             ephemeral=ephemeral,
         )
 
+    def _setup_instance_metadata_and_templates(self, image_id, instance):
+        """Subclass implement when config is needed between init and start.
+
+        LXDVirtualMachine requires additional config on Bionic VMs.
+        """
+
     def launch(
         self,
         image_id,
@@ -315,6 +402,13 @@ class _BaseLXD(BaseCloud):
 
         This will init and start a container with the provided settings.
         If no remote is specified pycloudlib defaults to daily images.
+
+        On Bionic VMs, pycloudlib is forced to use NoCloud datasource config
+        to setup lxd-agent.service to support lxc exec commands. This
+        NoCloud config is provided via a config drive device and requires
+        supplemental NoCloud templates for meta-data, network-config,
+        vendor-data and user-data written to /var/lib/cloud/seed/nocloud-net.
+
 
         Args:
             image_id: string, [<remote>:]<image>, the image to launch
@@ -346,6 +440,7 @@ class _BaseLXD(BaseCloud):
             config_dict=config_dict,
             execute_via_ssh=execute_via_ssh,
         )
+        self._setup_instance_metadata_and_templates(image_id, instance)
         instance.start(wait)
 
         return instance
@@ -693,3 +788,34 @@ class LXDVirtualMachine(_BaseLXD):
             return self.DISK_UEFI1_KEY
 
         return self.DISK_KVM_HASH_KEY
+
+    def _setup_instance_metadata_and_templates(
+        self, image_id: str, instance: _BaseLXD
+    ):
+        # Drop when bionic support no longer needed
+        base_release = self._extract_release_from_image_id(image_id)
+        if base_release == "bionic":
+            # Setup LXC NoCloud metadata templates if absent on this image
+            lxc_md = self.get_instance_metadata_config(instance.name)
+            missing_templates = []
+            for md_key, md_value in BIONIC_VM_METADATA_CONFIG_NOCLOUD.items():
+                if md_key not in lxc_md["templates"]:
+                    missing_templates.append(md_key)
+                    lxc_md["templates"][md_key] = md_value
+            if missing_templates:
+                self._log.debug(
+                    "Adding missing LXD NoCloud templates for instance %s: %s",
+                    instance.name,
+                    ", ".join(missing_templates),
+                )
+                self.set_instance_metadata_config(
+                    instance.name, metadata_config=lxc_md
+                )
+            tpl_names = self.get_instance_template_names(instance.name)
+            for tpl_name in set(BIONIC_VM_TEMPLATES_NOCLOUD) - set(tpl_names):
+                self.create_instance_template(
+                    instance.name,
+                    tpl_name,
+                    BIONIC_VM_TEMPLATES_NOCLOUD[tpl_name],
+                    tpl_names,
+                )
