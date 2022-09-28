@@ -332,8 +332,13 @@ class _BaseLXD(BaseCloud):
 
         Returns:
             The created LXD instance object
-
+        Raises: ValueError on missing image_id
         """
+        if not image_id:
+            raise ValueError(
+                f"{self._type} launch requires image_id param."
+                f" Found: {image_id}"
+            )
         instance = self.init(
             name=name,
             image_id=image_id,

@@ -121,8 +121,13 @@ class Openstack(BaseCloud):
 
         Returns:
             An instance object to use to manipulate the instance further.
-
+        Raises: ValueError on invalid image_id
         """
+        if not image_id:
+            raise ValueError(
+                f"{self._type} launch requires image_id param."
+                f" Found: {image_id}"
+            )
         network_id = self._get_network_id()
         networks = [{"uuid": network_id}]
         if not self._openstack_keypair:

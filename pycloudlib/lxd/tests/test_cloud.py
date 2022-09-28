@@ -15,6 +15,72 @@ CONFIG = """\
 """
 
 
+@contextlib.contextmanager
+def does_not_raise():
+    """Provide alternate contextmanager to use where no errors are raised."""
+    yield
+
+
+class TestLaunch:
+    """Tests covering pycloudlib.lxd.cloud.launch method."""
+
+    @pytest.mark.parametrize(
+        "image_id,expectation",
+        (
+            ("some-img", does_not_raise()),
+            ("", pytest.raises(ValueError)),
+            (None, pytest.raises(ValueError)),
+        ),
+    )
+    @mock.patch("pycloudlib.lxd.cloud._BaseLXD._extract_release_from_image_id")
+    def test_launch_validates_image_id(
+        self, extract_release, image_id, expectation
+    ):
+        """Validate image_id or raise exceptions before calling init/start."""
+        extract_release.return_value = "bionic"
+        cloud = LXDContainer(tag="test", config_file=io.StringIO(CONFIG))
+        init_kwargs = {
+            "image_id": image_id,
+            "instance_type": "inst_type",
+            "user_data": "ud",
+            "wait": False,
+            "name": "name",
+            "ephemeral": True,
+            "network": "netname",
+            "storage": "storagename",
+            "profile_list": ["profile1"],
+            "config_dict": {"user.custom": "val"},
+            "execute_via_ssh": True,
+        }
+        inst = mock.MagicMock()
+        with expectation:
+            with mock.patch.object(cloud, "init") as lxd_init:
+                lxd_init.return_value = inst
+                inst = cloud.launch(**init_kwargs)
+                wait_val = init_kwargs.pop("wait")
+                assert lxd_init.call_args_list == [
+                    mock.call(
+                        name="name",
+                        image_id="some-img",
+                        ephemeral=True,
+                        network="netname",
+                        storage="storagename",
+                        inst_type="inst_type",
+                        profile_list=["profile1"],
+                        user_data="ud",
+                        config_dict={"user.custom": "val"},
+                        execute_via_ssh=True,
+                    )
+                ]
+                # pylint: disable=no-member
+                assert inst.start.call_args_list == [mock.call(wait_val)]
+                # pylint: disable=no-member
+
+        if not image_id:
+            assert lxd_init.call_count == 0
+            assert inst.start.call_count == 0
+
+
 class TestProfileCreation:
     """Tests covering pycloudlib.lxd.cloud.create_profile method."""
 
