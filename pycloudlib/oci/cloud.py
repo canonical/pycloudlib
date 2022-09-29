@@ -233,8 +233,13 @@ class OCI(BaseCloud):
 
         Returns:
             An instance object to use to manipulate the instance further.
-
+        Raises: ValueError on invalid image_id
         """
+        if not image_id:
+            raise ValueError(
+                f"{self._type} launch requires image_id param."
+                f" Found: {image_id}"
+            )
         subnet_id = get_subnet_id(
             self.network_client, self.compartment_id, self.availability_domain
         )

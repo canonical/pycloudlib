@@ -592,10 +592,14 @@ class Azure(BaseCloud):
 
         Returns:
             Azure Instance object
-
+        Raises: ValueError on invalid image_id
         """
         # pylint: disable-msg=too-many-locals
-
+        if not image_id:
+            raise ValueError(
+                f"{self._type} launch requires image_id param."
+                f" Found: {image_id}"
+            )
         self._log.debug("Launching Azure virtual machine: %s", image_id)
 
         # For every new launch, we need to update the tag, since

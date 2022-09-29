@@ -341,8 +341,13 @@ class GCE(BaseCloud):
             user_data: string, user-data to pass to instance
             wait: boolean, wait for instance to come up
             kwargs: other named arguments to add to instance JSON
-
+        Raises: ValueError on invalid image_id
         """
+        if not image_id:
+            raise ValueError(
+                f"{self._type} launch requires image_id param."
+                f" Found: {image_id}"
+            )
         instance_name = "i{}-{}".format(next(self.instance_counter), self.tag)
         config = {
             "name": instance_name,

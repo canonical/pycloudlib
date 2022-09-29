@@ -306,8 +306,13 @@ class EC2(BaseCloud):
 
         Returns:
             EC2 Instance object
-
+        Raises: ValueError on invalid image_id
         """
+        if not image_id:
+            raise ValueError(
+                f"{self._type} launch requires image_id param."
+                f" Found: {image_id}"
+            )
         args = {
             "ImageId": image_id,
             "InstanceType": instance_type,
