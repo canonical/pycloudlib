@@ -70,6 +70,10 @@ class LXDInstance(BaseInstance):
         return subp(base_cmd + list(command), rcs=None)
 
     def parse_ip(self, query: dict):
+        """Return ip address from lxd query.
+
+        Returns None if no address found
+        """
         network = query.get("state", {}).get("network", {})
         for _, nic_cfg in network.items():
             if not nic_cfg.get("host_name"):

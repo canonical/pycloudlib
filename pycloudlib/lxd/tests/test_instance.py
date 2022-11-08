@@ -1,8 +1,8 @@
 """Tests for pycloudlib.lxd.instance."""
 import re
-from unittest import mock
-from json import dumps
 from copy import deepcopy
+from json import dumps
+from unittest import mock
 
 import pytest
 
@@ -18,20 +18,20 @@ LXD_QUERY = {
                         "address": "10.161.80.57",
                         "family": "inet",
                         "netmask": "24",
-                        "scope": "global"
+                        "scope": "global",
                     },
                     {
                         "address": "fd42:80e2:4695:1e96:216:3eff:fe06:e5f6",
                         "family": "inet6",
                         "netmask": "64",
-                        "scope": "global"
+                        "scope": "global",
                     },
                     {
                         "address": "fe80::216:3eff:fe06:e5f6",
                         "family": "inet6",
                         "netmask": "64",
-                        "scope": "link"
-                    }
+                        "scope": "link",
+                    },
                 ],
                 "counters": {
                     "bytes_received": 627023316,
@@ -41,13 +41,13 @@ LXD_QUERY = {
                     "packets_dropped_inbound": 0,
                     "packets_dropped_outbound": 0,
                     "packets_received": 344183,
-                    "packets_sent": 71759
+                    "packets_sent": 71759,
                 },
                 "host_name": "tap55cb7af1",
                 "hwaddr": "00:16:3e:06:e5:f6",
                 "mtu": 1500,
                 "state": "up",
-                "type": "broadcast"
+                "type": "broadcast",
             },
             "lo": {
                 "addresses": [
@@ -55,14 +55,14 @@ LXD_QUERY = {
                         "address": "127.0.0.1",
                         "family": "inet",
                         "netmask": "8",
-                        "scope": "local"
+                        "scope": "local",
                     },
                     {
                         "address": "::1",
                         "family": "inet6",
                         "netmask": "128",
-                        "scope": "local"
-                    }
+                        "scope": "local",
+                    },
                 ],
                 "counters": {
                     "bytes_received": 67612,
@@ -72,13 +72,13 @@ LXD_QUERY = {
                     "packets_dropped_inbound": 0,
                     "packets_dropped_outbound": 0,
                     "packets_received": 654,
-                    "packets_sent": 654
+                    "packets_sent": 654,
                 },
                 "host_name": "",
                 "hwaddr": "",
                 "mtu": 65536,
                 "state": "up",
-                "type": "loopback"
+                "type": "loopback",
             },
             "veth1998ea41": {
                 "addresses": [],
@@ -90,19 +90,19 @@ LXD_QUERY = {
                     "packets_dropped_inbound": 0,
                     "packets_dropped_outbound": 0,
                     "packets_received": 1210,
-                    "packets_sent": 42
+                    "packets_sent": 42,
                 },
                 "host_name": "",
                 "hwaddr": "56:f1:b2:7f:8b:32",
                 "mtu": 1500,
                 "state": "up",
-                "type": "broadcast"
-            }
+                "type": "broadcast",
+            },
         },
         "pid": 182418,
         "processes": 46,
         "status": "Running",
-        "status_code": 103
+        "status_code": 103,
     },
 }
 
@@ -248,6 +248,7 @@ class TestIP:
         self, m_subp, m_sleep, stdouts, stderr, return_code, sleeps, expected
     ):
         """IPv4 output matches specific vm name from `lxc list`.
+
         Errors are retried and result in TimeoutError on failure.
         """
         if len(stdouts) > 1:
@@ -273,7 +274,7 @@ class TestIP:
         assert sleeps == m_sleep.call_count
 
     def test_parse_ip(self):
-        """Verify ipv4 parser"""
+        """Verify ipv4 parser."""
         assert "10.161.80.57" == LXDInstance(name="my_vm").parse_ip(LXD_QUERY)
         local = deepcopy(LXD_QUERY)
         local.get("state", {}).get("network", {}).pop("enp5s0")
