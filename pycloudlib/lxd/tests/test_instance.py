@@ -2,6 +2,7 @@
 import re
 from unittest import mock
 from json import dumps
+from copy import deepcopy
 
 import pytest
 
@@ -274,8 +275,9 @@ class TestIP:
     def test_parse_ip(self):
         """Verify ipv4 parser"""
         assert "10.161.80.57" == LXDInstance(name="my_vm").parse_ip(LXD_QUERY)
-        LXD_QUERY.get("state", {}).get("network", {}).pop("enp5s0")
-        assert LXDInstance(name="my_vm").parse_ip(LXD_QUERY) is None
+        local = deepcopy(LXD_QUERY)
+        local.get("state", {}).get("network", {}).pop("enp5s0")
+        assert LXDInstance(name="my_vm").parse_ip(local) is None
 
 
 class TestWaitForStop:
