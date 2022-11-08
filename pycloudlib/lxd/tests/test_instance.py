@@ -259,12 +259,16 @@ class TestIP:
                 stdout=stdouts[0], stderr=stderr, return_code=return_code
             )
         instance = LXDInstance(name="my_vm")
-
+        lxc_mock = mock.call(
+            ["lxc", "query", "/1.0/instances/my_vm?recursion=1"]
+        )
         if isinstance(expected, Exception):
             with pytest.raises(type(expected), match=re.escape(str(expected))):
                 instance.ip  # pylint: disable=pointless-statement
+            assert [lxc_mock] * sleeps == m_subp.call_args_list
         else:
             assert expected == instance.ip
+            assert [lxc_mock] * (1 + sleeps) == m_subp.call_args_list
         assert sleeps == m_sleep.call_count
 
     def test_parse_ip(self):
