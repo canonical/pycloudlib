@@ -69,6 +69,19 @@ class LXDInstance(BaseInstance):
         ]
         return subp(base_cmd + list(command), rcs=None)
 
+    def parse_ip(self, query: dict):
+        network = query.get("state", {}).get("network", {})
+        for _, nic_cfg in network.items():
+            if not nic_cfg.get("host_name"):
+                continue
+            for addr in nic_cfg["addresses"]:
+                if addr.get("family") == "inet":
+                    return addr.get("address")
+        self._log.debug(
+            "Unable to find valid IP. Found network: %s",
+            network,
+        )
+
     @property
     def is_vm(self):
         """Return boolean if vm type or not.
@@ -125,21 +138,10 @@ class LXDInstance(BaseInstance):
                         result.stdout,
                         retries,
                     )
-                    continue
-                network = info.get("state", {}).get("network", {})
-                for _nic, nic_cfg in network.items():
-                    if not nic_cfg.get("host_name"):
-                        continue
-                    for addr in nic_cfg["addresses"]:
-                        if addr.get("family") == "inet":
-                            return addr.get("address")
-                self._log.debug(
-                    "Unable to find valid IP from cmd: %s. Found network:"
-                    " %s. Retrying %d time(s)",
-                    command,
-                    network,
-                    retries,
-                )
+                else:
+                    ip = self.parse_ip(info)
+                    if ip:
+                        return ip
             retries -= 1
             time.sleep(1)
         raise TimeoutError(
