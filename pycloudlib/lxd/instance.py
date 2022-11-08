@@ -119,7 +119,7 @@ class LXDInstance(BaseInstance):
                     info = json.loads(result.stdout)
                 except ValueError:
                     self._log.debug(
-                        "Unable to parse output of cmd: %s. Expected YAML,"
+                        "Unable to parse output of cmd: %s. Expected JSON,"
                         " got: %s. Retrying %d time(s)...",
                         command,
                         result.stdout,
