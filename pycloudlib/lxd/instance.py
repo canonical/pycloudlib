@@ -85,6 +85,7 @@ class LXDInstance(BaseInstance):
             "Unable to find valid IP. Found network: %s",
             network,
         )
+        return None
 
     @property
     def is_vm(self):
