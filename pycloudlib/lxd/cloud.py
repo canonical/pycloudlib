@@ -475,7 +475,7 @@ class _BaseLXD(BaseCloud):
 
         return image_info[0]["version_name"]
 
-    def delete_image(self, image_id):
+    def delete_image(self, image_id, **kwargs):
         """Delete the image.
 
         Args:

@@ -70,11 +70,12 @@ class BaseCloud(ABC):
             self.tag = validate_tag(tag)
 
     @abstractmethod
-    def delete_image(self, image_id):
+    def delete_image(self, image_id, **kwargs):
         """Delete an image.
 
         Args:
             image_id: string, id of the image to delete
+            **kwargs: dictionary of other arguments to pass to delete_image
         """
         raise NotImplementedError
 

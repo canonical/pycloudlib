@@ -284,7 +284,7 @@ class GCE(BaseCloud):
         """
         raise NotImplementedError
 
-    def delete_image(self, image_id):
+    def delete_image(self, image_id, **kwargs):
         """Delete an image.
 
         Args:

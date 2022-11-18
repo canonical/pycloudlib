@@ -42,7 +42,7 @@ class Openstack(BaseCloud):
         self._openstack_keypair = None
         self.conn = openstack.connect()
 
-    def delete_image(self, image_id):
+    def delete_image(self, image_id, **kwargs):
         """Delete an image.
 
         Args:
