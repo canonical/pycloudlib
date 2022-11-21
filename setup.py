@@ -50,7 +50,7 @@ setup(
     url="https://launchpad.net/pycloudlib",
     license="GNU General Public License v3 (GPLv3)",
     packages=find_packages(),
-    python_requires=">=3.4",
+    python_requires=">=3.6",
     install_requires=INSTALL_REQUIRES,
     zip_safe=True,
     classifiers=[
