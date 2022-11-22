@@ -38,7 +38,7 @@ All exceptions from underlying libraries are passed directly through for the end
 Logging
 =======
 
-Logging is setup using the standard logging module. It is up to the user to setup their logging configuration and set the appropriate level.
+Logging is set up using the standard logging module. It is up to the user to set up their logging configuration and set the appropriate level.
 
 Logging for paramiko, used for SSH communication, is restricted to warning level and higher, otherwise the logging is far too verbose.
 
