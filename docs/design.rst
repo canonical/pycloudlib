@@ -11,7 +11,7 @@ Instances are expected to use the latest daily image, unless another image is sp
 cloud-init
 ----------
 
-The images are expected to have cloud-init in them to properly start. When an instance is started or during launch, the instance is checked for the boot complete file that cloud-init produces.
+The images are expected to have cloud-init in them to properly start. When an instance is started, or during launch, the instance is checked for the boot complete file that cloud-init produces.
 
 Instances
 =========
