@@ -475,7 +475,7 @@ class Azure(BaseCloud):
 
         return vm_poller.result()
 
-    def delete_image(self, image_id):
+    def delete_image(self, image_id, **kwargs):
         """Delete an image from Azure.
 
         Args:

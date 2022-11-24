@@ -248,7 +248,7 @@ class EC2(BaseCloud):
         )
         return self._find_image_serial(image_id, image_type)
 
-    def delete_image(self, image_id):
+    def delete_image(self, image_id, **kwargs):
         """Delete an image.
 
         Args:

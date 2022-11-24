@@ -108,13 +108,13 @@ class OCI(BaseCloud):
         self.compute_client = oci.core.ComputeClient(self.oci_config)
         self.network_client = oci.core.VirtualNetworkClient(self.oci_config)
 
-    def delete_image(self, image_id):
+    def delete_image(self, image_id, **kwargs):
         """Delete an image.
 
         Args:
             image_id: string, id of the image to delete
         """
-        self.compute_client.delete_image(image_id)
+        self.compute_client.delete_image(image_id, **kwargs)
 
     def released_image(self, release, operating_system="Canonical Ubuntu"):
         """Get the released image.
@@ -131,7 +131,9 @@ class OCI(BaseCloud):
         """
         return self.daily_image(release, operating_system)
 
-    def daily_image(self, release, operating_system="Canonical Ubuntu"):
+    def daily_image(
+        self, release, operating_system="Canonical Ubuntu", **kwargs
+    ):
         """Get the daily image.
 
         OCI just has periodic builds, so "released" and "daily" don't
@@ -147,6 +149,7 @@ class OCI(BaseCloud):
         Args:
             release: string, Ubuntu release to look for
             operating_system: string, Operating system to use
+            **kwargs: dictionary of other arguments to pass to list_images
 
         Returns:
             string, id of latest image
@@ -167,6 +170,7 @@ class OCI(BaseCloud):
             operating_system_version=release,
             sort_by="TIMECREATED",
             sort_order="DESC",
+            **kwargs,
         )
         matching_image = [
             i
@@ -188,16 +192,17 @@ class OCI(BaseCloud):
         """
         raise NotImplementedError
 
-    def get_instance(self, instance_id):
+    def get_instance(self, instance_id, **kwargs):
         """Get an instance by id.
 
         Args:
-            instance_id:
+            instance_id: ocid of the instance
+            **kwargs: dictionary of other arguments to pass to get_instance
         Returns:
             An instance object to use to manipulate the instance further.
         """
         try:
-            self.compute_client.get_instance(instance_id)
+            self.compute_client.get_instance(instance_id, **kwargs)
         except oci.exceptions.ServiceError as e:
             raise Exception(
                 "Unable to retrieve instance with id: {} . "
@@ -217,6 +222,8 @@ class OCI(BaseCloud):
         instance_type="VM.Standard2.1",
         user_data=None,
         wait=True,
+        *,
+        retry_strategy=None,
         **kwargs,
     ):
         """Launch an instance.
@@ -228,6 +235,8 @@ class OCI(BaseCloud):
             user_data: used by Cloud-Init to run custom scripts or
                 provide custom Cloud-Init configuration
             wait: wait for instance to be live
+            retry_strategy: a retry strategy from oci.retry module
+                to apply for this operation
             **kwargs: dictionary of other arguments to pass as
                 LaunchInstanceDetails
 
@@ -263,7 +272,7 @@ class OCI(BaseCloud):
         )
 
         instance_data = self.compute_client.launch_instance(
-            instance_details
+            instance_details, retry_strategy=retry_strategy
         ).data
         instance = self.get_instance(instance_data.id)
         if wait:
