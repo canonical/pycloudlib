@@ -11,6 +11,8 @@ import shlex
 import subprocess
 import tempfile
 from errno import ENOENT
+from typing import Dict
+from urllib.parse import parse_qs, urlparse
 
 from pycloudlib.result import Result
 
@@ -346,3 +348,20 @@ def update_nested(mapping, update):
         else:
             mapping[key] = value
     return mapping
+
+
+def get_query_params(uri: str) -> Dict[str, list]:
+    """Extract the `start` query param from an href.
+
+    >>> extract_start(
+    ... href="https://us-south.iaas.cloud.ibm.com/v1/vpcs?limit=1&start=r134-fe06d70f-ec6c-4451-b0a2-37b6ec91a217",
+    ... )
+    'r134-fe06d70f-ec6c-4451-b0a2-37b6ec91a217'
+
+    TODO doc args.
+    """
+    return parse_qs(urlparse(uri).query)
+
+
+def get_query_param(uri: str, param: str) -> list:
+    return get_query_params(uri).get(param, [])
