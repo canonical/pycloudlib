@@ -1,11 +1,110 @@
 """Tests for pycloudlib.lxd.instance."""
 import re
+from copy import deepcopy
+from json import dumps
 from unittest import mock
 
 import pytest
 
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.result import Result
+
+LXD_QUERY = {
+    "state": {
+        "network": {
+            "enp5s0": {
+                "addresses": [
+                    {
+                        "address": "10.161.80.57",
+                        "family": "inet",
+                        "netmask": "24",
+                        "scope": "global",
+                    },
+                    {
+                        "address": "fd42:80e2:4695:1e96:216:3eff:fe06:e5f6",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "global",
+                    },
+                    {
+                        "address": "fe80::216:3eff:fe06:e5f6",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "link",
+                    },
+                ],
+                "counters": {
+                    "bytes_received": 627023316,
+                    "bytes_sent": 5159667,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 344183,
+                    "packets_sent": 71759,
+                },
+                "host_name": "tap55cb7af1",
+                "hwaddr": "00:16:3e:06:e5:f6",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "lo": {
+                "addresses": [
+                    {
+                        "address": "127.0.0.1",
+                        "family": "inet",
+                        "netmask": "8",
+                        "scope": "local",
+                    },
+                    {
+                        "address": "::1",
+                        "family": "inet6",
+                        "netmask": "128",
+                        "scope": "local",
+                    },
+                ],
+                "counters": {
+                    "bytes_received": 67612,
+                    "bytes_sent": 67612,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 654,
+                    "packets_sent": 654,
+                },
+                "host_name": "",
+                "hwaddr": "",
+                "mtu": 65536,
+                "state": "up",
+                "type": "loopback",
+            },
+            "veth1998ea41": {
+                "addresses": [],
+                "counters": {
+                    "bytes_received": 100604,
+                    "bytes_sent": 13587,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 1210,
+                    "packets_sent": 42,
+                },
+                "host_name": "",
+                "hwaddr": "56:f1:b2:7f:8b:32",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+        },
+        "pid": 182418,
+        "processes": 46,
+        "status": "Running",
+        "status_code": 103,
+    },
+}
 
 
 class TestRestart:
@@ -114,13 +213,13 @@ class TestIP:
                 ),
             ),
             (  # retry on non-zero exit code
-                ["10.0.0.1 (eth0)"],
+                [dumps(LXD_QUERY)],
                 "",
                 1,
                 150,
                 TimeoutError(
                     "Unable to determine IP address after 150 retries."
-                    " exit:1 stdout: 10.0.0.1 (eth0) stderr: "
+                    " exit:1 stdout:"
                 ),
             ),
             (  # empty values will retry indefinitely
@@ -134,13 +233,13 @@ class TestIP:
                 ),
             ),
             (  # only retry until success
-                ["unparseable", "10.69.10.5 (eth0)\n"],
+                ["unparseable", dumps(LXD_QUERY)],
                 "",
                 0,
                 1,
-                "10.69.10.5",
+                "10.161.80.57",
             ),
-            (["10.69.10.5 (eth0)\n"], "", 0, 0, "10.69.10.5"),
+            ([dumps(LXD_QUERY)], "", 0, 0, "10.161.80.57"),
         ),
     )
     @mock.patch("pycloudlib.lxd.instance.time.sleep")
@@ -163,7 +262,7 @@ class TestIP:
             )
         instance = LXDInstance(name="my_vm")
         lxc_mock = mock.call(
-            ["lxc", "list", "^my_vm$", "-c4", "--format", "csv"]
+            ["lxc", "query", "/1.0/instances/my_vm?recursion=1"]
         )
         if isinstance(expected, Exception):
             with pytest.raises(type(expected), match=re.escape(str(expected))):
@@ -173,6 +272,13 @@ class TestIP:
             assert expected == instance.ip
             assert [lxc_mock] * (1 + sleeps) == m_subp.call_args_list
         assert sleeps == m_sleep.call_count
+
+    def test_parse_ip(self):
+        """Verify ipv4 parser."""
+        assert "10.161.80.57" == LXDInstance(name="my_vm").parse_ip(LXD_QUERY)
+        local = deepcopy(LXD_QUERY)
+        local.get("state", {}).get("network", {}).pop("enp5s0")
+        assert LXDInstance(name="my_vm").parse_ip(local) is None
 
 
 class TestWaitForStop:

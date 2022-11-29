@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD instance."""
+import json
 import re
 import time
 
@@ -68,6 +69,24 @@ class LXDInstance(BaseInstance):
         ]
         return subp(base_cmd + list(command), rcs=None)
 
+    def parse_ip(self, query: dict):
+        """Return ip address from lxd query.
+
+        Returns None if no address found
+        """
+        network = query.get("state", {}).get("network", {})
+        for _, nic_cfg in network.items():
+            if not nic_cfg.get("host_name"):
+                continue
+            for addr in nic_cfg["addresses"]:
+                if addr.get("family") == "inet":
+                    return addr.get("address")
+        self._log.debug(
+            "Unable to find valid IP. Found network: %s",
+            network,
+        )
+        return None
+
     @property
     def is_vm(self):
         """Return boolean if vm type or not.
@@ -109,28 +128,25 @@ class LXDInstance(BaseInstance):
         while retries != 0:
             command = [
                 "lxc",
-                "list",
-                "^{}$".format(self.name),
-                "-c4",
-                "--format",
-                "csv",
+                "query",
+                f"/1.0/instances/{self.name}?recursion=1",
             ]
             result = subp(command)
             if result.ok and result.stdout:
-                ip_address = None
                 try:
-                    # Expect "<ip> (<interface>)" when network fully configured
-                    ip_address, _dev = result.stdout.split()
+                    info = json.loads(result.stdout)
                 except ValueError:
                     self._log.debug(
-                        "Unable to parse output of cmd: %s. Expected"
-                        " <ip> (<interface>), got: %s. Retrying %d time(s)...",
+                        "Unable to parse output of cmd: %s. Expected JSON,"
+                        " got: %s. Retrying %d time(s)...",
                         command,
                         result.stdout,
                         retries,
                     )
-                if ip_address:
-                    return ip_address
+                else:
+                    ip = self.parse_ip(info)
+                    if ip:
+                        return ip
             retries -= 1
             time.sleep(1)
         raise TimeoutError(
