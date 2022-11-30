@@ -6,7 +6,6 @@ import logging
 import os
 
 import pycloudlib
-from pycloudlib.cloud import ImageType
 
 
 def snapshot(ec2, daily):
@@ -23,22 +22,21 @@ def snapshot(ec2, daily):
     instance.delete()
 
 
-def custom_vpc(ec2, daily):
+def custom_vpc(ibm, daily):
     """Launch instances using a custom VPC."""
-    vpc = ec2.get_or_create_vpc(name="test-vpc")
-    ec2.launch(daily, vpc=vpc)
+    vpc = ibm.get_or_create_vpc(name="test-vpc")
+    ibm.launch(daily, vpc=vpc)
 
     # vpc.delete will also delete any associated instances in that VPC
     vpc.delete()
 
 
-def launch_basic(ec2, daily):
+def launch_basic(ibm, daily):
     """Show basic functionality on instances.
 
     Simple launching of an instance, run a command, and delete.
     """
-    instance = ec2.launch(daily)
-    instance.console_log()
+    instance = ibm.launch(daily)
     print(instance.execute("lsb_release -a"))
 
     instance.shutdown()
@@ -54,22 +52,24 @@ def launch_basic(ec2, daily):
     instance.delete()
 
 
-def handle_ssh_key(ec2, key_name):
-    """Manage ssh keys to be used in the instances."""
-    if key_name in ec2.list_keys():
-        ec2.delete_key(key_name)
+def manage_ssh_key(ibm, key_name):
+    """Manage ssh keys for ibm instances."""
+    pub_key_path = "ibm-pubkey"
+    priv_key_path = "ibm-privkey"
+    pub_key, priv_key = ibm.create_key_pair()
 
-    key_pair = ec2.client.create_key_pair(KeyName=key_name)
-    private_key_path = "ec2-test.pem"
-    with open(private_key_path, "w", encoding="utf-8") as stream:
-        stream.write(key_pair["KeyMaterial"])
-    os.chmod(private_key_path, 0o600)
+    with open(pub_key_path, "w", encoding="utf-8") as f:
+        f.write(pub_key)
 
-    # Since we are using a pem file, we don't have distinct public and
-    # private key paths
-    ec2.use_key(
-        public_key_path=private_key_path,
-        private_key_path=private_key_path,
+    with open(priv_key_path, "w", encoding="utf-8") as f:
+        f.write(priv_key)
+
+    os.chmod(pub_key_path, 0o600)
+    os.chmod(priv_key_path, 0o600)
+
+    ibm.use_key(
+        public_key_path=pub_key_path,
+        private_key_path=priv_key_path,
         name=key_name,
     )
 
@@ -80,15 +80,14 @@ def demo():
     Connects to IBM and finds the latest daily image. Then runs
     through a number of examples.
     """
-    ibm = pycloudlib.IBM_VPC(tag="examples")
-    key_name = "test-ibm"
-    # handle_ssh_key(ibm, key_name)
+    ibm = pycloudlib.IBM(tag="examples")
+    manage_ssh_key(ibm, "test-ibm")
 
     daily = ibm.daily_image(release="bionic")
 
     launch_basic(ibm, daily)
-    custom_vpc(ibm, daily)
-    snapshot(ibm, daily)
+    # custom_vpc(ibm, daily)
+    # snapshot(ibm, daily)
 
 
 if __name__ == "__main__":

@@ -45,6 +45,16 @@ project = ""  # glcoud config get-value project
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # Defaults to your username if not set
 
+[ibm]
+# TODO
+# resource_group = "Default"  # Defaults to `Default`.
+# api_key = ""
+# region = "eu-de"
+# zone = "eu-de-2"
+# public_key_path = "/root/id_rsa.pub"
+# private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
+# key_name = ""  # can be found with `aws ec2 describe-key-pairs`
+
 [oci]
 config_path = "~/.oci/config"
 availability_domain = ""  # Likely in ~/.oci/oci_cli_rc

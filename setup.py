@@ -24,7 +24,9 @@ INSTALL_REQUIRES = [
     "boto3 >= 1.14.20",
     "botocore >= 1.17.20",
     "google-api-python-client >= 1.7.7",
+    # TODO this is the last py36 compatible version, but ibm-vpc does not constrain it.
     "ibm-cloud-sdk-core == 3.14.0",
+    "ibm-platform-services",
     "ibm-vpc >= 0.9",
     "knack >= 0.7.1",
     "oci >= 2.17.0",

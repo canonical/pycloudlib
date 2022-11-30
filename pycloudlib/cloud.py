@@ -7,6 +7,7 @@ import io
 import logging
 import os
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import paramiko
 
@@ -135,7 +136,12 @@ class BaseCloud(ABC):
 
     @abstractmethod
     def launch(
-        self, image_id, instance_type=None, user_data=None, wait=True, **kwargs
+        self,
+        image_id: str,
+        instance_type: Optional[str] = None,
+        user_data=None,
+        wait: bool = True,
+        **kwargs,
     ) -> BaseInstance:
         """Launch an instance.
 
