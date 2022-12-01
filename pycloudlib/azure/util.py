@@ -36,8 +36,6 @@ def get_client(resource, config_dict: dict):
         credential = AzureCliCredential()
         subscription_id = config_dict.get("subscriptionId")
         client = resource(credential, subscription_id=subscription_id)
-        # smoke test: This raises ClientAuthenticationError when CLI absent
-        _ = next(client.operations.list())
         return client
     except CLIError:
         logger.debug(
