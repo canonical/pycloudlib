@@ -6,6 +6,10 @@ from ibm_vpc import DetailedResponse
 from pycloudlib.util import get_query_param
 
 
+class IBMException(Exception):
+    ...
+
+
 def iter_pages(
     op: Callable, *, start: Optional[str] = None, **kwargs
 ) -> Iterator[DetailedResponse]:

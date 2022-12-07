@@ -73,7 +73,9 @@ class IBMInstance(BaseInstance):
         )
 
     @classmethod
-    def from_existent(cls, *args, client: VpcV1, instance: dict, **kwargs) -> "IBMInstance":
+    def from_existent(
+        cls, *args, client: VpcV1, instance: dict, **kwargs
+    ) -> "IBMInstance":
         floating_ip = cls._discover_floating_ip(client, instance)
         return cls(
             *args,
@@ -103,11 +105,15 @@ class IBMInstance(BaseInstance):
     def ip(self):
         """Return IP address of instance."""
         if self._floating_ip is None:
-            self._floating_ip = self._discover_floating_ip(self._client, self._refresh_instance())
+            self._floating_ip = self._discover_floating_ip(
+                self._client, self._refresh_instance()
+            )
         if self._floating_ip is not None:
             return self._floating_ip["address"]
 
-        self._log.warning("The instance Instance %s has no IP available", self.id)
+        self._log.warning(
+            "The instance Instance %s has no IP available", self.id
+        )
         return None
 
     @property

@@ -206,7 +206,7 @@ class IBM(BaseCloud):
         wait: bool = True,
         *,
         name: Optional[str] = None,
-        vpc_id: Optional[str] = None,
+        vpc: Optional[VPC] = None,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.
@@ -230,17 +230,12 @@ class IBM(BaseCloud):
                 f" Found: {image_id}"
             )
 
-        if not vpc_id:
+        if not vpc:
             vpc = VPC.from_default(
                 self._client,
                 self.resource_group_id,
                 self.region,
                 self.zone,
-            )
-        else:
-            vpc = VPC.from_existing(
-                self._client,
-                vpc_id,
             )
 
         name = name or f"{self.tag}-vm"
