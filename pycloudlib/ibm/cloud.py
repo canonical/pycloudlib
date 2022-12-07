@@ -182,12 +182,11 @@ class IBM(BaseCloud):
 
         """
         result_instance = self._get_raw_instance(instance_id)
-        return IBMInstance(
+        return IBMInstance.from_existent(
             self.key_pair,
             client=self._client,
             instance=result_instance,
         )
-        # TODO from_exiting
 
     def _create_floating_ip(self) -> dict:
         proto = {
@@ -204,7 +203,7 @@ class IBM(BaseCloud):
         image_id: str,
         instance_type: Optional[str] = "bx2-2x8",
         user_data=None,
-        wait: bool = True,  # TODO
+        wait: bool = True,
         *,
         name: Optional[str] = None,
         vpc_id: Optional[str] = None,
@@ -274,6 +273,9 @@ class IBM(BaseCloud):
             instance=result_instance,
             floating_ip=floating_ip,
         )
+
+        if wait:
+            instance.wait()
 
         return instance
 

@@ -23,9 +23,10 @@ def get_first(
     op: Callable,
     *,
     resource_name: str,
-    filter_fn: Callable[..., bool],
+    filter_fn: Optional[Callable[..., bool]] = None,
     **kwargs,
 ) -> Optional[dict]:
+    filter_fn = filter_fn or (lambda x: x)
     for resp in iter_pages(op, **kwargs):
         resources = resp.get_result().get(resource_name, [])
         try:
