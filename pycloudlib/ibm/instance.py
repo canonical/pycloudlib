@@ -3,7 +3,7 @@
 """Base class for all instances to provide consistent set of functions."""
 
 import logging
-from enum import Enum, unique
+from enum import Enum, auto, unique
 from time import sleep
 from typing import Optional
 
@@ -228,6 +228,7 @@ class VPC:
     def delete(self) -> None:
         logger.info("Deleting VPC: %s", self.id)
 
+        # TODO: delete baremetal and dedicated types
         instances_in_vpc = _get_all(
             self._client.list_instances,
             resource_name="instances",
@@ -259,6 +260,13 @@ class _Status(Enum):
     STARTING = "starting"
     STOPPED = "stopped"
     STOPPING = "stopping"
+
+
+class InstanceType(Enum):
+    # TODO: Add indirection to `IBMInstance` to handle types
+    VSI = auto()  # Normal instances
+    BARE_METAL_SERVER = auto()
+    DEDICATED_HOST = auto()
 
 
 class IBMInstance(BaseInstance):
