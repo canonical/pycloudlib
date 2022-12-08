@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+from time import sleep
 from typing import List, Optional
 
 from ibm_cloud_sdk_core import DetailedResponse
@@ -10,9 +11,10 @@ from ibm_vpc import VpcV1
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
-from pycloudlib.ibm.instance import IBMInstance
-from pycloudlib.ibm.util import get_all, get_first
-from pycloudlib.ibm.vpc import VPC
+from pycloudlib.ibm._util import IBMException
+from pycloudlib.ibm._util import get_all as _get_all
+from pycloudlib.ibm._util import get_first as _get_first
+from pycloudlib.ibm.instance import VPC, IBMInstance
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP
 
@@ -128,7 +130,7 @@ class IBM(BaseCloud):
         os_name = f"ubuntu-{version}-{arch}"
 
         # Images are sorted by (created_at, id), thus we return the first one matching the criteria
-        image = get_first(
+        image = _get_first(
             self._client.list_images,
             resource_name="images",
             filter_fn=lambda img: img["operating_system"]["name"] == os_name,
@@ -188,6 +190,19 @@ class IBM(BaseCloud):
             instance=result_instance,
         )
 
+    def get_or_create_vpc(self, name: str) -> VPC:
+        args = (self.key_pair,)
+        kwargs = {
+            "client": self._client,
+            "name": name,
+            "resource_group_id": self.resource_group_id,
+            "zone": self.zone,
+        }
+        try:
+            return VPC.from_existing(*args, **kwargs)
+        except IBMException:
+            return VPC.create(*args, **kwargs)
+
     def _create_floating_ip(self) -> dict:
         proto = {
             "name": f"{self.tag}-fi",
@@ -232,10 +247,11 @@ class IBM(BaseCloud):
 
         if not vpc:
             vpc = VPC.from_default(
-                self._client,
-                self.resource_group_id,
-                self.region,
-                self.zone,
+                self.key_pair,
+                client=self._client,
+                resource_group_id=self.resource_group_id,
+                region=self.region,
+                zone=self.zone,
             )
 
         name = name or f"{self.tag}-vm"
@@ -304,7 +320,8 @@ class IBM(BaseCloud):
             "resource_group": {"id": self.resource_group_id},
             "source_volume": {"id": source_volume},
         }
-        print(image_prototype)
+
+        sleep(60)  # TODO: wait for snapshot to be available
         return self._client.create_image(image_prototype).get_result()["id"]
 
     def list_keys(self) -> List[str]:
@@ -314,14 +331,25 @@ class IBM(BaseCloud):
            A list of strings of key pair names accessible to the cloud.
 
         """
-        return get_all(
+        return _get_all(
             self._client.list_keys,
             resource_name="keys",
             map_fn=lambda key: key["name"],
         )
 
+    def delete_key(self, name: str):
+        key = _get_first(
+            self._client.list_keys,
+            resource_name="keys",
+            filter_fn=lambda key: key["name"] == name,
+        )
+        if not key:
+            return
+        self._log.debug("Deleting SSH key: %s", name)
+        self._client.delete_key(key["id"])
+
     def _get_or_create_key(self) -> str:
-        key = get_first(
+        key = _get_first(
             self._client.list_keys,
             resource_name="keys",
             filter_fn=lambda key: key["name"] == self.key_pair.name,

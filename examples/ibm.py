@@ -8,17 +8,17 @@ import os
 import pycloudlib
 
 
-def snapshot(ec2, daily):
+def snapshot(ibm, daily):
     """Create a snapshot from a customized image and launch it."""
-    instance = ec2.launch(daily)
+    instance = ibm.launch(daily)
     instance.execute("touch custom_config_file")
 
-    image = ec2.snapshot(instance)
-    new_instance = ec2.launch(image)
+    image = ibm.snapshot(instance)
+    new_instance = ibm.launch(image)
     new_instance.execute("ls")
 
     new_instance.delete()
-    ec2.delete_image(image)
+    ibm.delete_image(image)
     instance.delete()
 
 
@@ -54,6 +54,9 @@ def launch_basic(ibm, daily):
 
 def manage_ssh_key(ibm, key_name):
     """Manage ssh keys for ibm instances."""
+    if key_name in ibm.list_keys():
+        ibm.delete_key(key_name)
+
     pub_key_path = "ibm-pubkey"
     priv_key_path = "ibm-privkey"
     pub_key, priv_key = ibm.create_key_pair()
@@ -85,9 +88,9 @@ def demo():
 
     daily = ibm.daily_image(release="bionic")
 
-    launch_basic(ibm, daily)
+    # launch_basic(ibm, daily)
     # custom_vpc(ibm, daily)
-    # snapshot(ibm, daily)
+    snapshot(ibm, daily)
 
 
 if __name__ == "__main__":

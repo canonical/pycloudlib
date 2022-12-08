@@ -2,6 +2,7 @@
 # pylint: disable=too-many-public-methods
 """Base class for all instances to provide consistent set of functions."""
 
+import logging
 from enum import Enum, unique
 from time import sleep
 from typing import Optional
@@ -10,8 +11,236 @@ from ibm_cloud_sdk_core import ApiException
 from ibm_vpc import VpcV1
 from six import Iterator
 
-from pycloudlib.ibm.util import get_first
+from pycloudlib.ibm._util import IBMException
+from pycloudlib.ibm._util import get_all as _get_all
+from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.instance import BaseInstance
+
+logger = logging.getLogger(__name__)
+
+
+class _Subnet:
+    def __init__(self, client: VpcV1, subnet: dict):
+        self._client = client
+        self._subnet = subnet
+
+    @classmethod
+    def create(
+        cls,
+        client: VpcV1,
+        *,
+        name: str,
+        zone: str,
+        resource_group_id: str,
+        vpc_id: str,
+    ):
+        subnet_proto = {
+            "name": name,
+            "resource_group": {"id": resource_group_id},
+            "vpc": {"id": vpc_id},
+            "total_ipv4_address_count": 256,
+            "zone": {"name": zone},
+        }
+        subnet = client.create_subnet(subnet_proto).get_result()
+        return cls(client, subnet)
+
+    @classmethod
+    def from_existing(cls, client: VpcV1, name: str, vpc_id: str) -> "_Subnet":
+        subnet = _get_first(
+            client.list_subnets,
+            resource_name="subnets",
+            filter_fn=(
+                lambda subnet: subnet["vpc"]["id"] == vpc_id
+                and subnet["name"] == name
+            ),
+        )
+        if subnet is None:
+            raise IBMException(f"Subnet not found: {name}")
+        return cls(client, subnet)
+
+    @classmethod
+    def from_default(cls, client: VpcV1, zone: str, vpc_id: str) -> "_Subnet":
+        return cls.from_existing(client, f"{zone}-default-subnet", vpc_id)
+
+    @classmethod
+    def discover(cls, client: VpcV1, vpc_id: str) -> "_Subnet":
+        subnet = _get_first(
+            client.list_subnets,
+            resource_name="subnets",
+            filter_fn=(lambda subnet: subnet["vpc"]["id"] == vpc_id),
+        )
+        if subnet is None:
+            raise IBMException(f"No subnet associated to vpc found: {vpc_id}")
+        return cls(client, subnet)
+
+    @property
+    def id(self) -> str:
+        return self._subnet["id"]
+
+    def delete(self):
+        self._client.delete_subnet(self.id)
+        sleep(2)  # TODO
+
+
+class VPC:
+    """Virtual Private Cloud class proxy for IBM VPC resource."""
+
+    def __init__(
+        self,
+        key_pair,
+        client: VpcV1,
+        vpc: dict,
+        resource_group_id: str,
+        subnet: Optional[dict] = None,
+    ):
+        self._key_pair = key_pair
+        self._client = client
+        self._vpc = vpc
+        self._subnet = subnet
+        self._resource_group_id = resource_group_id
+
+    @classmethod
+    def create(
+        cls,
+        *args,
+        client: VpcV1,
+        name: str,
+        resource_group_id: str,
+        zone: str,
+        **kwargs,
+    ) -> "VPC":
+        resource_group = {"id": resource_group_id}
+        vpc = client.create_vpc(
+            name=name, resource_group=resource_group
+        ).get_result()
+
+        # Allow ssh access
+        default_sg = client.get_vpc_default_security_group(
+            vpc["id"]
+        ).get_result()
+        rule_proto = {
+            "direction": "inbound",
+            "ip_version": "ipv4",
+            "remote": {"cidr_block": "0.0.0.0/0"},
+            "port_max": 22,
+            "port_min": 22,
+            "protocol": "tcp",
+        }
+        client.create_security_group_rule(
+            default_sg["id"], rule_proto
+        ).get_result()
+
+        subnet = _Subnet.create(
+            client,
+            name=f"{name}-subnet",
+            zone=zone,
+            resource_group_id=resource_group_id,
+            vpc_id=vpc["id"],
+        )
+        return cls(
+            *args,
+            client=client,
+            vpc=vpc,
+            resource_group_id=resource_group_id,
+            subnet=subnet,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_existing(
+        cls,
+        *args,
+        client: VpcV1,
+        name: str,
+        resource_group_id: str,
+        zone: str,
+        **kwargs,
+    ) -> "VPC":
+        vpc = _get_first(
+            client.list_vpcs,
+            resource_name="vpcs",
+            filter_fn=lambda vpc: vpc["name"] == name,
+        )
+        if vpc is None:
+            raise IBMException(f"VPC not found: {name}")
+
+        try:
+            subnet = _Subnet.discover(client, vpc_id=vpc["id"])
+        except IBMException:
+            subnet = _Subnet.create(
+                client,
+                name=f"{name}-subnet",
+                zone=zone,
+                resource_group_id=resource_group_id,
+                vpc_id=vpc["id"],
+            )
+
+        return cls(
+            *args,
+            client=client,
+            vpc=vpc,
+            resource_group_id=resource_group_id,
+            subnet=subnet,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_default(
+        cls,
+        *args,
+        client: VpcV1,
+        resource_group_id: str,
+        region: str,
+        zone: str,
+        **kwargs,
+    ) -> "VPC":
+        default_name = f"{region}-default-vpc"
+        vpc = _get_first(
+            client.list_vpcs,
+            resource_name="vpcs",
+            filter_fn=lambda vpc: vpc["name"] == default_name,
+            resource_group_id=resource_group_id,
+        )
+        subnet = _Subnet.from_default(client, zone=zone, vpc_id=vpc["id"])
+        return cls(
+            *args,
+            client=client,
+            vpc=vpc,
+            subnet=subnet,
+            resource_group_id=resource_group_id,
+            **kwargs,
+        )
+
+    @property
+    def id(self) -> str:
+        return self._vpc["id"]
+
+    @property
+    def name(self) -> str:
+        return self._vpc["name"]
+
+    @property
+    def subnet_id(self) -> str:
+        if self._subnet is None:
+            raise IBMException("No subnet available")
+        return self._subnet.id
+
+    def delete(self) -> None:
+        logger.info("Deleting VPC: %s", self.id)
+
+        instances_in_vpc = _get_all(
+            self._client.list_instances,
+            resource_name="instances",
+            map_fn=lambda inst: IBMInstance.from_existent(
+                self._key_pair, client=self._client, instance=inst
+            ),
+            vpc_id=self.id,
+        )
+        for instance in instances_in_vpc:
+            instance.delete(wait=True)
+
+        self._subnet.delete()
+        self._client.delete_vpc(self.id)
 
 
 def _wait(timeout_seconds: int) -> Iterator:
@@ -76,7 +305,9 @@ class IBMInstance(BaseInstance):
     def from_existent(
         cls, *args, client: VpcV1, instance: dict, **kwargs
     ) -> "IBMInstance":
-        floating_ip = cls._discover_floating_ip(client, instance)
+        floating_ip = kwargs.pop(
+            "floating_ip", None
+        ) or cls._discover_floating_ip(client, instance)
         return cls(
             *args,
             client=client,
@@ -139,11 +370,6 @@ class IBMInstance(BaseInstance):
         if wait:
             self.wait_for_delete()
 
-        self._client.remove_instance_network_interface_floating_ip(
-            instance_id=self.id,
-            network_interface_id=self._nic_id,
-            id=self._floating_ip_id,
-        )
         self._client.delete_floating_ip(self._floating_ip_id)
 
     def _refresh_instance(self) -> dict:
