@@ -24,10 +24,7 @@ INSTALL_REQUIRES = [
     "boto3 >= 1.14.20",
     "botocore >= 1.17.20",
     "google-api-python-client >= 1.7.7",
-    # TODO this is the last py36 compatible version, but ibm-vpc does not constrain it.
-    "ibm-cloud-sdk-core == 3.14.0",
     "ibm-platform-services",
-    "ibm-vpc >= 0.9",
     "knack >= 0.7.1",
     "oci >= 2.17.0",
     "paramiko >= 2.9.2",
@@ -40,6 +37,17 @@ INSTALL_REQUIRES = [
     # Simplestreams is not found on PyPi so pull from repo directly
     "python-simplestreams @ git+https://git.launchpad.net/simplestreams@21c5bba2a5413c51e6b9131fc450e96f6b46090d",  # noqa
 ]
+
+EXTRAS_REQUIRE={
+    ":python_version == '3.6'": [
+        "ibm-cloud-sdk-core == 3.14.0",  # this is the last py36 compatible version
+        "ibm-vpc == 0.10"
+    ],
+    ":python_version >= '3.7'": [
+        "ibm-cloud-sdk-core >= 3.14.0",
+        "ibm-vpc >= 0.10",
+    ],
+}
 
 setup(
     name="pycloudlib",
@@ -56,6 +64,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.6",
     install_requires=INSTALL_REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
     zip_safe=True,
     classifiers=[
         "Development Status :: 4 - Beta",
