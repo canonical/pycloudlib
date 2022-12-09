@@ -4,10 +4,12 @@
 
 import logging
 from enum import Enum, auto, unique
+from functools import partial
+from itertools import chain
 from time import sleep
-from typing import Optional
+from typing import Callable, Optional
 
-from ibm_cloud_sdk_core import ApiException
+from ibm_cloud_sdk_core import ApiException, DetailedResponse
 from ibm_vpc import VpcV1
 from six import Iterator
 
@@ -228,15 +230,21 @@ class VPC:
     def delete(self) -> None:
         logger.info("Deleting VPC: %s", self.id)
 
-        # TODO: delete baremetal and dedicated types
-        instances_in_vpc = _get_all(
-            self._client.list_instances,
-            resource_name="instances",
-            map_fn=lambda inst: IBMInstance.from_existent(
-                self._key_pair, client=self._client, instance=inst
-            ),
-            vpc_id=self.id,
+        # Delete all instances of types contained in `_IBMInstanceType`
+        instances_in_vpc = chain.from_iterable(
+            map(
+                lambda iit: _get_all(
+                    partial(iit.list_instances, self._client),
+                    resource_name="instances",
+                    map_fn=lambda inst: IBMInstance.from_existent(
+                        self._key_pair, client=self._client, instance=inst
+                    ),
+                    vpc_id=self.id,
+                ),
+                iter(_IBMInstanceType),
+            )
         )
+
         for instance in instances_in_vpc:
             instance.delete(wait=True)
 
@@ -262,11 +270,116 @@ class _Status(Enum):
     STOPPING = "stopping"
 
 
-class InstanceType(Enum):
-    # TODO: Add indirection to `IBMInstance` to handle types
-    VSI = auto()  # Normal instances
+@unique
+class _Action(Enum):
+    START = "start"
+    STOP = "stop"
+    REBOOT = "reboot"
+
+
+VpcV1Fn = Callable[..., DetailedResponse]
+
+
+class _IBMInstanceType(Enum):
+    """
+    TODO: In IBM VPC terms this is a `profile`.
+    """
+
+    VSI = auto()
     BARE_METAL_SERVER = auto()
-    DEDICATED_HOST = auto()
+
+    @classmethod
+    def from_instance_type(cls, instance_type: str) -> "_IBMInstanceType":
+        if "metal" in instance_type:
+            return cls.BARE_METAL_SERVER
+        elif "host" in instance_type:
+            logger.warning(
+                "%s instance_type looks like a Dedicated Host, which is not supported.",
+                instance_type,
+            )
+        return cls.VSI
+
+    @classmethod
+    def from_raw_instance(cls, instance: dict) -> "_IBMInstanceType":
+        instance_type = instance["profile"]["name"]
+        return cls.from_instance_type(instance_type)
+
+    def create_instance(self, client: VpcV1, *args, **kwargs) -> VpcV1Fn:
+        if self == self.VSI:
+            return client.create_instance(*args, **kwargs)
+        elif self == self.BARE_METAL_SERVER:
+            return client.create_bare_metal_server(*args, **kwargs)
+        raise NotImplementedError(f"Implement me for: {self}")
+
+    def list_instances(self, client: VpcV1, **kwargs) -> DetailedResponse:
+        if self == self.VSI:
+            return client.list_instances(**kwargs)
+        elif self == self.BARE_METAL_SERVER:
+            return client.list_bare_metal_servers(**kwargs)
+        raise NotImplementedError(f"Implement me for: {self}")
+
+    def delete_instance(
+        self, client: VpcV1, *args, **kwargs
+    ) -> DetailedResponse:
+        if self == self.VSI:
+            return client.delete_instance(*args, **kwargs)
+        elif self == self.BARE_METAL_SERVER:
+            return client.delete_bare_metal_server(*args, **kwargs)
+        raise NotImplementedError(f"Implement me for: {self}")
+
+    def get_instance(self, client: VpcV1, *args, **kwargs) -> DetailedResponse:
+        if self == self.VSI:
+            return client.get_instance(*args, **kwargs)
+        elif self == self.BARE_METAL_SERVER:
+            return client.get_bare_metal_server(*args, **kwargs)
+        raise NotImplementedError(f"Implement me for: {self}")
+
+    def execute_instance_action(
+        self, client: VpcV1, *, id: str, action: str, force: bool = False
+    ) -> DetailedResponse:
+        # Note: None of the these endpoints returs a query-able resource.
+        # Thus, the only way to check if the action has been completed is to directly retrive
+        # the raw instance data.
+        if self == self.VSI:
+            return client.create_instance_action(id, action, force=force)
+        elif self == self.BARE_METAL_SERVER:
+            if action == _Action.STOP:
+                return client.stop_bare_metal_server(id)
+            elif action == _Action.START:
+                return client.start_bare_metal_server(id)
+            elif action == _Action.REBOOT:
+                return client.restart_bare_metal_server(id)
+            raise NotImplementedError(f"Implement me for: {action}")
+        raise NotImplementedError(f"Implement me for: {self}")
+
+    def list_instance_network_interface_floating_ips(
+        self, client: VpcV1, *args, **kwargs
+    ) -> VpcV1Fn:
+        if self == self.VSI:
+            return client.list_instance_network_interface_floating_ips(
+                *args, **kwargs
+            )
+        elif self == self.BARE_METAL_SERVER:
+            return (
+                client.list_bare_metal_server_network_interface_floating_ips(
+                    *args, *kwargs
+                )
+            )
+        raise NotImplementedError(f"Implement me for: {self}")
+
+    def add_instance_network_interface_floating_ip(
+        self, client: VpcV1, *, instance_id: str, **kwargs
+    ) -> DetailedResponse:
+        if self == self.VSI:
+            return client.add_instance_network_interface_floating_ip(
+                instance_id=instance_id, **kwargs
+            )
+        elif self == self.BARE_METAL_SERVER:
+            return client.add_bare_metal_server_network_interface_floating_ip(
+                bare_metal_server_id=instance_id,
+                **kwargs,
+            )
+        raise NotImplementedError(f"Implement me for: {self}")
 
 
 class IBMInstance(BaseInstance):
@@ -289,13 +402,29 @@ class IBMInstance(BaseInstance):
         self._instance = instance
         self._floating_ip = floating_ip
 
+        # mount methods that depend on `_IBMInstanceType`:
+        self._ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
+        self._delete_instance = partial(
+            self._ibm_instance_type.delete_instance, self._client
+        )
+        self._get_instance = partial(
+            self._ibm_instance_type.get_instance, self._client
+        )
+        self._execute_instance_action = partial(
+            self._ibm_instance_type.execute_instance_action,
+            self._client,
+            id=self.id,
+        )
+
     @classmethod
     def with_floating_ip(
         cls, *args, client: VpcV1, instance: dict, floating_ip: dict, **kwargs
     ) -> "IBMInstance":
         nic_id = instance["primary_network_interface"]["id"]
 
-        client.add_instance_network_interface_floating_ip(
+        ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
+        ibm_instance_type.add_instance_network_interface_floating_ip(
+            client,
             id=floating_ip["id"],
             instance_id=instance["id"],
             network_interface_id=nic_id,
@@ -313,6 +442,9 @@ class IBMInstance(BaseInstance):
     def from_existent(
         cls, *args, client: VpcV1, instance: dict, **kwargs
     ) -> "IBMInstance":
+        # TODO find from everywhere
+        return self._client.get_instance(instance_id).get_result()
+        
         floating_ip = kwargs.pop(
             "floating_ip", None
         ) or cls._discover_floating_ip(client, instance)
@@ -325,13 +457,79 @@ class IBMInstance(BaseInstance):
         )
 
     @staticmethod
+    def create_raw_instance(
+        client: VpcV1,
+        *,
+        name: str,
+        image_id: str,
+        vpc: VPC,
+        instance_type: str,
+        resource_group_id: str,
+        zone: str,
+        user_data=None,
+        key_id: str,
+    ):
+        ibm_instance_type = _IBMInstanceType.from_instance_type(instance_type)
+
+        image = {"id": image_id}
+        keys = [{"id": key_id}]
+
+        base_proto = {
+            "name": name,
+            "primary_network_interface": {
+                "name": "eth0",
+                "subnet": {"id": vpc.subnet_id},
+            },
+            "zone": {"name": zone},
+            "profile": {"name": instance_type},
+            "resource_group": {"id": resource_group_id},
+            "vpc": {"id": vpc.id},
+        }
+
+        if ibm_instance_type == _IBMInstanceType.VSI:
+            instance_prototype = {
+                **base_proto,
+                "keys": keys,
+                "metadata_service": {"enabled": True},
+                "image": image,
+            }
+            if user_data:
+                instance_prototype["user_data"] = user_data
+
+            kwargs = {"instance_prototype": instance_prototype}
+
+        elif ibm_instance_type == _IBMInstanceType.BARE_METAL_SERVER:
+            kwargs = {
+                **base_proto,
+                "initialization": {
+                    "image": image,
+                    "keys": keys,
+                },
+            }
+
+            if user_data:
+                kwargs["initialization"]["user_data"] = user_data
+
+        else:
+            raise NotImplementedError
+
+        raw_instance = ibm_instance_type.create_instance(
+            client, **kwargs
+        ).get_result()
+        return raw_instance
+
+    @staticmethod
     def _discover_floating_ip(client: VpcV1, instance: dict) -> Optional[dict]:
         nic_id = instance["primary_network_interface"]["id"]
 
-        floating_ips = client.list_instance_network_interface_floating_ips(
-            instance_id=instance["id"],
-            network_interface_id=nic_id,
-        ).get_result()["floating_ips"]
+        ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
+        floating_ips = (
+            ibm_instance_type.list_instance_network_interface_floating_ips(
+                client,
+                instance["id"],
+                network_interface_id=nic_id,
+            ).get_result()["floating_ips"]
+        )
 
         return floating_ips[0] if floating_ips else None
 
@@ -373,7 +571,7 @@ class IBMInstance(BaseInstance):
         Args:
             wait: wait for instance to be deleted
         """
-        self._client.delete_instance(self.id)
+        self._delete_instance(self.id)
         self._log.debug("deleting instance %s", self.id)
         if wait:
             self.wait_for_delete()
@@ -381,7 +579,7 @@ class IBMInstance(BaseInstance):
         self._client.delete_floating_ip(self._floating_ip_id)
 
     def _refresh_instance(self) -> dict:
-        self._instance = self._client.get_instance(self.id).get_result()
+        self._instance = self._get_instance(self.id).get_result()
         return self._instance
 
     def _wait_for_status(self, status: _Status, sleep_seconds: int = 300):
@@ -396,14 +594,9 @@ class IBMInstance(BaseInstance):
             "Check IBM VPC console for more details."
         )
 
-    def _execute_instance_action(self, action: str, force: bool = False):
-        # Note: This endpoint returns a resource that it is not query-able.
-        # Thus, at the moment we cannot directly know the status of an action.
-        self._client.create_instance_action(self.id, action, force=force)
-
     def _do_restart(self, **kwargs):
         self._log.debug("restarting instance %s", self.id)
-        self._execute_instance_action("reboot")
+        self._execute_instance_action(_Action.reboot)
 
     def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
@@ -412,7 +605,7 @@ class IBMInstance(BaseInstance):
             wait: wait for the instance to shutdown
         """
         self._log.debug("shutting down instance %s", self.id)
-        self._execute_instance_action("stop")
+        self._execute_instance_action(_Action.STOP)
         if wait:
             self.wait_for_stop()
 
@@ -422,7 +615,7 @@ class IBMInstance(BaseInstance):
         Args:
             wait: wait for the instance to start.
         """
-        self._execute_instance_action("start")
+        self._execute_instance_action(_Action.start)
         if wait:
             self.wait()
 

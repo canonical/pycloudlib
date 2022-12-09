@@ -38,10 +38,10 @@ INSTALL_REQUIRES = [
     "python-simplestreams @ git+https://git.launchpad.net/simplestreams@21c5bba2a5413c51e6b9131fc450e96f6b46090d",  # noqa
 ]
 
-EXTRAS_REQUIRE={
+EXTRAS_REQUIRE = {
     ":python_version == '3.6'": [
         "ibm-cloud-sdk-core == 3.14.0",  # this is the last py36 compatible version
-        "ibm-vpc == 0.10"
+        "ibm-vpc == 0.10",
     ],
     ":python_version >= '3.7'": [
         "ibm-cloud-sdk-core >= 3.14.0",

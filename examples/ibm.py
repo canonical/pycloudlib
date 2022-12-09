@@ -31,12 +31,12 @@ def custom_vpc(ibm, daily):
     vpc.delete()
 
 
-def launch_basic(ibm, daily):
+def launch_basic(ibm, daily, instance_type):
     """Show basic functionality on instances.
 
     Simple launching of an instance, run a command, and delete.
     """
-    instance = ibm.launch(daily)
+    instance = ibm.launch(daily, instance_type=instance_type)
     print(instance.execute("lsb_release -a"))
 
     instance.shutdown()
@@ -88,9 +88,11 @@ def demo():
 
     daily = ibm.daily_image(release="bionic")
 
-    # launch_basic(ibm, daily)
-    # custom_vpc(ibm, daily)
-    snapshot(ibm, daily)
+    # launch_basic(ibm, daily, "bx2-2x8")
+    # launch_basic(ibm, daily, "bx2-metal-96x384")
+    # launch_basic(ibm, daily, "bx2-host-152x608")
+    custom_vpc(ibm, daily)
+    # snapshot(ibm, daily)
 
 
 if __name__ == "__main__":

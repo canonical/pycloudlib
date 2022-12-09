@@ -4,7 +4,6 @@
 from time import sleep
 from typing import List, Optional
 
-from ibm_cloud_sdk_core import DetailedResponse
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 from ibm_platform_services import ResourceManagerV2
 from ibm_vpc import VpcV1
@@ -256,32 +255,23 @@ class IBM(BaseCloud):
 
         name = name or f"{self.tag}-vm"
 
-        instance_prototype = {
-            "keys": [{"id": self._get_or_create_key()}],
-            "metadata_service": {"enabled": True},
-            "name": name,
-            "image": {"id": image_id},
-            "primary_network_interface": {
-                "name": "eth0",
-                "subnet": {"id": vpc.subnet_id},
-            },
-            "profile": {"name": instance_type},
-            "resource_group": {"id": self.resource_group_id},
-            "vpc": {"id": vpc.id},
-            "zone": {"name": self.zone},
-        }
-        if user_data:
-            instance_prototype["user_data"] = user_data
-
-        result_instance = self._client.create_instance(
-            instance_prototype=instance_prototype
-        ).get_result()
+        raw_instance = IBMInstance.create_raw_instance(
+            client=self._client,
+            name=name,
+            image_id=image_id,
+            vpc=vpc,
+            instance_type=instance_type,
+            resource_group_id=self.resource_group_id,
+            zone=self.zone,
+            user_data=user_data,
+            key_id=self._get_or_create_key(),
+        )
 
         floating_ip = self._create_floating_ip()
         instance = IBMInstance.with_floating_ip(
             self.key_pair,
             client=self._client,
-            instance=result_instance,
+            instance=raw_instance,
             floating_ip=floating_ip,
         )
 
