@@ -234,7 +234,7 @@ class TestWaitForCloudinit:
         ) as m_execute:
             instance._wait_for_cloudinit()
         expected = [
-            mock.call(["which", "systemctl"]),
+            mock.call("command -v systemctl"),
             *(
                 [
                     mock.call(
