@@ -81,7 +81,7 @@ class _Subnet:
 
     def delete(self):
         self._client.delete_subnet(self.id)
-        sleep(2)  # TODO
+        sleep(2)  # TODO wait for deletion, otherwise vpc deletion will fail
 
 
 class VPC:
@@ -282,7 +282,7 @@ VpcV1Fn = Callable[..., DetailedResponse]
 
 class _IBMInstanceType(Enum):
     """
-    TODO: In IBM VPC terms this is a `profile`.
+    Represents and abstracts the different intance types present in IBM VPC.
     """
 
     VSI = auto()
@@ -290,6 +290,10 @@ class _IBMInstanceType(Enum):
 
     @classmethod
     def from_instance_type(cls, instance_type: str) -> "_IBMInstanceType":
+        """Translates from `instance_type` to `_IBMInstanceType`.
+
+        Note: In IBM VPC terms, `intance_type`s are `profile`s.
+        """
         if "metal" in instance_type:
             return cls.BARE_METAL_SERVER
         elif "host" in instance_type:
@@ -327,11 +331,13 @@ class _IBMInstanceType(Enum):
             return client.delete_bare_metal_server(*args, **kwargs)
         raise NotImplementedError(f"Implement me for: {self}")
 
-    def get_instance(self, client: VpcV1, *args, **kwargs) -> DetailedResponse:
+    def get_instance(
+        self, client: VpcV1, instance_id: str, **kwargs
+    ) -> DetailedResponse:
         if self == self.VSI:
-            return client.get_instance(*args, **kwargs)
+            return client.get_instance(instance_id, **kwargs)
         elif self == self.BARE_METAL_SERVER:
-            return client.get_bare_metal_server(*args, **kwargs)
+            return client.get_bare_metal_server(instance_id, **kwargs)
         raise NotImplementedError(f"Implement me for: {self}")
 
     def execute_instance_action(
@@ -442,9 +448,6 @@ class IBMInstance(BaseInstance):
     def from_existent(
         cls, *args, client: VpcV1, instance: dict, **kwargs
     ) -> "IBMInstance":
-        # TODO find from everywhere
-        return self._client.get_instance(instance_id).get_result()
-        
         floating_ip = kwargs.pop(
             "floating_ip", None
         ) or cls._discover_floating_ip(client, instance)
@@ -453,6 +456,26 @@ class IBMInstance(BaseInstance):
             client=client,
             instance=instance,
             floating_ip=floating_ip,
+            **kwargs,
+        )
+
+    @classmethod
+    def find_existent(
+        cls, *args, client: VpcV1, instance_id: str, **kwargs
+    ) -> "IBMInstance":
+        instance = _IBMInstanceType.VSI.get_instance(client, instance_id)
+        if not instance:
+            instance = _IBMInstanceType.BARE_METAL_SERVER.get_instance(
+                client, instance_id
+            )
+
+        if not instance:
+            raise IBMException(f"Instance not found: {instance_id}")
+
+        return cls.from_existent(
+            *args,
+            client=client,
+            instance=instance,
             **kwargs,
         )
 

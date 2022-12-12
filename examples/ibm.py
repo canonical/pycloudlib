@@ -88,11 +88,11 @@ def demo():
 
     daily = ibm.daily_image(release="bionic")
 
-    # launch_basic(ibm, daily, "bx2-2x8")
-    # launch_basic(ibm, daily, "bx2-metal-96x384")
-    # launch_basic(ibm, daily, "bx2-host-152x608")
+    launch_basic(
+        ibm, daily, "bx2-2x8"
+    )  # "bx2-metal-96x384" for a bare-metal instance
     custom_vpc(ibm, daily)
-    # snapshot(ibm, daily)
+    snapshot(ibm, daily)
 
 
 if __name__ == "__main__":

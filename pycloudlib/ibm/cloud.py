@@ -169,9 +169,6 @@ class IBM(BaseCloud):
             "IBM Cloud does not contain Ubuntu daily images"
         )
 
-    def _get_raw_instance(self, instance_id: str) -> dict:
-        return self._client.get_instance(instance_id).get_result()
-
     def get_instance(self, instance_id: str, **kwargs) -> BaseInstance:
         """Get an instance by id.
 
@@ -182,11 +179,10 @@ class IBM(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        result_instance = self._get_raw_instance(instance_id)
-        return IBMInstance.from_existent(
+        return IBMInstance.find_existent(
             self.key_pair,
             client=self._client,
-            instance=result_instance,
+            instance_id=instance_id,
         )
 
     def get_or_create_vpc(self, name: str) -> VPC:
