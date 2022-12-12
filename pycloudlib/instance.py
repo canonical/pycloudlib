@@ -486,7 +486,7 @@ class BaseInstance(ABC):
     def _wait_for_cloudinit(self):
         """Wait until cloud-init has finished."""
         self._log.info("_wait_for_cloudinit to complete")
-        if self.execute(["which", "systemctl"]).ok:
+        if self.execute("command -v systemctl").ok:
             # We may have issues with cloud-init status early boot, so also
             # ensure our cloud-init.target is active as an extra layer of
             # protection against connecting before the system is ready
