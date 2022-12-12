@@ -1,4 +1,5 @@
 from functools import partial
+from time import sleep
 from typing import Callable, Iterator, List, Optional, TypeVar
 
 from ibm_vpc import DetailedResponse
@@ -59,3 +60,19 @@ def get_all(
         resources = resp.get_result().get(resource_name, [])
         result.extend(map(map_fn, resources))
     return result
+
+
+def wait_until(
+    check_fn: Callable,
+    *args,
+    timeout_seconds: int,
+    timeout_msg_fn: str,
+    raise_on_fail: bool = True,
+) -> Iterator:
+    for _ in range(timeout_seconds):
+        if check_fn(*args) == True:
+            return True
+        sleep(1)
+    if raise_on_fail:
+        raise TimeoutError(timeout_msg_fn())
+    return False
