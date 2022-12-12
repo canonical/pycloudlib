@@ -7,6 +7,8 @@ from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import AzureCliCredential, ClientSecretCredential
 from knack.util import CLIError
 
+from pycloudlib import util
+
 logger = logging.getLogger(__name__)
 
 RE_AZURE_IMAGE_ID = (
@@ -32,20 +34,26 @@ def get_client(resource, config_dict: dict):
         The client for the resource passed as parameter.
 
     """
-    try:
-        credential = AzureCliCredential()
-        subscription_id = config_dict.get("subscriptionId")
-        client = resource(credential, subscription_id=subscription_id)
-        return client
-    except CLIError:
+    if not util.subp("command -v az", shell=True, rcs=[0, 1, 127]).ok:
         logger.debug(
-            "No valid azure-cli config found. Trying explicit config params"
+            "No azure-cli 'az' command found. Trying explicit config params"
         )
-    except ClientAuthenticationError:
-        logger.debug(
-            "Authentication error: No valid azure-cli config found."
-            " Trying explicit config params"
-        )
+    else:
+        try:
+            credential = AzureCliCredential()
+            subscription_id = config_dict.get("subscriptionId")
+            client = resource(credential, subscription_id=subscription_id)
+            return client
+        except CLIError:
+            logger.debug(
+                "No valid azure-cli config found."
+                " Trying explicit config params"
+            )
+        except ClientAuthenticationError:
+            logger.debug(
+                "Authentication error: No valid azure-cli config found."
+                " Trying explicit config params"
+            )
 
     required_keys = frozenset(
         {"clientId", "clientSecret", "tenantId", "subscriptionId"}
