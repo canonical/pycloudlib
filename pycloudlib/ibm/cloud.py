@@ -7,12 +7,14 @@ from typing import List, Optional
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 from ibm_platform_services import ResourceManagerV2
 from ibm_vpc import VpcV1
+from ibm_vpc.vpc_v1 import Image, ListImagesEnums
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.ibm._util import IBMException
 from pycloudlib.ibm._util import get_all as _get_all
 from pycloudlib.ibm._util import get_first as _get_first
+from pycloudlib.ibm._util import wait_until as _wait_until
 from pycloudlib.ibm.instance import VPC, IBMInstance
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP
@@ -123,12 +125,12 @@ class IBM(BaseCloud):
             "limit": None,
             "resource_group_id": None,
             "name": None,
-            "visibility": None,
+            "visibility": ListImagesEnums.Visibility.PUBLIC.value,
         }
         version = UBUNTU_RELEASE_VERSION_MAP[release].replace(".", "-")
         os_name = f"ubuntu-{version}-{arch}"
 
-        # Images are sorted by (created_at, id), thus we return the first one matching the criteria
+        # Images are sorted by (created_at, id), thus we return the first one matching the criterion
         image = _get_first(
             self._client.list_images,
             resource_name="images",
@@ -198,9 +200,11 @@ class IBM(BaseCloud):
         except IBMException:
             return VPC.create(*args, **kwargs)
 
-    def _create_floating_ip(self) -> dict:
+    def _create_floating_ip(self, name: Optional[str] = None) -> dict:
+        # XXX: move this method to instance.py ?
+        name = name or f"{self.tag}-fi"
         proto = {
-            "name": f"{self.tag}-fi",
+            "name": name,
             "resource_group": {"id": self.resource_group_id},
             "zone": {"name": self.zone},
         }
@@ -249,6 +253,7 @@ class IBM(BaseCloud):
                 zone=self.zone,
             )
 
+        floating_ip_name = f"{name}-fi" if name else None
         name = name or f"{self.tag}-vm"
 
         raw_instance = IBMInstance.create_raw_instance(
@@ -263,7 +268,7 @@ class IBM(BaseCloud):
             key_id=self._get_or_create_key(),
         )
 
-        floating_ip = self._create_floating_ip()
+        floating_ip = self._create_floating_ip(name=floating_ip_name)
         instance = IBMInstance.with_floating_ip(
             self.key_pair,
             client=self._client,
@@ -307,8 +312,21 @@ class IBM(BaseCloud):
             "source_volume": {"id": source_volume},
         }
 
-        sleep(60)  # TODO: wait for snapshot to be available
-        return self._client.create_image(image_prototype).get_result()["id"]
+        snapshot_id = self._client.create_image(image_prototype).get_result()[
+            "id"
+        ]
+
+        timeout_seconds = 300
+        _wait_until(
+            lambda: self._client.get_image(snapshot_id).get_result()["status"]
+            == Image.StatusEnum.AVAILABLE.value,
+            timeout_seconds=timeout_seconds,
+            timeout_msg_fn=lambda: (
+                f"Snapshot not available after {timeout_seconds} seconds. "
+                "Check IBM VPC console."
+            ),
+        )
+        return snapshot_id
 
     def list_keys(self) -> List[str]:
         """List ssh key names present on the cloud for accessing instances.

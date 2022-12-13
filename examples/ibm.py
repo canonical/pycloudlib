@@ -14,7 +14,7 @@ def snapshot(ibm, daily):
     instance.execute("touch custom_config_file")
 
     image = ibm.snapshot(instance)
-    new_instance = ibm.launch(image)
+    new_instance = ibm.launch(image, name="example-snapshot")
     new_instance.execute("ls")
 
     new_instance.delete()
@@ -87,10 +87,9 @@ def demo():
     manage_ssh_key(ibm, "test-ibm")
 
     daily = ibm.daily_image(release="bionic")
-
-    launch_basic(
-        ibm, daily, "bx2-2x8"
-    )  # "bx2-metal-96x384" for a bare-metal instance
+ 
+    # "bx2-metal-96x384" for a bare-metal instance
+    launch_basic(ibm, daily, "bx2-2x8")
     custom_vpc(ibm, daily)
     snapshot(ibm, daily)
 

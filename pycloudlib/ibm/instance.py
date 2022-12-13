@@ -21,6 +21,28 @@ from pycloudlib.instance import BaseInstance
 logger = logging.getLogger(__name__)
 
 
+@unique
+class _Status(Enum):
+    DELETING = "deleting"
+    FAILED = "failed"
+    PENDING = "pending"
+    RESTARTING = "restarting"
+    RUNNING = "running"
+    STARTING = "starting"
+    STOPPED = "stopped"
+    STOPPING = "stopping"
+
+
+@unique
+class _Action(Enum):
+    START = "start"
+    STOP = "stop"
+    REBOOT = "reboot"
+
+
+VpcV1Fn = Callable[..., DetailedResponse]
+
+
 class _Subnet:
     def __init__(self, client: VpcV1, subnet: dict):
         self._client = client
@@ -274,28 +296,6 @@ class VPC:
 
         self._subnet.delete()
         self._client.delete_vpc(self.id)
-
-
-@unique
-class _Status(Enum):
-    DELETING = "deleting"
-    FAILED = "failed"
-    PENDING = "pending"
-    RESTARTING = "restarting"
-    RUNNING = "running"
-    STARTING = "starting"
-    STOPPED = "stopped"
-    STOPPING = "stopping"
-
-
-@unique
-class _Action(Enum):
-    START = "start"
-    STOP = "stop"
-    REBOOT = "reboot"
-
-
-VpcV1Fn = Callable[..., DetailedResponse]
 
 
 class _IBMInstanceType(Enum):
@@ -645,7 +645,7 @@ class IBMInstance(BaseInstance):
             wait: wait for the instance to shutdown
         """
         self._log.debug("shutting down instance %s", self.id)
-        self._execute_instance_action(_Action.STOP)
+        self._execute_instance_action(action=_Action.STOP.value)
         if wait:
             self.wait_for_stop()
 
