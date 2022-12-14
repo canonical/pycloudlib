@@ -1,7 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
-"""Base class for all other clouds to provide consistent set of functions."""
+"""IBM Cloud type."""
 
-from time import sleep
 from typing import List, Optional
 
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
@@ -77,6 +76,7 @@ class IBM(BaseCloud):
 
     @property
     def resource_group_id(self) -> str:
+        """Resource Group ID used to create new things under."""
         if self._resource_group_id is None:
             self._resource_group_id = self._get_resource_group_id(
                 self._resource_group
@@ -130,7 +130,8 @@ class IBM(BaseCloud):
         version = UBUNTU_RELEASE_VERSION_MAP[release].replace(".", "-")
         os_name = f"ubuntu-{version}-{arch}"
 
-        # Images are sorted by (created_at, id), thus we return the first one matching the criterion
+        # Images are sorted by (created_at, id), thus we return the first
+        # one matching the criterion.
         image = _get_first(
             self._client.list_images,
             resource_name="images",
@@ -153,7 +154,8 @@ class IBM(BaseCloud):
 
         """
         self._log.info(
-            "There are no daily images in IBM Cloud. Using released image instead"
+            "There are no daily images in IBM Cloud."
+            " Using released image instead"
         )
         return self.released_image(release, **kwargs)
 
@@ -181,13 +183,14 @@ class IBM(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        return IBMInstance.find_existent(
+        return IBMInstance.find_existing(
             self.key_pair,
             client=self._client,
             instance_id=instance_id,
         )
 
     def get_or_create_vpc(self, name: str) -> VPC:
+        """Get a VPC by name or create it if not found."""
         args = (self.key_pair,)
         kwargs = {
             "client": self._client,
@@ -342,6 +345,7 @@ class IBM(BaseCloud):
         )
 
     def delete_key(self, name: str):
+        """Delete SSH key by name."""
         key = _get_first(
             self._client.list_keys,
             resource_name="keys",
@@ -361,7 +365,7 @@ class IBM(BaseCloud):
         if key is not None:
             return key["id"]
 
-        self._log.info(f"Creating SSH key: %s", self.key_pair.name)
+        self._log.info("Creating SSH key: %s", self.key_pair.name)
         return self._client.create_key(
             public_key=self.key_pair.public_key_content,
             name=self.key_pair.name,

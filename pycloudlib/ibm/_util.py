@@ -1,3 +1,5 @@
+# This file is part of pycloudlib. See LICENSE file for license information.
+"""Private utilities for IBM cloud."""
 from functools import partial
 from time import sleep
 from typing import Callable, Iterator, List, Optional, TypeVar
@@ -6,14 +8,17 @@ from ibm_vpc import DetailedResponse
 
 from pycloudlib.util import get_query_param
 
+_IBMCallable = Callable[..., DetailedResponse]
+
 
 class IBMException(Exception):
-    ...
+    """IBM exception root."""
 
 
 def iter_pages(
-    op: Callable, *, start: Optional[str] = None, **kwargs
+    op: _IBMCallable, *, start: Optional[str] = None, **kwargs
 ) -> Iterator[DetailedResponse]:
+    """Lazily iterate over a paginated endpoint."""
     op = partial(op, **kwargs)
     detailed_response: DetailedResponse = op(start=start)
     yield detailed_response
@@ -25,12 +30,13 @@ def iter_pages(
 
 
 def get_first(
-    op: Callable,
+    op: _IBMCallable,
     *,
     resource_name: str,
     filter_fn: Optional[Callable[..., bool]] = None,
     **kwargs,
 ) -> Optional[dict]:
+    """Get first resource filtered by `filter_fn`."""
     filter_fn = filter_fn or (lambda x: x)
     for resp in iter_pages(op, **kwargs):
         resources = resp.get_result().get(resource_name, [])
@@ -47,12 +53,13 @@ T = TypeVar("T")
 
 
 def get_all(
-    op: Callable,
+    op: _IBMCallable,
     *,
     resource_name: str,
     map_fn: Optional[Callable[[dict], T]] = None,
     **kwargs,
 ) -> List[T]:
+    """Get all resources, optionally mapped by `map_fn`."""
     map_fn = map_fn or (lambda x: x)
 
     result: List[T] = []
@@ -69,8 +76,9 @@ def wait_until(
     timeout_msg_fn: str,
     raise_on_fail: bool = True,
 ) -> Iterator:
+    """Wait `timeout_seconds` until `check_fn` evaluates to true."""
     for _ in range(timeout_seconds):
-        if check_fn(*args) == True:
+        if check_fn(*args) is True:
             return True
         sleep(1)
     if raise_on_fail:

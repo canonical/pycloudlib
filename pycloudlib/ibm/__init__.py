@@ -1,3 +1,5 @@
+# This file is part of pycloudlib. See LICENSE file for license information.
+"""IBM's __init__."""
 from pycloudlib.ibm._util import IBMException
 from pycloudlib.ibm.instance import VPC, IBMInstance
 

@@ -40,7 +40,7 @@ INSTALL_REQUIRES = [
 
 EXTRAS_REQUIRE = {
     ":python_version == '3.6'": [
-        "ibm-cloud-sdk-core == 3.14.0",  # this is the last py36 compatible version
+        "ibm-cloud-sdk-core == 3.14.0",  # last py36 compatible version
         "ibm-vpc == 0.10",
     ],
     ":python_version >= '3.7'": [

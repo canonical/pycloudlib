@@ -87,7 +87,7 @@ def demo():
     manage_ssh_key(ibm, "test-ibm")
 
     daily = ibm.daily_image(release="bionic")
- 
+
     # "bx2-metal-96x384" for a bare-metal instance
     launch_basic(ibm, daily, "bx2-2x8")
     custom_vpc(ibm, daily)

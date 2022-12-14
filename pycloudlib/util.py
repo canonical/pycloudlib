@@ -351,17 +351,20 @@ def update_nested(mapping, update):
 
 
 def get_query_params(uri: str) -> Dict[str, list]:
-    """Extract the `start` query param from an href.
+    """Extract query params from `uri`.
 
-    >>> extract_start(
-    ... href="https://us-south.iaas.cloud.ibm.com/v1/vpcs?limit=1&start=r134-fe06d70f-ec6c-4451-b0a2-37b6ec91a217",
-    ... )
-    'r134-fe06d70f-ec6c-4451-b0a2-37b6ec91a217'
-
-    TODO doc args.
+    >>> url = "https://cloud.com/v1/vpcs?limit=1&start=r134-fe06d70f"
+    >>> get_query_params(url)
+    {'limit': ['1'], 'start': ['r134-fe06d70f']}
     """
     return parse_qs(urlparse(uri).query)
 
 
 def get_query_param(uri: str, param: str) -> list:
+    """Extract query query params of `param` from `uri`.
+
+    >>> url = "https://cloud.com/v1/vpcs?limit=1&start=r134-fe06d70f"
+    >>> get_query_param(url, "start")
+    ['r134-fe06d70f']
+    """
     return get_query_params(uri).get(param, [])

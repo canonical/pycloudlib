@@ -6,7 +6,6 @@ import logging
 from enum import Enum, auto, unique
 from functools import partial
 from itertools import chain
-from time import sleep
 from typing import Callable, Optional
 
 from ibm_cloud_sdk_core import ApiException, DetailedResponse
@@ -141,6 +140,7 @@ class VPC:
         resource_group_id: str,
         subnet: Optional[dict] = None,
     ):
+        """Init a `VPC`."""
         self._key_pair = key_pair
         self._client = client
         self._vpc = vpc
@@ -157,12 +157,17 @@ class VPC:
         zone: str,
         **kwargs,
     ) -> "VPC":
+        """Create a VPC.
+
+        Creates a Subnet and adds inbound rule to accept SSH connections to the
+        default Security Group.
+        """
         resource_group = {"id": resource_group_id}
         vpc = client.create_vpc(
             name=name, resource_group=resource_group
         ).get_result()
 
-        # Allow ssh access
+        # Allow SSH access
         default_sg = client.get_vpc_default_security_group(
             vpc["id"]
         ).get_result()
@@ -204,6 +209,10 @@ class VPC:
         zone: str,
         **kwargs,
     ) -> "VPC":
+        """Find a VPC by name.
+
+        Try to discover a Subnet within it or create it if not found.
+        """
         vpc = _get_first(
             client.list_vpcs,
             resource_name="vpcs",
@@ -242,6 +251,7 @@ class VPC:
         zone: str,
         **kwargs,
     ) -> "VPC":
+        """Find the `default` VPC and Subnet."""
         default_name = f"{region}-default-vpc"
         vpc = _get_first(
             client.list_vpcs,
@@ -261,19 +271,26 @@ class VPC:
 
     @property
     def id(self) -> str:
+        """VPC ID."""
         return self._vpc["id"]
 
     @property
     def name(self) -> str:
+        """VPC name."""
         return self._vpc["name"]
 
     @property
     def subnet_id(self) -> str:
+        """Subnet ID."""
         if self._subnet is None:
             raise IBMException("No subnet available")
         return self._subnet.id
 
     def delete(self) -> None:
+        """Delete VPC.
+
+        Note: This will delete all instances and subnets living in the VPC.
+        """
         logger.info("Deleting VPC: %s", self.id)
 
         # Delete all instances of types contained in `_IBMInstanceType`
@@ -282,7 +299,7 @@ class VPC:
                 lambda iit: _get_all(
                     partial(iit.list_instances, self._client),
                     resource_name="instances",
-                    map_fn=lambda inst: IBMInstance.from_existent(
+                    map_fn=lambda inst: IBMInstance.from_existing(
                         self._key_pair, client=self._client, instance=inst
                     ),
                     vpc_id=self.id,
@@ -299,16 +316,14 @@ class VPC:
 
 
 class _IBMInstanceType(Enum):
-    """
-    Represents and abstracts the different intance types present in IBM VPC.
-    """
+    """Abstracts the different intance types present in IBM VPC."""
 
     VSI = auto()
     BARE_METAL_SERVER = auto()
 
     @classmethod
     def from_instance_type(cls, instance_type: str) -> "_IBMInstanceType":
-        """Translates from `instance_type` to `_IBMInstanceType`.
+        """Translate from `instance_type` to `_IBMInstanceType`.
 
         Note: In IBM VPC terms, `intance_type`s are `profile`s.
         """
@@ -316,7 +331,8 @@ class _IBMInstanceType(Enum):
             return cls.BARE_METAL_SERVER
         elif "host" in instance_type:
             logger.warning(
-                "%s instance_type looks like a Dedicated Host, which is not supported.",
+                "%s instance_type looks like a Dedicated Host,"
+                " which is not supported.",
                 instance_type,
             )
         return cls.VSI
@@ -362,8 +378,8 @@ class _IBMInstanceType(Enum):
         self, client: VpcV1, *, id: str, action: str, force: bool = False
     ) -> DetailedResponse:
         # Note: None of the these endpoints returs a query-able resource.
-        # Thus, the only way to check if the action has been completed is to directly retrive
-        # the raw instance data.
+        # Thus, the only way to check if the action has been completed is
+        # to directly retrive the raw instance data.
         if self == self.VSI:
             return client.create_instance_action(id, action, force=force)
         elif self == self.BARE_METAL_SERVER:
@@ -444,6 +460,7 @@ class IBMInstance(BaseInstance):
     def with_floating_ip(
         cls, *args, client: VpcV1, instance: dict, floating_ip: dict, **kwargs
     ) -> "IBMInstance":
+        """Instantiate `self` from `intantace` associated to `floating_ip`."""
         nic_id = instance["primary_network_interface"]["id"]
 
         ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
@@ -463,9 +480,14 @@ class IBMInstance(BaseInstance):
         )
 
     @classmethod
-    def from_existent(
+    def from_existing(
         cls, *args, client: VpcV1, instance: dict, **kwargs
     ) -> "IBMInstance":
+        """Instantiate `self` from `instance`.
+
+        If `floating_ip` is not given, it will try to discover an associated
+        Floating Ip.
+        """
         floating_ip = kwargs.pop(
             "floating_ip", None
         ) or cls._discover_floating_ip(client, instance)
@@ -478,9 +500,10 @@ class IBMInstance(BaseInstance):
         )
 
     @classmethod
-    def find_existent(
+    def find_existing(
         cls, *args, client: VpcV1, instance_id: str, **kwargs
     ) -> "IBMInstance":
+        """Find an instance by ID."""
         instance = _IBMInstanceType.VSI.get_instance(client, instance_id)
         if not instance:
             instance = _IBMInstanceType.BARE_METAL_SERVER.get_instance(
@@ -490,7 +513,7 @@ class IBMInstance(BaseInstance):
         if not instance:
             raise IBMException(f"Instance not found: {instance_id}")
 
-        return cls.from_existent(
+        return cls.from_existing(
             *args,
             client=client,
             instance=instance,
@@ -509,7 +532,8 @@ class IBMInstance(BaseInstance):
         zone: str,
         user_data=None,
         key_id: str,
-    ):
+    ) -> dict:
+        """Create and return a raw IBM instance."""
         ibm_instance_type = _IBMInstanceType.from_instance_type(instance_type)
 
         image = {"id": image_id}
@@ -596,6 +620,7 @@ class IBMInstance(BaseInstance):
 
     @property
     def id(self) -> str:
+        """Instance ID."""
         return str(self._instance["id"])
 
     @property
@@ -628,7 +653,8 @@ class IBMInstance(BaseInstance):
             lambda: self._refresh_instance()["status"] == status.value,
             timeout_seconds=sleep_seconds,
             timeout_msg_fn=lambda: (
-                f"Expected {status.value} state, but found {self._instance['status']} "
+                "Expected {status.value} state, but found"
+                f" {self._instance['status']} "
                 f"after waiting {sleep_seconds} seconds. "
                 "Check IBM VPC console for more details."
             ),
@@ -692,11 +718,3 @@ class IBMInstance(BaseInstance):
     def wait_for_stop(self):
         """Wait for instance stop."""
         self._wait_for_status(_Status.STOPPED)
-
-    def add_network_interface(self) -> str:
-        """Add nic to running instance."""
-        raise NotImplementedError
-
-    def remove_network_interface(self, ip_address: str):
-        """Remove nic from running instance."""
-        raise NotImplementedError
