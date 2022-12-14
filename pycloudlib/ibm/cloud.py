@@ -56,7 +56,7 @@ class IBM(BaseCloud):
             or self.config.get("resource_group")
             or DEFAULT_RESOURCE_GROUP
         )
-        self._resource_group_id = None
+        self._resource_group_id: Optional[str] = None
         self.region = str(region or self.config.get("region")).lower()
         self.zone = str(zone or self.config.get("zone")).lower()
 
@@ -82,8 +82,8 @@ class IBM(BaseCloud):
                 self._resource_group
             )
             if self._resource_group_id is None:
-                raise ValueError(
-                    f"Resource Group not found: {self._resouce_group}"
+                raise IBMException(
+                    f"Resource Group not found: {self._resource_group}"
                 )
         return self._resource_group_id
 
@@ -204,7 +204,6 @@ class IBM(BaseCloud):
             return VPC.create(*args, **kwargs)
 
     def _create_floating_ip(self, name: Optional[str] = None) -> dict:
-        # XXX: move this method to instance.py ?
         name = name or f"{self.tag}-fi"
         proto = {
             "name": name,
@@ -212,13 +211,13 @@ class IBM(BaseCloud):
             "zone": {"name": self.zone},
         }
         floating_ip = self._client.create_floating_ip(proto).get_result()
-        self._log.info(f"Floating ip created: {floating_ip['name']}")
+        self._log.info("Floating ip created: %s", {floating_ip["name"]})
         return floating_ip
 
     def launch(
         self,
         image_id: str,
-        instance_type: Optional[str] = "bx2-2x8",
+        instance_type: str = "bx2-2x8",
         user_data=None,
         wait: bool = True,
         *,
@@ -285,7 +284,7 @@ class IBM(BaseCloud):
         return instance
 
     def snapshot(
-        self, instance: BaseInstance, clean: bool = True, **kwargs
+        self, instance: IBMInstance, clean: bool = True, **kwargs
     ) -> str:
         """Snapshot an instance and generate an image from it.
 
@@ -304,15 +303,10 @@ class IBM(BaseCloud):
 
         self._log.debug("creating snapshot from instance %s", instance.id)
 
-        # XXX: move to instance
-        source_volume = instance._instance["boot_volume_attachment"]["volume"][
-            "id"
-        ]
-
         image_prototype = {
             "name": f"{self.tag}-image",
             "resource_group": {"id": self.resource_group_id},
-            "source_volume": {"id": source_volume},
+            "source_volume": {"id": instance.boot_volume_id},
         }
 
         snapshot_id = self._client.create_image(image_prototype).get_result()[

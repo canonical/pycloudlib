@@ -46,8 +46,6 @@ def launch_basic(ibm, daily, instance_type):
     # Various Attributes
     print(instance.ip)
     print(instance.id)
-    print(instance.image_id)
-    print(instance.availability_zone)
 
     instance.delete()
 
