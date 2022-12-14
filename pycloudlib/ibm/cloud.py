@@ -268,6 +268,7 @@ class IBM(BaseCloud):
             zone=self.zone,
             user_data=user_data,
             key_id=self._get_or_create_key(),
+            **kwargs,
         )
 
         floating_ip = self._create_floating_ip(name=floating_ip_name)
