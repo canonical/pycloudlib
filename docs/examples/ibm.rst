@@ -1,5 +1,5 @@
 ===
-EC2
+IBM
 ===
 
 .. literalinclude:: ../../examples/ibm.py
