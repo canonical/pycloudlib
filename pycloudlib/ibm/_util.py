@@ -21,13 +21,14 @@ def iter_pages(
     """Lazily iterate over a paginated endpoint."""
     op = partial(op, **kwargs)
     detailed_response: DetailedResponse = op(start=start)
+    result = detailed_response.get_result()
     yield detailed_response
 
-    while detailed_response.result.get("next") is not None:
-        start = get_query_param(
-            detailed_response.result["next"]["href"], param="start"
-        )[0]
-        detailed_response = op(start=start)
+    while result.get("next") is not None:
+        next_url = result["next"]["href"]
+        next_start = get_query_param(next_url, param="start")[0]
+        detailed_response = op(start=next_start)
+        result = detailed_response.get_result()
         yield detailed_response
 
 
