@@ -3,13 +3,15 @@
 """Base class for all instances to provide consistent set of functions."""
 
 import logging
-from enum import Enum, auto, unique
+from enum import Enum, auto
 from functools import partial
 from itertools import chain
 from typing import Callable, Optional
 
 from ibm_cloud_sdk_core import ApiException, DetailedResponse
 from ibm_vpc import VpcV1
+from ibm_vpc.vpc_v1 import Instance as _Instance
+from ibm_vpc.vpc_v1 import InstanceAction as _InstanceAction
 
 from pycloudlib.ibm._util import IBMException
 from pycloudlib.ibm._util import get_all as _get_all
@@ -19,25 +21,8 @@ from pycloudlib.instance import BaseInstance
 
 logger = logging.getLogger(__name__)
 
-
-@unique
-class _Status(Enum):
-    DELETING = "deleting"
-    FAILED = "failed"
-    PENDING = "pending"
-    RESTARTING = "restarting"
-    RUNNING = "running"
-    STARTING = "starting"
-    STOPPED = "stopped"
-    STOPPING = "stopping"
-
-
-@unique
-class _Action(Enum):
-    START = "start"
-    STOP = "stop"
-    REBOOT = "reboot"
-
+_Status = _Instance.StatusEnum
+_Action = _InstanceAction.TypeEnum
 
 VpcV1Fn = Callable[..., DetailedResponse]
 
