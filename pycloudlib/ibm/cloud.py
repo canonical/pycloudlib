@@ -227,13 +227,14 @@ class IBM(BaseCloud):
     ) -> BaseInstance:
         """Launch an instance.
 
-        TODO
-
         Args:
             image_id: string, image ID to use for the instance
             instance_type: string, type of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
             wait: wait for instance to be live
+            name: instance name
+            vpc: VPC to allocate the instance in. If not given, the instance
+            will be allocated in the zone's default VPC.
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:
