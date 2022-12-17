@@ -20,6 +20,7 @@ UBUNTU_DAILY_IMAGES = {
     "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",
     "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily",
+    "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
