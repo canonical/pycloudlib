@@ -15,6 +15,7 @@ from errno import ENOENT
 from pycloudlib.result import Result
 
 UBUNTU_RELEASE_VERSION_MAP = {
+    "lunar": "23.04",
     "kinetic": "22.10",
     "jammy": "22.04",
     "focal": "20.04",
