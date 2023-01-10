@@ -74,7 +74,9 @@ class LXDInstance(BaseInstance):
 
         Returns None if no address found
         """
-        network = query.get("state", {}).get("network", {})
+        network = query.get("state", {}).get("network")
+        if network is None:
+            network = {}
         for _, nic_cfg in network.items():
             if not nic_cfg.get("host_name"):
                 continue
