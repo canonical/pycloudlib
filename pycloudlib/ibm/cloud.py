@@ -30,7 +30,7 @@ class IBM(BaseCloud):
         self,
         tag,
         timestamp_suffix=True,
-        config_file: ConfigFile = None,
+        config_file: Optional[ConfigFile] = None,
         *,
         resource_group: Optional[str] = None,
         api_key: Optional[str] = None,
@@ -81,10 +81,10 @@ class IBM(BaseCloud):
             self._resource_group_id = self._get_resource_group_id(
                 self._resource_group
             )
-            if self._resource_group_id is None:
-                raise IBMException(
-                    f"Resource Group not found: {self._resource_group}"
-                )
+        if self._resource_group_id is None:
+            raise IBMException(
+                f"Resource Group not found: {self._resource_group}"
+            )
         return self._resource_group_id
 
     def _get_resource_group_id(

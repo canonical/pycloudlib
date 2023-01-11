@@ -312,7 +312,7 @@ class VPC:
 
 
 class _IBMInstanceType(Enum):
-    """Abstracts the different intance types present in IBM VPC."""
+    """Abstracts the different instance types present in IBM VPC."""
 
     VSI = auto()
     BARE_METAL_SERVER = auto()
@@ -321,7 +321,7 @@ class _IBMInstanceType(Enum):
     def from_instance_type(cls, instance_type: str) -> "_IBMInstanceType":
         """Translate from `instance_type` to `_IBMInstanceType`.
 
-        Note: In IBM VPC terms, `intance_type`s are `profile`s.
+        Note: In IBM VPC terms, `instance_type`s are `profile`s.
         """
         if "metal" in instance_type:
             return cls.BARE_METAL_SERVER
@@ -384,9 +384,9 @@ class _IBMInstanceType(Enum):
         force: Optional[bool] = False,
     ) -> DetailedResponse:
         """Execute instance action."""
-        # Note: None of the these endpoints returs a query-able resource.
+        # Note: None of the these endpoints returns a query-able resource.
         # Thus, the only way to check if the action has been completed is
-        # to directly retrive the raw instance data.
+        # to directly retrieve the raw instance data.
         if self == self.VSI:
             return client.create_instance_action(id, action.value, force=force)
         if self == self.BARE_METAL_SERVER:
@@ -469,7 +469,7 @@ class IBMInstance(BaseInstance):
     def with_floating_ip(
         cls, *args, client: VpcV1, instance: dict, floating_ip: dict, **kwargs
     ) -> "IBMInstance":
-        """Instantiate `self` from `intantace` associated to `floating_ip`."""
+        """Instantiate `self` from `instance` associated to `floating_ip`."""
         nic_id = instance["primary_network_interface"]["id"]
 
         ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
@@ -585,7 +585,7 @@ class IBMInstance(BaseInstance):
 
         else:
             raise NotImplementedError(
-                f"Implemente me for: {ibm_instance_type}"
+                f"Implement me for: {ibm_instance_type}"
             )
 
         raw_instance = ibm_instance_type.create_instance(
@@ -595,6 +595,7 @@ class IBMInstance(BaseInstance):
 
     @staticmethod
     def _discover_floating_ip(client: VpcV1, instance: dict) -> Optional[dict]:
+        """Discover a floating ip associated to instance."""
         nic_id = instance["primary_network_interface"]["id"]
 
         ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)

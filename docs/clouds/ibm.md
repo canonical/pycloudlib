@@ -5,7 +5,7 @@ The following page documents the IBM VPC cloud integration in pycloudlib.
 ## Credentials
 
 To operate on IBM VPC an IBM Cloud API key is required. This should be set in pycloudlib.toml
-or passed to pycloudlib.IBM at inititialization time.
+or passed to pycloudlib.IBM at initialization time.
 
 ## SSH Keys
 
@@ -32,7 +32,7 @@ Launching an instance requires at a minimum an image ID. Optionally, a user can 
 inst_0 = ibm.launch('r010-7334d328-7a1f-47d4-8dda-013e857a1f2b')
 inst_1 = ibm.launch('r010-7334d328-7a1f-47d4-8dda-013e857a1f2b', instance_type='bx2-metal-96x384', user_data=data)
 vpc = ibm.get_or_create_vpc('custom_vpc')
-inst_2 = ec2.launch('r010-7334d328-7a1f-47d4-8dda-013e857a1f2b', vpc=vpc)
+inst_2 = ibm.launch('r010-7334d328-7a1f-47d4-8dda-013e857a1f2b', vpc=vpc)
 ```
 
 If no VPC is specified the region's default VPC, including security group is used. See the Virtual Private Cloud (VPC) section below for more details on creating a custom VPC.
@@ -92,12 +92,12 @@ The snapshot function returns a string of the created Custom Image ID.
 To delete the image when the snapshot is no longer required:
 
 ```python
-ec2.image_delete(snapshot)
+ibm.image_delete(snapshot)
 ```
 
 ## Unique Operations
 
-The following are unique operations to the EC2 cloud.
+The following are unique operations to the IBM cloud.
 
 ### Virtual Private Clouds
 
