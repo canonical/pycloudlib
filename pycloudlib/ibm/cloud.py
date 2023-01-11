@@ -352,10 +352,12 @@ class IBM(BaseCloud):
            A list of strings of key pair names accessible to the cloud.
 
         """
-        return _iter_resources(
-            self._client.list_keys,
-            resource_name="keys",
-            map_fn=lambda key: key["name"],
+        return list(
+            _iter_resources(
+                self._client.list_keys,
+                resource_name="keys",
+                map_fn=lambda key: key["name"],
+            )
         )
 
     def delete_key(self, name: str):

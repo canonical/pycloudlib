@@ -10,6 +10,7 @@ import logging
 import os
 import time
 from itertools import count
+from typing import Optional
 
 import googleapiclient.discovery
 
@@ -31,7 +32,7 @@ class GCE(BaseCloud):
         self,
         tag,
         timestamp_suffix=True,
-        config_file: ConfigFile = None,
+        config_file: Optional[ConfigFile] = None,
         *,
         credentials_path=None,
         project=None,
@@ -117,7 +118,7 @@ class GCE(BaseCloud):
         )
 
     def released_image(
-        self, release, image_type: ImageType = ImageType.GENERIC
+        self, release, *, image_type: ImageType = ImageType.GENERIC, **kwargs
     ):
         """ID of the latest released image for a particular release.
 
@@ -228,7 +229,12 @@ class GCE(BaseCloud):
         return image_list
 
     def daily_image(
-        self, release, arch="x86_64", image_type: ImageType = ImageType.GENERIC
+        self,
+        release,
+        *,
+        arch="x86_64",
+        image_type: ImageType = ImageType.GENERIC,
+        **kwargs,
     ):
         """Find the id of the latest image for a particular release.
 

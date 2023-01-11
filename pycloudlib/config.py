@@ -3,7 +3,7 @@ import logging
 import os
 from io import StringIO
 from pathlib import Path
-from typing import Any, MutableMapping, Union
+from typing import Any, MutableMapping, Optional, Union
 
 import toml
 
@@ -31,7 +31,9 @@ class Config(dict):
             ) from None
 
 
-def parse_config(config_file: ConfigFile = None) -> MutableMapping[str, Any]:
+def parse_config(
+    config_file: Optional[ConfigFile] = None,
+) -> MutableMapping[str, Any]:
     """Find the relevant TOML, load, and return it."""
     possible_configs = []
     if config_file:
