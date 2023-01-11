@@ -101,7 +101,13 @@ The following are unique operations to the IBM cloud.
 
 ### Virtual Private Clouds
 
-If a custom VPC is required for any reason, then one can be created
+A pre-existent VPC can be set in the config file or be passed as argument to the cloud.IBM constructor. If not set, pycloudlib will default to `{region}-default-vpc`.
+
+```python
+ibm = IBM(vpc="my-custom-vpc", ...)
+```
+
+Another possibility is to create a custom VPC on the fly, then one can be created
 and then later used during instance creation.
 
 ```python
