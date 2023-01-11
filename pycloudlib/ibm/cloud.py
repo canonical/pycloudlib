@@ -33,6 +33,7 @@ class IBM(BaseCloud):
         config_file: Optional[ConfigFile] = None,
         *,
         resource_group: Optional[str] = None,
+        vpc: Optional[str] = None,
         api_key: Optional[str] = None,
         region: Optional[str] = None,
         zone: Optional[str] = None,
@@ -58,7 +59,11 @@ class IBM(BaseCloud):
         )
         self._resource_group_id: Optional[str] = None
         self.region = str(region or self.config.get("region")).lower()
-        self.zone = str(zone or self.config.get("zone")).lower()
+        zone = zone or self.config.get("zone") or f"{self.region}-1"
+        self.zone = str(zone).lower()
+
+        self._vpc_name = vpc or self.config.get("vpc")
+        self._vpc: Optional[VPC] = None
 
         self._log.debug("logging into IBM")
 
@@ -86,6 +91,27 @@ class IBM(BaseCloud):
                 f"Resource Group not found: {self._resource_group}"
             )
         return self._resource_group_id
+
+    @property
+    def vpc(self) -> VPC:
+        """Virtual Private Cloud."""
+        if self._vpc is not None:
+            return self._vpc
+
+        kwargs = {
+            "client": self._client,
+            "resource_group_id": self.resource_group_id,
+            "region": self.region,
+            "zone": self.zone,
+        }
+        if self._vpc_name is not None:
+            self._vpc = VPC.from_existing(
+                self.key_pair, name=self._vpc_name, **kwargs
+            )
+        else:
+            self._vpc = VPC.from_default(self.key_pair, **kwargs)
+
+        return self._vpc
 
     def _get_resource_group_id(
         self, name: Optional[str] = None
@@ -247,15 +273,7 @@ class IBM(BaseCloud):
                 f" Found: {image_id}"
             )
 
-        if not vpc:
-            vpc = VPC.from_default(
-                self.key_pair,
-                client=self._client,
-                resource_group_id=self.resource_group_id,
-                region=self.region,
-                zone=self.zone,
-            )
-
+        vpc = vpc or self.vpc
         floating_ip_name = f"{name}-fi" if name else None
         name = name or f"{self.tag}-vm"
 

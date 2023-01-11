@@ -46,7 +46,9 @@ project = ""  # glcoud config get-value project
 # key_name = ""  # Defaults to your username if not set
 
 [ibm]
+# If vpc is given, then the vpc has to belong to the same resource_group specified here.
 # resource_group = "Default"  # Defaults to `Default`
+# vpc = "vpc_name"  # Defaults to `{region}-default-vpc`.
 # api_key = ""  # IBM Cloud API key
 # region = "eu-de"
 # zone = "eu-de-2"

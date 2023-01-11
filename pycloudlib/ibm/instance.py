@@ -132,6 +132,7 @@ class VPC:
         vpc: dict,
         resource_group_id: str,
         subnet: Optional[_Subnet] = None,
+        **_kwargs,
     ):
         """Init a `VPC`."""
         self._key_pair = key_pair
@@ -584,9 +585,7 @@ class IBMInstance(BaseInstance):
                 kwargs["initialization"]["user_data"] = user_data
 
         else:
-            raise NotImplementedError(
-                f"Implement me for: {ibm_instance_type}"
-            )
+            raise NotImplementedError(f"Implement me for: {ibm_instance_type}")
 
         raw_instance = ibm_instance_type.create_instance(
             client, **kwargs
