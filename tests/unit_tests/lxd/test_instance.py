@@ -648,6 +648,7 @@ class TestRestart:
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_restart_calls_lxc_cmd_with_force_param(self, m_subp, force):
         """Honor force param on restart."""
+        m_subp.return_value = Result("", "", 0)
         instance = LXDInstance(name="my_vm")
         instance._do_restart(force=force)  # pylint: disable=protected-access
         if force:
@@ -657,8 +658,9 @@ class TestRestart:
 
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
     @mock.patch("pycloudlib.lxd.instance.subp")
-    def test_restart_does_not_shutdown(self, _m_subp, m_shutdown):
+    def test_restart_does_not_shutdown(self, m_subp, m_shutdown):
         """Don't shutdown (stop) instance on restart."""
+        m_subp.return_value = Result("", "", 0)
         instance = LXDInstance(name="my_vm")
         instance._do_restart()  # pylint: disable=protected-access
         assert not m_shutdown.called
@@ -866,6 +868,7 @@ class TestDelete:
 
         Also verify is delete is actually called if instance is not ephemeral.
         """
+        m_subp.return_value = Result("", "", 0)
         instance = LXDInstance(name="test")
 
         with mock.patch.object(type(instance), "ephemeral", is_ephemeral):
