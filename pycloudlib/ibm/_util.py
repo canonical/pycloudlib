@@ -2,7 +2,7 @@
 """Private utilities for IBM cloud."""
 from functools import partial
 from time import sleep
-from typing import Callable, Iterator, List, Optional, TypeVar
+from typing import Callable, Iterator, Optional
 
 from ibm_vpc import DetailedResponse
 
@@ -32,6 +32,18 @@ def iter_pages(
         yield detailed_response
 
 
+def iter_resources(
+    op, *, resource_name: str, filter_fn=None, map_fn=None, **kwargs
+) -> Iterator:
+    """Iterate over the resources, optionally mapped and or filtered."""
+    filter_fn = filter_fn or (lambda _: True)
+    map_fn = map_fn or (lambda x: x)
+
+    for resp in iter_pages(op, **kwargs):
+        resources = resp.get_result().get(resource_name, [])
+        yield from map(map_fn, filter(filter_fn, resources))
+
+
 def get_first(
     op: _IBMCallable,
     *,
@@ -40,37 +52,14 @@ def get_first(
     **kwargs,
 ) -> Optional[dict]:
     """Get first resource filtered by `filter_fn`."""
-    filter_fn = filter_fn or (lambda x: x)
-    for resp in iter_pages(op, **kwargs):
-        resources = resp.get_result().get(resource_name, [])
-        try:
-            resource = next(filter(filter_fn, resources))
-        except StopIteration:
-            continue  # Jump to next page
-        return resource
-
-    return None
-
-
-U = TypeVar("U")
-V = TypeVar("V")
-
-
-def get_all(
-    op: _IBMCallable,
-    *,
-    resource_name: str,
-    map_fn: Optional[Callable[[U], V]] = None,
-    **kwargs,
-) -> List[V]:
-    """Get all resources, optionally mapped by `map_fn`."""
-    map_fn = map_fn or (lambda x: x)
-
-    result: List[V] = []
-    for resp in iter_pages(op, **kwargs):
-        resources = resp.get_result().get(resource_name, [])
-        result.extend(map(map_fn, resources))
-    return result
+    try:
+        return next(
+            iter_resources(
+                op, resource_name=resource_name, filter_fn=filter_fn, **kwargs
+            )
+        )
+    except StopIteration:
+        return None
 
 
 def wait_until(

@@ -14,8 +14,8 @@ from ibm_vpc.vpc_v1 import Instance as _Instance
 from ibm_vpc.vpc_v1 import InstanceAction as _InstanceAction
 
 from pycloudlib.ibm._util import IBMException
-from pycloudlib.ibm._util import get_all as _get_all
 from pycloudlib.ibm._util import get_first as _get_first
+from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
 from pycloudlib.instance import BaseInstance
 
@@ -292,7 +292,7 @@ class VPC:
         # Delete all instances of types contained in `_IBMInstanceType`
         instances_in_vpc = chain.from_iterable(
             map(
-                lambda iit: _get_all(
+                lambda iit: _iter_resources(
                     partial(iit.list_instances, self._client),
                     resource_name="instances",
                     map_fn=lambda inst: IBMInstance.from_existing(

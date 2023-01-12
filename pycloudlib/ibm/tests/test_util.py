@@ -6,7 +6,12 @@ import pytest
 from ibm_vpc import DetailedResponse
 from mock import MagicMock
 
-from pycloudlib.ibm._util import get_all, get_first, iter_pages, wait_until
+from pycloudlib.ibm._util import (
+    get_first,
+    iter_pages,
+    iter_resources,
+    wait_until,
+)
 
 M_PATH = "pycloudlib.ibm._util."
 
@@ -109,10 +114,12 @@ class TestGetAll:
         m_iter_pages.return_value = responses
         kwargs = {"a": "a", "b": "b"}
 
-        assert ["x", "y", "z"] == get_all(
-            m_ibm_operation,
-            resource_name="resources",
-            **kwargs,
+        assert ["x", "y", "z"] == list(
+            iter_resources(
+                m_ibm_operation,
+                resource_name="resources",
+                **kwargs,
+            )
         )
         assert [
             mock.call(m_ibm_operation, **kwargs)
@@ -129,11 +136,13 @@ class TestGetAll:
         m_iter_pages.return_value = responses
         kwargs = {"a": "a", "b": "b"}
 
-        assert ["x^^", "y^^", "z^^"] == get_all(
-            m_ibm_operation,
-            resource_name="resources",
-            map_fn=lambda resource: resource + "^^",
-            **kwargs,
+        assert ["x^^", "y^^", "z^^"] == list(
+            iter_resources(
+                m_ibm_operation,
+                resource_name="resources",
+                map_fn=lambda resource: resource + "^^",
+                **kwargs,
+            )
         )
         assert [
             mock.call(m_ibm_operation, **kwargs)
