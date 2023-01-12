@@ -161,7 +161,7 @@ class BaseInstance(ABC):
         self._wait_for_cloudinit()
 
     @abstractmethod
-    def wait_for_delete(self):
+    def wait_for_delete(self, **kwargs):
         """Wait for instance to be deleted."""
         raise NotImplementedError
 
