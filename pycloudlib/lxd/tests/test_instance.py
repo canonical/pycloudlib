@@ -342,12 +342,8 @@ class TestDelete:
         with mock.patch.object(type(instance), "ephemeral", is_ephemeral):
             instance.delete(wait=False)
 
-        if is_ephemeral:
-            assert 1 == m_shutdown.call_count
-            assert 0 == m_subp.call_count
-        else:
-            assert 0 == m_shutdown.call_count
-            assert 1 == m_subp.call_count
-            assert [
-                mock.call(["lxc", "delete", "test", "--force"])
-            ] == m_subp.call_args_list
+        assert 0 == m_shutdown.call_count
+        assert 1 == m_subp.call_count
+        assert [
+            mock.call(["lxc", "delete", "test", "--force"])
+        ] == m_subp.call_args_list
