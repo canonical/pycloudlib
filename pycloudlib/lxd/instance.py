@@ -231,12 +231,7 @@ class LXDInstance(BaseInstance):
         """
         self._log.debug("deleting %s", self.name)
 
-        if self.ephemeral:
-            # We don't need to wait here, since the
-            # instance will be deleted once it is stopped
-            self.shutdown(wait=False)
-        else:
-            subp(["lxc", "delete", self.name, "--force"])
+        subp(["lxc", "delete", self.name, "--force"])
 
         if wait:
             self.wait_for_delete()
