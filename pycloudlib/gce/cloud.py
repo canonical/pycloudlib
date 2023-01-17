@@ -30,15 +30,15 @@ class GCE(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
+        tag: str,
+        timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
         *,
-        credentials_path=None,
-        project=None,
-        region=None,
-        zone=None,
-        service_account_email=None,
+        credentials_path: Optional[str] = None,
+        project: Optional[str] = None,
+        region: Optional[str] = None,
+        zone: Optional[str] = None,
+        service_account_email: Optional[str] = None,
     ):
         """Initialize the connection to GCE.
 
@@ -230,9 +230,9 @@ class GCE(BaseCloud):
 
     def daily_image(
         self,
-        release,
+        release: str,
         *,
-        arch="x86_64",
+        arch: str = "x86_64",
         image_type: ImageType = ImageType.GENERIC,
         **kwargs,
     ):

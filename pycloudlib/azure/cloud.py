@@ -57,15 +57,15 @@ class Azure(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
+        tag: str,
+        timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
         *,
-        client_id=None,
-        client_secret=None,
-        subscription_id=None,
-        tenant_id=None,
-        region=None,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        subscription_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+        region: Optional[str] = None,
     ):
         """Initialize the connection to Azure.
 
@@ -535,7 +535,11 @@ class Azure(BaseCloud):
         raise ValueError("Invalid image_type")
 
     def daily_image(
-        self, release, *, image_type: ImageType = ImageType.GENERIC, **kwargs
+        self,
+        release: str,
+        *,
+        image_type: ImageType = ImageType.GENERIC,
+        **kwargs,
     ):
         """Find the image info for the latest daily image for a given release.
 

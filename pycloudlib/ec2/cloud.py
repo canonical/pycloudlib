@@ -20,13 +20,13 @@ class EC2(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
+        tag: str,
+        timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
         *,
-        access_key_id=None,
-        secret_access_key=None,
-        region=None,
+        access_key_id: Optional[str] = None,
+        secret_access_key: Optional[str] = None,
+        region: Optional[str] = None,
     ):
         """Initialize the connection to EC2.
 
@@ -92,9 +92,9 @@ class EC2(BaseCloud):
 
     def released_image(
         self,
-        release,
+        release: str,
         *,
-        arch="x86_64",
+        arch: str = "x86_64",
         image_type: ImageType = ImageType.GENERIC,
         **kwargs,
     ):
@@ -190,9 +190,9 @@ class EC2(BaseCloud):
 
     def daily_image(
         self,
-        release,
+        release: str,
         *,
-        arch="x86_64",
+        arch: str = "x86_64",
         image_type: ImageType = ImageType.GENERIC,
         **kwargs,
     ):

@@ -24,14 +24,14 @@ class OCI(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
+        tag: str,
+        timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
         *,
-        availability_domain=None,
-        compartment_id=None,
-        config_path=None,
-        config_dict=None,
+        availability_domain: Optional[str] = None,
+        compartment_id: Optional[str] = None,
+        config_path: Optional[str] = None,
+        config_dict: Optional[str] = None,
     ):
         """
         Initialize the connection to OCI.
@@ -133,7 +133,10 @@ class OCI(BaseCloud):
         return self.daily_image(release, operating_system)
 
     def daily_image(
-        self, release, operating_system="Canonical Ubuntu", **kwargs
+        self,
+        release: str,
+        operating_system: str = "Canonical Ubuntu",
+        **kwargs,
     ):
         """Get the daily image.
 

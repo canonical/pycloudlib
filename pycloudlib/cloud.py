@@ -7,7 +7,7 @@ import io
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Any, Optional, Sequence
 
 import paramiko
 
@@ -16,6 +16,8 @@ from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.streams import Streams
 from pycloudlib.util import get_timestamped_tag, validate_tag
+
+_RequiredValues = Optional[Sequence[Optional[Any]]]
 
 
 @enum.unique
@@ -34,10 +36,10 @@ class BaseCloud(ABC):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
+        tag: str,
+        timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
-        required_values=None,
+        required_values: _RequiredValues = None,
     ):
         """Initialize base cloud class.
 
@@ -49,7 +51,7 @@ class BaseCloud(ABC):
         self._log = logging.getLogger(
             "{}.{}".format(__name__, self.__class__.__name__)
         )
-        self.check_and_set_config(config_file, required_values)
+        self._check_and_set_config(config_file, required_values)
 
         user = getpass.getuser()
         self.key_pair = KeyPair(
@@ -95,7 +97,7 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def daily_image(self, release, **kwargs):
+    def daily_image(self, release: str, **kwargs):
         """ID of the latest daily image for a particular release.
 
         Args:
@@ -235,7 +237,11 @@ class BaseCloud(ABC):
 
         return result
 
-    def check_and_set_config(self, config_file, required_values):
+    def _check_and_set_config(
+        self,
+        config_file: Optional[ConfigFile],
+        required_values: _RequiredValues,
+    ):
         """Set pycloudlib configuration.
 
         Checks if values required to launch a cloud instance are present.

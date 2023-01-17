@@ -17,11 +17,11 @@ class Openstack(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
+        tag: str,
+        timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
         *,
-        network=None,
+        network: Optional[str] = None,
     ):
         """Initialize the connection to openstack.
 
@@ -60,7 +60,7 @@ class Openstack(BaseCloud):
             "available for any particular openstack setup."
         )
 
-    def daily_image(self, release, **kwargs):
+    def daily_image(self, release: str, **kwargs):
         """Not supported for openstack."""
         raise Exception(
             "Obtaining daily image for a release is not supported on "
