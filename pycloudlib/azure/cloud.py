@@ -71,6 +71,7 @@ class Azure(BaseCloud):
         subscription_id: Optional[str] = None,
         tenant_id: Optional[str] = None,
         region: Optional[str] = None,
+        username: Optional[str] = None,
     ):
         """Initialize the connection to Azure.
 
@@ -103,7 +104,7 @@ class Azure(BaseCloud):
 
         self._log.debug("logging into Azure")
         self.location = region or self.config.get("region") or "centralus"
-        self.username = "ubuntu"
+        self.username = username or "ubuntu"
 
         self.registered_instances: Dict[str, AzureInstance] = {}
         self.registered_images: Dict[str, dict] = {}
@@ -588,6 +589,7 @@ class Azure(BaseCloud):
         wait=True,
         name=None,
         inbound_ports=None,
+        username=None,
         **kwargs,
     ):
         """Launch virtual machine on Azure.
@@ -693,6 +695,7 @@ class Azure(BaseCloud):
             key_pair=self.key_pair,
             client=self.compute_client,
             instance=instance_info,
+            username=username,
         )
 
         if wait:

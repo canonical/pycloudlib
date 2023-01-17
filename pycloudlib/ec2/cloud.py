@@ -306,6 +306,7 @@ class EC2(BaseCloud):
         user_data=None,
         wait=True,
         vpc=None,
+        username=None,
         **kwargs,
     ):
         """Launch instance on EC2.
@@ -362,7 +363,9 @@ class EC2(BaseCloud):
 
         self._log.debug("launching instance")
         instances = self.resource.create_instances(**args)
-        instance = EC2Instance(self.key_pair, self.client, instances[0])
+        instance = EC2Instance(
+            self.key_pair, self.client, instances[0], username=username
+        )
 
         if wait:
             instance.wait()
