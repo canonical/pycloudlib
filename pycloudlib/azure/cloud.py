@@ -2,6 +2,7 @@
 """Azure Cloud type."""
 import base64
 import logging
+from typing import Dict, Optional
 
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
@@ -56,15 +57,15 @@ class Azure(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
-        config_file: ConfigFile = None,
+        tag: str,
+        timestamp_suffix: bool = True,
+        config_file: Optional[ConfigFile] = None,
         *,
-        client_id=None,
-        client_secret=None,
-        subscription_id=None,
-        tenant_id=None,
-        region=None,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        subscription_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+        region: Optional[str] = None,
     ):
         """Initialize the connection to Azure.
 
@@ -99,8 +100,8 @@ class Azure(BaseCloud):
         self.location = region or self.config.get("region") or "centralus"
         self.username = "ubuntu"
 
-        self.registered_instances = {}
-        self.registered_images = {}
+        self.registered_instances: Dict[str, AzureInstance] = {}
+        self.registered_images: Dict[str, dict] = {}
 
         config_dict = {}
 
@@ -533,7 +534,13 @@ class Azure(BaseCloud):
 
         raise ValueError("Invalid image_type")
 
-    def daily_image(self, release, image_type: ImageType = ImageType.GENERIC):
+    def daily_image(
+        self,
+        release: str,
+        *,
+        image_type: ImageType = ImageType.GENERIC,
+        **kwargs,
+    ):
         """Find the image info for the latest daily image for a given release.
 
         Args:

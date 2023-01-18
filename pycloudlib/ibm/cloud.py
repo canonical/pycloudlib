@@ -28,8 +28,8 @@ class IBM(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
+        tag: str,
+        timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
         *,
         resource_group: Optional[str] = None,
@@ -168,7 +168,7 @@ class IBM(BaseCloud):
             raise ValueError(f"Image not found: {os_name}")
         return image["id"]
 
-    def daily_image(self, release, **kwargs) -> str:
+    def daily_image(self, release: str, **kwargs) -> str:
         """ID of the latest daily image for a particular release.
 
         Args:
@@ -352,10 +352,12 @@ class IBM(BaseCloud):
            A list of strings of key pair names accessible to the cloud.
 
         """
-        return _iter_resources(
-            self._client.list_keys,
-            resource_name="keys",
-            map_fn=lambda key: key["name"],
+        return list(
+            _iter_resources(
+                self._client.list_keys,
+                resource_name="keys",
+                map_fn=lambda key: key["name"],
+            )
         )
 
     def delete_key(self, name: str):

@@ -6,7 +6,7 @@ import logging
 from enum import Enum, auto
 from functools import partial
 from itertools import chain
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from ibm_cloud_sdk_core import ApiException, DetailedResponse
 from ibm_vpc import VpcV1
@@ -19,11 +19,16 @@ from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
 from pycloudlib.instance import BaseInstance
 
+if TYPE_CHECKING:
+    from typing_extensions import TypeAlias
+
+    _Action: TypeAlias = _InstanceAction.TypeEnum
+    _Status: TypeAlias = _Instance.StatusEnum
+else:
+    _Action = _InstanceAction.TypeEnum
+    _Status = _Instance.StatusEnum
+
 logger = logging.getLogger(__name__)
-
-_Status = _Instance.StatusEnum
-_Action = _InstanceAction.TypeEnum
-
 VpcV1Fn = Callable[..., DetailedResponse]
 
 
@@ -340,7 +345,9 @@ class _IBMInstanceType(Enum):
         instance_type = instance["profile"]["name"]
         return cls.from_instance_type(instance_type)
 
-    def create_instance(self, client: VpcV1, *args, **kwargs) -> VpcV1Fn:
+    def create_instance(
+        self, client: VpcV1, *args, **kwargs
+    ) -> DetailedResponse:
         """Create instance."""
         if self == self.VSI:
             return client.create_instance(*args, **kwargs)
@@ -402,7 +409,7 @@ class _IBMInstanceType(Enum):
 
     def list_instance_network_interface_floating_ips(
         self, client: VpcV1, *args, **kwargs
-    ) -> VpcV1Fn:
+    ) -> DetailedResponse:
         """List Floating IPs associated to a nic."""
         if self == self.VSI:
             return client.list_instance_network_interface_floating_ips(

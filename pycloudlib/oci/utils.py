@@ -32,7 +32,7 @@ def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
 
 
 def get_subnet_id(
-    network_client: "oci.core.VirtualNetworkClient",
+    network_client: "oci.core.VirtualNetworkClient",  # type: ignore
     compartment_id: str,
     availability_domain: str,
 ) -> str:

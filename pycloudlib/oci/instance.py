@@ -13,7 +13,14 @@ class OciInstance(BaseInstance):
 
     _type = "oci"
 
-    def __init__(self, key_pair, instance_id, compartment_id, oci_config=None):
+    def __init__(
+        self,
+        key_pair,
+        instance_id,
+        compartment_id,
+        availability_domain,
+        oci_config=None,
+    ):
         """Set up the instance.
 
         Args:
@@ -21,12 +28,15 @@ class OciInstance(BaseInstance):
             instance_id: The instance id representing the cloud instance
             compartment_id: A compartment found at
                 https://console.us-phoenix-1.oraclecloud.com/a/identity/compartments
+            availability_domain: One of the availability domains from:
+                'oci iam availability-domain list'
             oci_config: OCI configuration dictionary
 
         """
         super().__init__(key_pair)
         self.instance_id = instance_id
         self.compartment_id = compartment_id
+        self.availability_domain = availability_domain
         self._ip = None
 
         if oci_config is None:
@@ -145,10 +155,10 @@ class OciInstance(BaseInstance):
         subnet_id = get_subnet_id(
             self.network_client, self.compartment_id, self.availability_domain
         )
-        create_vnic_details = oci.core.models.CreateVnicDetails(
+        create_vnic_details = oci.core.models.CreateVnicDetails(  # type: ignore # noqa: E501
             subnet_id=subnet_id,
         )
-        attach_vnic_details = oci.core.models.AttachVnicDetails(
+        attach_vnic_details = oci.core.models.AttachVnicDetails(  # type: ignore # noqa: E501
             create_vnic_details=create_vnic_details,
             instance_id=self.instance_id,
         )
@@ -172,7 +182,7 @@ class OciInstance(BaseInstance):
 
         Note: In OCI, detaching triggers deletion.
         """
-        vnic_attachments = oci.pagination.list_call_get_all_results_generator(
+        vnic_attachments = oci.pagination.list_call_get_all_results_generator(  # type: ignore # noqa: E501
             self.compute_client.list_vnic_attachments,
             "record",
             self.compartment_id,
@@ -185,7 +195,7 @@ class OciInstance(BaseInstance):
             if vnic_data.private_ip == ip_address:
                 try:
                     self.compute_client.detach_vnic(vnic_attachment.id)
-                except oci.exceptions.ServiceError:
+                except oci.exceptions.ServiceError:  # type: ignore
                     self._log.debug(
                         "Failed manually detaching and deleting network "
                         "interface. Interface should get destroyed on instance"

@@ -374,7 +374,9 @@ class _BaseLXD(BaseCloud):
             arch=arch,
         )
 
-    def daily_image(self, release, arch=LOCAL_UBUNTU_ARCH):
+    def daily_image(
+        self, release: str, arch: str = LOCAL_UBUNTU_ARCH, **kwargs
+    ):
         """Find the LXD fingerprint of the latest daily image.
 
         Args:

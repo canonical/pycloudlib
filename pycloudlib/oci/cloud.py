@@ -6,6 +6,7 @@ import base64
 import json
 import os
 import re
+from typing import Optional
 
 import oci
 
@@ -23,14 +24,14 @@ class OCI(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
-        config_file: ConfigFile = None,
+        tag: str,
+        timestamp_suffix: bool = True,
+        config_file: Optional[ConfigFile] = None,
         *,
-        availability_domain=None,
-        compartment_id=None,
-        config_path=None,
-        config_dict=None,
+        availability_domain: Optional[str] = None,
+        compartment_id: Optional[str] = None,
+        config_path: Optional[str] = None,
+        config_dict: Optional[str] = None,
     ):
         """
         Initialize the connection to OCI.
@@ -83,9 +84,9 @@ class OCI(BaseCloud):
 
         if config_dict:
             try:
-                oci.config.validate_config(config_dict)
+                oci.config.validate_config(config_dict)  # type: ignore
                 self.oci_config = config_dict
-            except oci.exceptions.InvalidConfig as e:
+            except oci.exceptions.InvalidConfig as e:  # type: ignore
                 raise ValueError(
                     "Config dict is invalid. Pass a valid config dict. "
                     "{}".format(e)
@@ -102,11 +103,11 @@ class OCI(BaseCloud):
                     "{} is not a valid config file. Pass a valid config "
                     "file.".format(config_path)
                 )
-            self.oci_config = oci.config.from_file(config_path)
+            self.oci_config = oci.config.from_file(config_path)  # type: ignore
 
         self._log.debug("Logging into OCI")
-        self.compute_client = oci.core.ComputeClient(self.oci_config)
-        self.network_client = oci.core.VirtualNetworkClient(self.oci_config)
+        self.compute_client = oci.core.ComputeClient(self.oci_config)  # type: ignore # noqa: E501
+        self.network_client = oci.core.VirtualNetworkClient(self.oci_config)  # type: ignore # noqa: E501
 
     def delete_image(self, image_id, **kwargs):
         """Delete an image.
@@ -132,7 +133,10 @@ class OCI(BaseCloud):
         return self.daily_image(release, operating_system)
 
     def daily_image(
-        self, release, operating_system="Canonical Ubuntu", **kwargs
+        self,
+        release: str,
+        operating_system: str = "Canonical Ubuntu",
+        **kwargs,
     ):
         """Get the daily image.
 
@@ -213,6 +217,7 @@ class OCI(BaseCloud):
             key_pair=self.key_pair,
             instance_id=instance_id,
             compartment_id=self.compartment_id,
+            availability_domain=self.availability_domain,
             oci_config=self.oci_config,
         )
 

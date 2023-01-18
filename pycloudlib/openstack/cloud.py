@@ -1,10 +1,12 @@
 """Openstack cloud type."""
 import base64
+from typing import Optional
 
 import openstack
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
+from pycloudlib.key import KeyPair
 from pycloudlib.openstack.instance import OpenstackInstance
 
 
@@ -15,11 +17,11 @@ class Openstack(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
-        config_file: ConfigFile = None,
+        tag: str,
+        timestamp_suffix: bool = True,
+        config_file: Optional[ConfigFile] = None,
         *,
-        network=None,
+        network: Optional[str] = None,
     ):
         """Initialize the connection to openstack.
 
@@ -39,7 +41,7 @@ class Openstack(BaseCloud):
         )
 
         self.network = network or self.config["network"]
-        self._openstack_keypair = None
+        self._openstack_keypair: Optional[KeyPair] = None
         self.conn = openstack.connect()
 
     def delete_image(self, image_id, **kwargs):
@@ -58,7 +60,7 @@ class Openstack(BaseCloud):
             "available for any particular openstack setup."
         )
 
-    def daily_image(self, release, **kwargs):
+    def daily_image(self, release: str, **kwargs):
         """Not supported for openstack."""
         raise Exception(
             "Obtaining daily image for a release is not supported on "
@@ -78,7 +80,7 @@ class Openstack(BaseCloud):
         """
         raise NotImplementedError
 
-    def get_instance(self, instance_id) -> OpenstackInstance:
+    def get_instance(self, instance_id, **kwargs) -> OpenstackInstance:
         """Get an instance by id.
 
         Args:
@@ -195,7 +197,7 @@ class Openstack(BaseCloud):
         super().use_key(public_key_path, private_key_path, name)
         self._openstack_keypair = self._get_openstack_keypair()
 
-    def _get_openstack_keypair(self):
+    def _get_openstack_keypair(self) -> KeyPair:
         """Get openstack keypair corresponding to this instances keypair.
 
         When creating an openstack instance, a keypair (maintained in

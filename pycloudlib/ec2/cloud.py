@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """AWS EC2 Cloud type."""
 import re
+from typing import Optional
 
 import botocore
 
@@ -19,13 +20,13 @@ class EC2(BaseCloud):
 
     def __init__(
         self,
-        tag,
-        timestamp_suffix=True,
-        config_file: ConfigFile = None,
+        tag: str,
+        timestamp_suffix: bool = True,
+        config_file: Optional[ConfigFile] = None,
         *,
-        access_key_id=None,
-        secret_access_key=None,
-        region=None,
+        access_key_id: Optional[str] = None,
+        secret_access_key: Optional[str] = None,
+        region: Optional[str] = None,
     ):
         """Initialize the connection to EC2.
 
@@ -90,7 +91,12 @@ class EC2(BaseCloud):
         return VPC.create(self.resource, name=name, ipv4_cidr=ipv4_cidr)
 
     def released_image(
-        self, release, arch="x86_64", image_type: ImageType = ImageType.GENERIC
+        self,
+        release: str,
+        *,
+        arch: str = "x86_64",
+        image_type: ImageType = ImageType.GENERIC,
+        **kwargs,
     ):
         """Find the id of the latest released image for a particular release.
 
@@ -183,7 +189,12 @@ class EC2(BaseCloud):
         return sorted(images["Images"], key=lambda x: x["CreationDate"])[-1]
 
     def daily_image(
-        self, release, arch="x86_64", image_type: ImageType = ImageType.GENERIC
+        self,
+        release: str,
+        *,
+        arch: str = "x86_64",
+        image_type: ImageType = ImageType.GENERIC,
+        **kwargs,
     ):
         """Find the id of the latest daily image for a particular release.
 

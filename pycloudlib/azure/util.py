@@ -40,9 +40,9 @@ def get_client(resource, config_dict: dict):
         )
     else:
         try:
-            credential = AzureCliCredential()
+            cli_credential = AzureCliCredential()
             subscription_id = config_dict.get("subscriptionId")
-            client = resource(credential, subscription_id=subscription_id)
+            client = resource(cli_credential, subscription_id=subscription_id)
             return client
         except CLIError:
             logger.debug(

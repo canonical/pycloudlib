@@ -230,7 +230,7 @@ def touch(path, mode=None):
         chmod(path, mode)
 
 
-def _get_local_ubuntu_arch():
+def _get_local_ubuntu_arch() -> str:
     """Return the Ubuntu architecture suitable for the local system.
 
     This is not simply the local machine hardware name, as in some cases it

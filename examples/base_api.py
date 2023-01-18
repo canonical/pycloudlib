@@ -68,7 +68,7 @@ def exercise_api(client: BaseCloud, image_id=None):
     instance.delete()
 
 
-ALL_CLOUDS = {
+ALL_CLOUDS: dict = {
     pycloudlib.Azure: {},
     pycloudlib.EC2: {},
     pycloudlib.GCE: {
