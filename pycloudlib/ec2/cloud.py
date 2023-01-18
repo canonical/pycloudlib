@@ -174,7 +174,7 @@ class EC2(BaseCloud):
         )
 
         if not images.get("Images"):
-            raise Exception(
+            raise ValueError(
                 "Could not find {} image for {} release".format(
                     image_type.value, release
                 )
