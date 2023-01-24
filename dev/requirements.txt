@@ -1,0 +1,9 @@
+mypy==0.950
+types-mock==5.0.0
+types-pyyaml==6.0.12
+types-setuptools==65.6.0
+types-toml==0.10.8
+flake8==4.0.1
+flake8-docstrings==1.6.0
+pylint==2.12.2
+black==22.3.0
