@@ -77,10 +77,14 @@ class LXDInstance(BaseInstance):
         network = query.get("state", {}).get("network")
         if network is None:
             network = {}
-        for _, nic_cfg in network.items():
-            if not nic_cfg.get("host_name"):
-                continue
+        for nic_cfg in sorted(
+            network.values(),
+            # prefer nics with host_name defined
+            key=lambda cfg: not cfg.get("host_name"),
+        ):
             for addr in nic_cfg["addresses"]:
+                if addr.get("scope") != "global":
+                    continue
                 if addr.get("family") == "inet":
                     return addr.get("address")
         self._log.debug(
