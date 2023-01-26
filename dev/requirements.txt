@@ -1,4 +1,4 @@
-mypy==0.950
+mypy==0.991
 types-mock==5.0.0
 types-pyyaml==6.0.12
 types-setuptools==65.6.0
