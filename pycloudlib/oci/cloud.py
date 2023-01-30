@@ -280,7 +280,9 @@ class OCI(BaseCloud):
         instance_data = self.compute_client.launch_instance(
             instance_details, retry_strategy=retry_strategy
         ).data
-        instance = self.get_instance(instance_data.id)
+        instance = self.get_instance(
+            instance_data.id, retry_strategy=retry_strategy
+        )
         if wait:
             wait_till_ready(
                 func=self.compute_client.get_instance,
