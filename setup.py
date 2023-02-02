@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Python packaging configuration."""
 import os
+from pathlib import Path
 
 from setuptools import find_packages, setup
 
@@ -13,6 +14,11 @@ def read_readme():
         readme_txt = readme.read()
 
     return readme_txt
+
+
+def read_version():
+    """Read and return text of VERSION"""
+    return Path(__file__).parent.joinpath("VERSION").read_text().strip()
 
 
 INSTALL_REQUIRES = [
@@ -34,8 +40,7 @@ INSTALL_REQUIRES = [
     "pyyaml >= 5.1",
     "requests >= 2.22",
     "toml == 0.10",
-    # Simplestreams is not found on PyPi so pull from repo directly
-    "python-simplestreams @ git+https://git.launchpad.net/simplestreams@21c5bba2a5413c51e6b9131fc450e96f6b46090d",  # noqa
+    "python-simplestreams == 0.1.0.post19",
 ]
 
 EXTRAS_REQUIRE = {
@@ -51,7 +56,7 @@ EXTRAS_REQUIRE = {
 
 setup(
     name="pycloudlib",
-    version="18.8",
+    version=read_version(),
     description=(
         "Python library to launch, interact, and snapshot cloud instances"
     ),

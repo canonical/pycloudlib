@@ -1,85 +1,36 @@
 # Maintainer Notes
 
-## Merge Checklist
-
-TODO
-
 ## Release Checklist
 
-1. Run all example tests
+### Run tox
 
-    Verify no regressions and all examples continue to work to ensure correct API calls.
+```shell
+tox
+```
 
-    ```shell
-    git checkout master
-    make venv
-    . venv/bin/activate
-    make install
-    ./example/*.py
-    ```
+### Update `VERSION` file with new release number
 
-    If there are any failures, stop and resolve.
+Use [Semantic Versioning](https://semver.org/):
 
-2. Update `setup.py` with new release number
+- major release is for breaking changes
+- minor release for new features/functionality
+- patch release for bug fixes
 
-    Use modified version of [Semantic Versioning](https://semver.org/):
+Some example scenarios are below
 
-    - major release is for each new year (2019 --> 19.x, 2020 --> 20.x)
-    - minor release for new features/functionality
-    - patch release for bug fixes
+```text
+1.1.1 -> 1.1.2 for a bug fix
+1.1.1 -> 1.2.0 for a new feature
+1.1.1 -> 2.1.0 for a breaking change
+```
 
-    Some example scenarios are below
+### Push to Github
 
-    ```text
-    18.2.1 -> 18.2.2 for a bug fix
-    18.2.1 -> 18.3 for a new feature
-    18.2.1 -> 19.1 for a new year
+```shell
+git commit -am "Commit message"
+git push
+```
 
-    19.1 -> 19.1.1 for a bug fix
-    19.1 -> 19.2 for a new feature
-    19.1 -> 20.1 for a new year
-    ```
+### Submit Pull Request on Github
 
-3. Update docs/history.md with commits since last release
-
-    Add the lines since last release to `docs/history.md` under a new heading for the new release
-
-    ```shell
-    git log --pretty=oneline --abbrev-commit
-    ```
-
-4. Build Docs
-
-    Verify the docs and API pages still build. As well as any new pages.
-
-    ```shell
-    pushd docs
-    make deps
-    make build
-    popd
-    ```
-
-5. Run tox
-
-    ```shell
-    tox
-    ```
-
-6. Push to PyPI
-
-    ```shell
-    make publish
-    ```
-
-7. Push to Git
-
-    ```shell
-    git commit -am "Release X.Y.Z"
-    git push
-    ```
-
-8. Update Read The Docs
-
-    ```shell
-    curl -X POST -d "token=$API_TOKEN" https://readthedocs.org/api/v2/webhook/pycloudlib/40086/
-    ```
+Use the web UI or one of the supported CLI tools

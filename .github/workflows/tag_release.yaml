@@ -1,0 +1,17 @@
+name: Tag Release
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag-release:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+      - name: Tag release
+        run: |
+          version=$(cat VERSION)
+          git tag $version
+          git push origin $version
