@@ -1,0 +1,27 @@
+name: Check Semantic Versioning
+on:
+  - pull_request
+
+jobs:
+  version-check:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Check version
+        id: check-version
+        run: |
+          if [[ $(git show main:VERSION &> /dev/null) -eq 0 ]] &&  # Ignore if file doesn't exist yet
+             [[ $(git diff origin/main origin/${GITHUB_HEAD_REF} -- VERSION | wc -c) -eq 0 ]]
+          then
+            echo "VERSION file must be updated"
+            exit 1
+          fi
+          rx='^1!([0-9]+\.){0,2}(\*|[0-9]+)$'
+          version=$(cat VERSION)
+          if [[ ! $version =~ $rx ]]; then
+            echo "VERSION must be in 1!<major>.<minor>.<patch> format, not $version"
+            exit 1
+          fi
