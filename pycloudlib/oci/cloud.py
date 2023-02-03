@@ -6,7 +6,7 @@ import base64
 import json
 import os
 import re
-from typing import Optional
+from typing import Optional, cast
 
 import oci
 
@@ -79,7 +79,7 @@ class OCI(BaseCloud):
                     result.stdout, result.stderr
                 )
                 raise Exception(exception_text)
-            compartment_id = json.loads(result.stdout)["data"]["id"]
+            compartment_id = cast(str, json.loads(result.stdout)["data"]["id"])
         self.compartment_id = compartment_id
 
         if config_dict:
@@ -196,7 +196,7 @@ class OCI(BaseCloud):
         """
         raise NotImplementedError
 
-    def get_instance(self, instance_id, **kwargs):
+    def get_instance(self, instance_id, **kwargs) -> OciInstance:
         """Get an instance by id.
 
         Args:
@@ -205,9 +205,10 @@ class OCI(BaseCloud):
         Returns:
             An instance object to use to manipulate the instance further.
         """
+        # verifies that instance id exists in oracle
         try:
             self.compute_client.get_instance(instance_id, **kwargs)
-        except oci.exceptions.ServiceError as e:
+        except oci.exceptions.ServiceError as e:  # type: ignore
             raise Exception(
                 "Unable to retrieve instance with id: {} . "
                 "Is it a valid instance id?".format(instance_id)
@@ -230,7 +231,7 @@ class OCI(BaseCloud):
         *,
         retry_strategy=None,
         **kwargs,
-    ):
+    ) -> OciInstance:
         """Launch an instance.
 
         Args:
@@ -265,7 +266,7 @@ class OCI(BaseCloud):
                 user_data.encode("utf8")
             ).decode("ascii")
 
-        instance_details = oci.core.models.LaunchInstanceDetails(
+        instance_details = oci.core.models.LaunchInstanceDetails(  # type: ignore[attr-defined] # noqa: E501
             display_name=self.tag,
             availability_domain=self.availability_domain,
             compartment_id=self.compartment_id,
@@ -279,7 +280,9 @@ class OCI(BaseCloud):
         instance_data = self.compute_client.launch_instance(
             instance_details, retry_strategy=retry_strategy
         ).data
-        instance = self.get_instance(instance_data.id)
+        instance = self.get_instance(
+            instance_data.id, retry_strategy=retry_strategy
+        )
         if wait:
             wait_till_ready(
                 func=self.compute_client.get_instance,
