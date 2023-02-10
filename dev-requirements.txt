@@ -1,7 +1,7 @@
 black==22.3.0
 flake8-docstrings==1.6.0
 flake8==4.0.1
-mypy==0.950
+mypy==1.0.0
 pylint==2.12.2
 types-mock==5.0.0
 types-pyyaml==6.0.12.3
