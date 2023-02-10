@@ -16,6 +16,11 @@ import googleapiclient.discovery
 
 from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
+from pycloudlib.errors import (
+    CloudSetupError,
+    ImageNotFoundError,
+    PycloudlibError,
+)
 from pycloudlib.gce.instance import GceInstance
 from pycloudlib.gce.util import get_credentials, raise_on_error
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
@@ -91,12 +96,12 @@ class GCE(BaseCloud):
                 try:
                     result = subp(command, rcs=())
                 except FileNotFoundError as e:
-                    raise Exception(exception_text) from e
+                    raise CloudSetupError(exception_text) from e
                 if not result.ok:
                     exception_text += "\nstdout: {}\nstderr: {}".format(
                         result.stdout, result.stderr
                     )
-                    raise Exception(exception_text)
+                    raise CloudSetupError(exception_text)
                 project = result.stdout
 
         # disable cache_discovery due to:
@@ -268,7 +273,9 @@ class GCE(BaseCloud):
                 )
             )
             self._log.warning(msg)
-            raise Exception(msg)
+            raise ImageNotFoundError(
+                image_type=image_type.value, arch=arch, release=release
+            )
 
         image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
         self._log.debug(
@@ -440,7 +447,7 @@ class GCE(BaseCloud):
         ]
 
         if len(instance_disks) > 1:
-            raise Exception(
+            raise PycloudlibError(
                 "Snapshotting an image with multiple disks not supported"
             )
 
@@ -490,7 +497,7 @@ class GCE(BaseCloud):
                     break
             time.sleep(1)
         else:
-            raise Exception(
+            raise PycloudlibError(
                 "Expected DONE state, but found {} after waiting {} seconds. "
                 "Check GCE console for more details. \n"
                 "Status message: {}".format(

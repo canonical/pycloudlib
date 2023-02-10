@@ -3,6 +3,8 @@
 import time
 from typing import TYPE_CHECKING
 
+from pycloudlib.errors import PycloudlibError
+
 if TYPE_CHECKING:
     import oci
 
@@ -23,7 +25,7 @@ def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
         if current_data.lifecycle_state == desired_state:
             return current_data
         time.sleep(1)
-    raise Exception(
+    raise PycloudlibError(
         "Expected {} state, but found {} after waiting {} seconds. "
         "Check OCI console for more details".format(
             desired_state, current_data.lifecycle_state, sleep_seconds
@@ -61,7 +63,7 @@ def get_subnet_id(
     else:
         subnet_id = subnets[0].id
     if not subnet_id:
-        raise Exception(
+        raise PycloudlibError(
             f"Unable to determine subnet id for domain: {availability_domain}"
         )
     return subnet_id

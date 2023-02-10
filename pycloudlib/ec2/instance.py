@@ -5,6 +5,7 @@ import time
 
 import botocore
 
+from pycloudlib.errors import PycloudlibError
 from pycloudlib.instance import BaseInstance
 
 
@@ -241,7 +242,7 @@ class EC2Instance(BaseInstance):
                     }
                 )
                 return nic.private_ip_address
-        raise Exception(
+        raise PycloudlibError(
             "Could not attach NIC with AttachmentId: {}".format(
                 response.get("AttachmentId", None)
             )
@@ -316,7 +317,7 @@ class EC2Instance(BaseInstance):
         for possible_index in range(16):
             if possible_index not in used_indexes:
                 return possible_index
-        raise Exception("No free nics left!")
+        raise PycloudlibError("No free nics left!")
 
     def _get_free_volume_name(self):
         """Determine a free volume mount point for an instance.
@@ -375,7 +376,7 @@ class EC2Instance(BaseInstance):
                 break
             time.sleep(1)
         else:
-            raise Exception("Network interface did not detach")
+            raise PycloudlibError("Network interface did not detach")
 
         # Delete the NIC
         try:

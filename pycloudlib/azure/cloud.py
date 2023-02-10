@@ -12,6 +12,7 @@ from pycloudlib.azure import util
 from pycloudlib.azure.instance import AzureInstance
 from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
+from pycloudlib.errors import InstanceNotFoundError, PycloudlibError
 from pycloudlib.util import get_timestamped_tag, update_nested
 
 UBUNTU_DAILY_IMAGES = {
@@ -873,21 +874,19 @@ class Azure(BaseCloud):
                     self.registered_instances[instance.name] = azure_instance
                     return azure_instance
 
-            raise Exception(
-                "Could not locate the instance: {}".format(instance_id)
-            )
+            raise InstanceNotFoundError(instance_id)
 
         if instance_id in self.registered_instances:
             instance = self.registered_instances[instance_id]
 
             if instance.status == "deleted":
-                raise Exception(
-                    "The image {} was already deleted".format(instance_id)
+                raise PycloudlibError(
+                    f"The image {instance_id} was already deleted"
                 )
 
             return instance
 
-        raise Exception("Could not find {}".format(instance_id))
+        raise InstanceNotFoundError("Could not find {}".format(instance_id))
 
     def snapshot(
         self, instance, clean=True, delete_provisioned_user=True, **kwargs

@@ -10,6 +10,7 @@ from pycloudlib.config import ConfigFile
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
+from pycloudlib.errors import ImageNotFoundError
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 
 
@@ -229,16 +230,14 @@ class EC2(BaseCloud):
         )
 
         if not images.get("Images"):
-            raise Exception("Could not find image: {}".format(image_id))
+            raise ImageNotFoundError(image_id)
 
         image_name = images["Images"][0].get("Name", "")
         serial_regex = r"ubuntu/.*/.*/.*-(?P<serial>\d+(\.\d+)?)$"
         serial_match = re.match(serial_regex, image_name)
 
         if not serial_match:
-            raise Exception(
-                "Could not find image serial for image: {}".format(image_id)
-            )
+            raise ImageNotFoundError(resource_id=image_id)
 
         return serial_match.groupdict().get("serial")
 

@@ -6,7 +6,13 @@ import openstack
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
+from pycloudlib.errors import (
+    CloudSetupError,
+    NetworkNotFoundError,
+    PycloudlibError,
+)
 from pycloudlib.key import KeyPair
+from pycloudlib.openstack.errors import OpenStackFlavorNotFound
 from pycloudlib.openstack.instance import OpenstackInstance
 
 
@@ -54,7 +60,7 @@ class Openstack(BaseCloud):
 
     def released_image(self, release, **kwargs):
         """Not supported for openstack."""
-        raise Exception(
+        raise PycloudlibError(
             "Obtaining released image for a release is not supported on "
             "Openstack because we have no guarantee of what images will be "
             "available for any particular openstack setup."
@@ -62,7 +68,7 @@ class Openstack(BaseCloud):
 
     def daily_image(self, release: str, **kwargs):
         """Not supported for openstack."""
-        raise Exception(
+        raise PycloudlibError(
             "Obtaining daily image for a release is not supported on "
             "Openstack because we have no guarantee of what images will be "
             "available for any particular openstack setup."
@@ -100,9 +106,7 @@ class Openstack(BaseCloud):
         try:
             return self.conn.network.find_network(self.network).id
         except AttributeError as e:
-            raise Exception(
-                "No network found named {}".format(self.network)
-            ) from e
+            raise NetworkNotFoundError(resource_name=self.network) from e
 
     def launch(
         self,
@@ -141,7 +145,7 @@ class Openstack(BaseCloud):
 
         flavor = self.conn.compute.find_flavor(instance_type)
         if flavor is None:
-            raise Exception(
+            raise OpenStackFlavorNotFound(
                 "No Openstack flavor found named {}. Please pass a valid "
                 "Openstack flavor as the `instance_type` when calling "
                 "launch.".format(instance_type)
@@ -214,7 +218,7 @@ class Openstack(BaseCloud):
             return self.conn.create_keypair(name, public_key_content)
         if public_key_content == openstack_keypair.public_key:
             return openstack_keypair
-        raise Exception(
+        raise CloudSetupError(
             "An openstack keypair with name {name} already exists, but its"
             " public key doesn't match the public key passed in.\n"
             "{name} key: {openstack_key}\n"

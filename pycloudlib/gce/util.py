@@ -5,9 +5,7 @@ from urllib.error import HTTPError
 import google.auth
 from google.oauth2 import service_account
 
-
-class GceException(Exception):
-    """Represents an error from the GCE API."""
+from pycloudlib.gce.errors import GceException
 
 
 def raise_on_error(response):

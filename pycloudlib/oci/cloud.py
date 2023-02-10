@@ -12,6 +12,7 @@ import oci
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
+from pycloudlib.errors import CloudSetupError, InstanceNotFoundError
 from pycloudlib.oci.instance import OciInstance
 from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
@@ -73,12 +74,12 @@ class OCI(BaseCloud):
             try:
                 result = subp(command, rcs=())
             except FileNotFoundError as e:
-                raise Exception(exception_text) from e
+                raise CloudSetupError(exception_text) from e
             if not result.ok:
                 exception_text += "\nstdout: {}\nstderr: {}".format(
                     result.stdout, result.stderr
                 )
-                raise Exception(exception_text)
+                raise CloudSetupError(exception_text)
             compartment_id = cast(str, json.loads(result.stdout)["data"]["id"])
         self.compartment_id = compartment_id
 
@@ -209,10 +210,7 @@ class OCI(BaseCloud):
         try:
             self.compute_client.get_instance(instance_id, **kwargs)
         except oci.exceptions.ServiceError as e:  # type: ignore
-            raise Exception(
-                "Unable to retrieve instance with id: {} . "
-                "Is it a valid instance id?".format(instance_id)
-            ) from e
+            raise InstanceNotFoundError(resource_id=instance_id) from e
 
         return OciInstance(
             key_pair=self.key_pair,

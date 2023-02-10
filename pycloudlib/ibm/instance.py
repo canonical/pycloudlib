@@ -13,10 +13,10 @@ from ibm_vpc import VpcV1
 from ibm_vpc.vpc_v1 import Instance as _Instance
 from ibm_vpc.vpc_v1 import InstanceAction as _InstanceAction
 
-from pycloudlib.ibm._util import IBMException
 from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
+from pycloudlib.ibm.errors import IBMException
 from pycloudlib.instance import BaseInstance
 
 if TYPE_CHECKING:

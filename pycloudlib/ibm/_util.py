@@ -11,10 +11,6 @@ from pycloudlib.util import get_query_param
 _IBMCallable = Callable[..., DetailedResponse]
 
 
-class IBMException(Exception):
-    """IBM exception root."""
-
-
 def iter_pages(
     op: _IBMCallable, *, start: Optional[str] = None, **kwargs
 ) -> Iterator[DetailedResponse]:

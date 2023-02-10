@@ -4,6 +4,7 @@
 
 import oci
 
+from pycloudlib.errors import PycloudlibError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
 
@@ -202,6 +203,6 @@ class OciInstance(BaseInstance):
                         " cleanup."
                     )
                 return
-        raise Exception(
+        raise PycloudlibError(
             f"Network interface with ip_address={ip_address} did not detach"
         )

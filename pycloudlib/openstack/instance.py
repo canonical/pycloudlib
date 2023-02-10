@@ -9,6 +9,7 @@ from openstack.exceptions import (
     ResourceNotFound,
 )
 
+from pycloudlib.errors import PycloudlibError
 from pycloudlib.instance import BaseInstance
 
 
@@ -39,7 +40,7 @@ class OpenstackInstance(BaseInstance):
         self.delete_floating_ip = False
         self.floating_ip = self._get_existing_floating_ip()
         if self.floating_ip is None:
-            self.floating_ip = self._create_and_attach_floating_id()
+            self.floating_ip = self._create_and_attach_floating_ip()
             self.delete_floating_ip = True
         self.added_local_ports = []
 
@@ -51,7 +52,7 @@ class OpenstackInstance(BaseInstance):
                 return floating_ip
         return None
 
-    def _create_and_attach_floating_id(self):
+    def _create_and_attach_floating_ip(self):
         floating_ip = self.conn.create_floating_ip(wait=True)
         tries = 30
         for _ in range(tries):
@@ -178,7 +179,9 @@ class OpenstackInstance(BaseInstance):
             for ip in port["fixed_ips"]:
                 if ip["ip_address"] == ip_address:
                     return port
-        raise Exception("Could not find port with IP: {}".format(ip_address))
+        raise PycloudlibError(
+            "Could not find port with IP: {}".format(ip_address)
+        )
 
     def remove_network_interface(self, ip_address: str):
         """Remove nic from running instance."""
