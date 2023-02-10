@@ -1,5 +1,1 @@
 3.6.5
-# Specifies the python version that dependabot should use
-# Note: The version must specify major.minor.patch components
-# and be supported on:
-# https://github.com/dependabot/dependabot-core/blob/7822f07e76cab9be6eca86a91aafc8d72bc42536/python/lib/dependabot/python/python_versions.rb
