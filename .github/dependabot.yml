@@ -11,3 +11,9 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    allow:
+      - dependency-name: black
+      - dependency-name: flake8*
+      - dependency-name: mypy
+      - dependency-name: pylint
+      - dependency-name: types-*
