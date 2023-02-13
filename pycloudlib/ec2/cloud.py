@@ -431,29 +431,6 @@ class EC2(BaseCloud):
             name = self.tag
         super().use_key(public_key_path, private_key_path, name)
 
-    def _find_image(self, release, arch="amd64", root_store="ssd", daily=True):
-        """Find the latest image for a given release.
-
-        Args:
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-            root_store: string, root store to use
-
-        Returns:
-            list of dictionaries of images
-
-        """
-        filters = [
-            "arch=%s" % arch,
-            "endpoint=%s" % "https://ec2.%s.amazonaws.com" % self.region,
-            "region=%s" % self.region,
-            "release=%s" % release,
-            "root_store=%s" % root_store,
-            "virt=hvm",
-        ]
-
-        return self._streams_query(filters, daily)[0]
-
     def _wait_for_snapshot(self, image):
         """Wait for snapshot image to be created.
 
