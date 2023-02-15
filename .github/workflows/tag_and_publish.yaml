@@ -7,16 +7,28 @@ on:
 concurrency: ${{ github.ref }}
 
 jobs:
-  tag-and-publish:
+  tag-release:
     runs-on: ubuntu-18.04
+    outputs:
+      version: ${{ steps.tag-release.outputs.version}}
     steps:
       - name: Git checkout
         uses: actions/checkout@v3
       - name: Tag release
+        id: tag-release
         run: |
           version=$(cat VERSION)
           git tag $version
           git push origin $version
+          echo "version=$version" >> $GITHUB_OUTPUT
+  publish-release:
+    needs: tag-release
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.tag-release.outputs.version}}
       - name: Set up Python 3.7
         uses: actions/setup-python@v3
         with:
