@@ -4,6 +4,8 @@ on:
     branches:
       - main
 
+concurrency: ${{ github.ref }}
+
 jobs:
   tag-and-publish:
     runs-on: ubuntu-18.04
