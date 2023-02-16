@@ -200,6 +200,7 @@ class BaseInstance(ABC):
         """
         self.execute("sudo cloud-init clean --logs")
         self.execute("sudo rm -rf /var/log/syslog")
+        self.execute("sudo echo 'uninitialized' > /etc/machine-id")
 
     def _run_command(self, command, stdin):
         """Run command in the instance."""
