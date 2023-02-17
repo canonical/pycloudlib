@@ -304,7 +304,6 @@ class EC2(BaseCloud):
         image_id,
         instance_type="t3.micro",  # Using nitro instance for IPv6
         user_data=None,
-        wait=True,
         vpc=None,
         username=None,
         **kwargs,
@@ -315,7 +314,6 @@ class EC2(BaseCloud):
             image_id: string, AMI ID to use default: latest Ubuntu LTS
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
-            wait: boolean, wait for instance to come up
             vpc: optional vpc object to create instance under
             kwargs: other named arguments to add to instance JSON
 
@@ -366,9 +364,6 @@ class EC2(BaseCloud):
         instance = EC2Instance(
             self.key_pair, self.client, instances[0], username=username
         )
-
-        if wait:
-            instance.wait()
 
         return instance
 

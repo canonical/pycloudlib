@@ -225,7 +225,6 @@ class OCI(BaseCloud):
         image_id,
         instance_type="VM.Standard2.1",
         user_data=None,
-        wait=True,
         *,
         retry_strategy=None,
         **kwargs,
@@ -238,7 +237,6 @@ class OCI(BaseCloud):
                 https://docs.cloud.oracle.com/en-us/iaas/Content/Compute/References/computeshapes.htm
             user_data: used by Cloud-Init to run custom scripts or
                 provide custom Cloud-Init configuration
-            wait: wait for instance to be live
             retry_strategy: a retry strategy from oci.retry module
                 to apply for this operation
             **kwargs: dictionary of other arguments to pass as
@@ -281,13 +279,6 @@ class OCI(BaseCloud):
         instance = self.get_instance(
             instance_data.id, retry_strategy=retry_strategy
         )
-        if wait:
-            wait_till_ready(
-                func=self.compute_client.get_instance,
-                current_data=instance_data,
-                desired_state="RUNNING",
-            )
-            instance.wait()
         return instance
 
     def snapshot(self, instance, clean=True, name=None):

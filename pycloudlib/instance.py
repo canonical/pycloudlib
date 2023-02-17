@@ -41,6 +41,12 @@ class BaseInstance(ABC):
         self.connect_timeout = 60
         self.banner_timeout = 60
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, _type, _value, _traceback):
+        self.delete()
+
     @property
     @abstractmethod
     def name(self):

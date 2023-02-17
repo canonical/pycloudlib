@@ -137,7 +137,6 @@ class BaseCloud(ABC):
         image_id: str,
         instance_type=None,
         user_data=None,
-        wait: bool = True,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.

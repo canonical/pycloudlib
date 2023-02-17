@@ -254,7 +254,6 @@ class _BaseLXD(BaseCloud, ABC):
         image_id,
         instance_type=None,
         user_data=None,
-        wait=True,
         name=None,
         ephemeral=False,
         network=None,
@@ -273,7 +272,6 @@ class _BaseLXD(BaseCloud, ABC):
             image_id: string, [<remote>:]<image>, the image to launch
             instance_type: string, type to use
             user_data: used by cloud-init to run custom scripts/configuration
-            wait: boolean, wait for instance to start
             name: string, what to call the instance
             ephemeral: boolean, ephemeral, otherwise persistent
             network: string, network name to use
@@ -304,7 +302,7 @@ class _BaseLXD(BaseCloud, ABC):
             config_dict=config_dict,
             execute_via_ssh=execute_via_ssh,
         )
-        instance.start(wait)
+        instance.start(wait=False)
 
         return instance
 

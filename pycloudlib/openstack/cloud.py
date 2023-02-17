@@ -113,7 +113,6 @@ class Openstack(BaseCloud):
         image_id,
         instance_type="m1.small",
         user_data="",
-        wait=True,
         **kwargs,
     ) -> OpenstackInstance:
         """Launch an instance.
@@ -122,7 +121,6 @@ class Openstack(BaseCloud):
             image_id: string, image ID to use for the instance
             instance_type: string, type (flavor) of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
-            wait: wait for instance to be live
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:
@@ -158,7 +156,7 @@ class Openstack(BaseCloud):
             networks=networks,
             key_name=self._openstack_keypair.name,
             user_data=user_data,
-            wait=wait,
+            wait=False,
             **kwargs,
         )
         instance = OpenstackInstance(
@@ -167,8 +165,6 @@ class Openstack(BaseCloud):
             network_id=network_id,
             connection=self.conn,
         )
-        if wait:
-            instance.wait()
         return instance
 
     def snapshot(self, instance, clean=True, **kwargs):

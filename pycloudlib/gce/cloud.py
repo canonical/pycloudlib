@@ -343,7 +343,6 @@ class GCE(BaseCloud):
         image_id,
         instance_type="n1-standard-1",
         user_data=None,
-        wait=True,
         **kwargs,
     ):
         """Launch instance on GCE and print the IP address.
@@ -352,7 +351,6 @@ class GCE(BaseCloud):
             image_id: string, image ID for instance to use
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
-            wait: boolean, wait for instance to come up
             kwargs: other named arguments to add to instance JSON
         Raises: ValueError on invalid image_id
         """
@@ -420,10 +418,6 @@ class GCE(BaseCloud):
         raise_on_error(result)
 
         instance = self.get_instance(result["id"], name=result["name"])
-        if wait:
-            self._wait_for_operation(operation, operation_type="zone")
-            instance.wait()
-
         return instance
 
     def snapshot(self, instance: GceInstance, clean=True, **kwargs):

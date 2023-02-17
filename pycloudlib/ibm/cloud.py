@@ -245,7 +245,6 @@ class IBM(BaseCloud):
         image_id: str,
         instance_type: str = "bx2-2x8",
         user_data=None,
-        wait: bool = True,
         *,
         name: Optional[str] = None,
         vpc: Optional[VPC] = None,
@@ -257,7 +256,6 @@ class IBM(BaseCloud):
             image_id: string, image ID to use for the instance
             instance_type: string, type of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
-            wait: wait for instance to be live
             name: instance name
             vpc: VPC to allocate the instance in. If not given, the instance
             will be allocated in the zone's default VPC.
@@ -297,9 +295,6 @@ class IBM(BaseCloud):
             instance=raw_instance,
             floating_ip=floating_ip,
         )
-
-        if wait:
-            instance.wait()
 
         return instance
 

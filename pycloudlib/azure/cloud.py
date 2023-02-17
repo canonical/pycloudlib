@@ -609,7 +609,6 @@ class Azure(BaseCloud):
         image_id,
         instance_type="Standard_DS1_v2",
         user_data=None,
-        wait=True,
         name=None,
         inbound_ports=None,
         username=None,
@@ -621,7 +620,6 @@ class Azure(BaseCloud):
         Args:
             image_id: string, Ubuntu image to use
             user_data: string, user-data to pass to virtual machine
-            wait: boolean, wait for instance to come up
             name: string, optional name to give the vm when launching.
                   Default results in a name of <tag>-vm
             inbound_ports: List of strings, optional inbound ports
@@ -736,9 +734,6 @@ class Azure(BaseCloud):
             instance=instance_info,
             username=username,
         )
-
-        if wait:
-            instance.wait()
 
         self.registered_instances[vm.name] = instance
         return instance

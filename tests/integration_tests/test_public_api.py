@@ -1,8 +1,7 @@
 import ipaddress
-from contextlib import contextmanager, suppress
+from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Generator
 
 import pytest
 
@@ -36,17 +35,6 @@ def cloud(request):
 
     if isinstance(cloud_instance, pycloudlib.EC2):
         cloud_instance.delete_key(name=cloud_instance.tag)
-
-
-@contextmanager
-def launch_instance(
-    cloud_instance: BaseCloud, **kwargs
-) -> Generator[BaseInstance, None, None]:
-    instance = cloud_instance.launch(**kwargs)
-    try:
-        yield instance
-    finally:
-        instance.delete()
 
 
 def assert_example_output(instance: BaseInstance):
@@ -127,21 +115,25 @@ def test_public_api(cloud: BaseCloud):
         # Not sure there's a great way to test this other than not raising
         cloud.image_serial(image_id)
 
-    with launch_instance(
-        cloud, image_id=image_id, user_data=cloud_config, wait=False
-    ) as instance:
-        instance.wait()
-        exercise_instance(instance)
-
-        instance.clean()
-        instance.execute("sudo rm /var/tmp/example.txt")
-        snapshot_id = cloud.snapshot(instance)
-
     try:
-        with launch_instance(
-            cloud, image_id=snapshot_id, user_data=cloud_config, wait=False
-        ) as instance_from_snapshot:
-            instance_from_snapshot.wait()
-            exercise_instance(instance_from_snapshot)
+        with cloud.launch(
+            image_id=image_id, user_data=cloud_config
+        ) as instance:
+            instance.wait()
+            exercise_instance(instance)
+
+            instance.clean()
+            instance.execute("sudo rm /var/tmp/example.txt")
+            snapshot_id = cloud.snapshot(instance)
+
+        try:
+            with cloud.launch(
+                image_id=snapshot_id, user_data=cloud_config
+            ) as instance_from_snapshot:
+                instance_from_snapshot.wait()
+                exercise_instance(instance_from_snapshot)
+        finally:
+            cloud.delete_image(snapshot_id)
     finally:
-        cloud.delete_image(snapshot_id)
+        if isinstance(cloud, pycloudlib.Azure):
+            cloud.delete_resource_group()
