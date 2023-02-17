@@ -8,7 +8,7 @@ concurrency: ${{ github.ref }}
 
 jobs:
   tag-release:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.tag-release.outputs.version}}
     steps:
@@ -23,7 +23,7 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
   publish-release:
     needs: tag-release
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Git checkout
         uses: actions/checkout@v3
