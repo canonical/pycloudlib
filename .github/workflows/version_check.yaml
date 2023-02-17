@@ -4,7 +4,7 @@ on:
 
 jobs:
   version-check:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Git checkout
         uses: actions/checkout@v3
@@ -13,8 +13,7 @@ jobs:
       - name: Check version
         id: check-version
         run: |
-          if [[ $(git show main:VERSION &> /dev/null) -eq 0 ]] &&  # Ignore if file doesn't exist yet
-             [[ $(git diff origin/main origin/${GITHUB_HEAD_REF} -- VERSION | wc -c) -eq 0 ]]
+          if [[ $(git diff origin/main origin/${GITHUB_HEAD_REF} -- VERSION | wc -c) -eq 0 ]]
           then
             echo "VERSION file must be updated"
             exit 1
