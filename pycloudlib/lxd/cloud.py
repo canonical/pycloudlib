@@ -1,13 +1,12 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
 import warnings
-from abc import abstractmethod
-from contextlib import suppress
 
 import yaml
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
+from pycloudlib.lxd._images import ImageLocator
 from pycloudlib.lxd.defaults import base_vm_profiles
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
@@ -20,6 +19,10 @@ class _BaseLXD(BaseCloud):
     _daily_remote = "ubuntu-daily"
     _releases_remote = "ubuntu"
     _lxd_instance_cls = LXDInstance
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._is_container = True
 
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
@@ -94,56 +97,6 @@ class _BaseLXD(BaseCloud):
 
         """
         return self._lxd_instance_cls(instance_id, key_pair=self.key_pair)
-
-    def _lxc_image_info(self, image_id: str) -> dict:
-        """Return a dict of the output of ``lxc image info <image_id>``.
-
-        Args:
-            image_id: string, [<remote>:]<image identifier>, the image to
-                      return the image info dict for
-
-        Returns:
-            A dict produced by loading the YAML emitted by ``lxc image info
-            <image_id>``, or the empty dict if either the command or YAML load
-            fails.
-        """
-        raw_image_info = subp(["lxc", "image", "info", image_id], rcs=())
-        if raw_image_info.ok:
-            try:
-                return yaml.safe_load(raw_image_info)
-            except yaml.YAMLError:
-                pass
-        return {}
-
-    def _extract_release_from_image_id(self, image_id):
-        """Extract the base release from the image_id.
-
-        Args:
-            image_id: string, [<remote>:]<image identifier>, the image to
-                      determine the release of
-
-        Returns:
-            A string containing the base release from the image_id that is used
-            to launch the image.
-        """
-        image_info = self._lxc_image_info(image_id)
-        release = None
-        try:
-            properties = image_info["Properties"]
-            os = properties["os"]
-            # images: images have "Ubuntu", ubuntu: images have "ubuntu"
-            if os.lower() == "ubuntu":
-                release = properties["release"]
-        except KeyError:
-            # Image info doesn't have the info we need, so fallthrough
-            pass
-        else:
-            if release is not None:
-                return release
-
-        # If we have a hash in the image_id we need to query simplestreams to
-        # identify the release.
-        return self._image_info(image_id)[0]["release"]
 
     def _normalize_image_id(self, image_id: str) -> str:
         if ":" not in image_id:
@@ -267,7 +220,7 @@ class _BaseLXD(BaseCloud):
 
         """
         image_id = self._normalize_image_id(image_id)
-        series = self._extract_release_from_image_id(image_id)
+        series = ImageLocator.find_release(image_id)
 
         cmd = self._prepare_command(
             name=name,
@@ -367,11 +320,11 @@ class _BaseLXD(BaseCloud):
 
         """
         self._log.debug("finding released Ubuntu image for %s", release)
-        return self._search_for_image(
-            remote=self._releases_remote,
+        return ImageLocator.find_last_fingerprint(
             daily=False,
             release=release,
             arch=arch,
+            is_container=self._is_container,
         )
 
     def daily_image(
@@ -388,76 +341,12 @@ class _BaseLXD(BaseCloud):
 
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
-        return self._search_for_image(
-            remote=self._daily_remote, daily=True, release=release, arch=arch
+        return ImageLocator.find_last_fingerprint(
+            daily=True,
+            release=release,
+            arch=arch,
+            is_container=self._is_container,
         )
-
-    @abstractmethod
-    def _get_image_hash_key(self, release=None):
-        """Get the correct hash key to be used to launch LXD instance.
-
-        When query simplestreams for image information, we receive a
-        dictionary of metadata. In that metadata we have the necessary
-        information to allows us to launch the required image. However,
-        we must know which key to use in the metadata dict to allows
-        to launch the image.
-
-        Args:
-            release: string, optional, Ubuntu release
-
-        Returns
-            A string specifying which key of the metadata dictionary
-            should be used to launch the image.
-        """
-        raise NotImplementedError
-
-    def _search_for_image(
-        self, remote, daily, release, arch=LOCAL_UBUNTU_ARCH
-    ):
-        """Find the LXD fingerprint in a given remote.
-
-        Args:
-            remote: string, remote to prepend to image_id
-            daily: boolean, search on daily remote
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-
-        Returns:
-            string, LXD fingerprint of latest image
-
-        """
-        image_data = self._find_image(release, arch, daily=daily)
-        image_hash_key = self._get_image_hash_key(release)
-
-        return "%s:%s" % (remote, image_data[image_hash_key])
-
-    def _image_info(self, image_id, image_hash_key=None):
-        """Find the image serial of a given LXD image.
-
-        Args:
-            image_id: string, LXD image fingerprint
-            image_hash_key: string, the metadata key used to launch the image
-
-        Returns:
-            dict, image info available for the image_id
-
-        """
-        daily = True
-        if ":" in image_id:
-            remote = image_id[: image_id.index(":")]
-            image_id = image_id[image_id.index(":") + 1 :]
-            if remote == self._releases_remote:
-                daily = False
-            elif remote != self._daily_remote:
-                raise RuntimeError("Unknown remote: %s" % remote)
-
-        if not image_hash_key:
-            image_hash_key = self._get_image_hash_key()
-
-        filters = ["%s=%s" % (image_hash_key, image_id)]
-        image_info = self._streams_query(filters, daily=daily)
-
-        return image_info
 
     def image_serial(self, image_id):
         """Find the image serial of a given LXD image.
@@ -472,10 +361,7 @@ class _BaseLXD(BaseCloud):
         self._log.debug(
             "finding image serial for LXD Ubuntu image %s", image_id
         )
-
-        image_info = self._image_info(image_id)
-
-        return image_info[0]["version_name"]
+        return ImageLocator.find_image_serial(image_id)
 
     def delete_image(self, image_id, **kwargs):
         """Delete the image.
@@ -504,64 +390,14 @@ class _BaseLXD(BaseCloud):
 
         return instance.snapshot(name)
 
-    def _find_image(self, release, arch=LOCAL_UBUNTU_ARCH, daily=True):
-        """Find the latest image for a given release.
-
-        Args:
-            release: string, Ubuntu release to look for
-            arch: string, architecture to use
-
-        Returns:
-            list of dictionaries of images
-
-        """
-        filters = [
-            "datatype=image-downloads",
-            "ftype=lxd.tar.xz",
-            "arch=%s" % arch,
-            "release=%s" % release,
-        ]
-
-        return self._streams_query(filters, daily)[0]
-
 
 class LXDContainer(_BaseLXD):
     """LXD Containers Cloud Class."""
 
-    CONTAINER_HASH_KEY = "combined_squashfs_sha256"
-
-    def _get_image_hash_key(self, release=None):
-        """Get the correct hash key to be used to launch LXD instance.
-
-        When query simplestreams for image information, we receive a
-        dictionary of metadata. In that metadata we have the necessary
-        information to allows us to launch the required image. However,
-        we must know which key to use in the metadata dict to allows
-        to launch the image.
-
-        Args:
-            release: string, optional, Ubuntu release
-
-        Returns
-            A string specifying which key of the metadata dictionary
-            should be used to launch the image.
-        """
-        return self.CONTAINER_HASH_KEY
-
-    def _image_info(self, image_id, image_hash_key=None):
-        """Find the image serial of a given LXD image.
-
-        Args:
-            image_id: string, LXD image fingerprint
-            image_hash_key: string, the metadata key used to launch the image
-
-        Returns:
-            dict, image info available for the image_id
-
-        """
-        return super()._image_info(
-            image_id=image_id, image_hash_key=self.CONTAINER_HASH_KEY
-        )
+    def __init__(self, *args, **kwargs):
+        """Run LXDContainer constructor."""
+        super().__init__(*args, **kwargs)
+        self._is_container = True
 
 
 class LXD(LXDContainer):
@@ -576,33 +412,12 @@ class LXD(LXDContainer):
 class LXDVirtualMachine(_BaseLXD):
     """LXD Virtual Machine Cloud Class."""
 
-    DISK1_HASH_KEY = "combined_disk1-img_sha256"
-    DISK_UEFI1_KEY = "combined_uefi1-img_sha256"
-    DISK_KVM_HASH_KEY = "combined_disk-kvm-img_sha256"
     _lxd_instance_cls = LXDVirtualMachineInstance
 
-    def _image_info(self, image_id, image_hash_key=None):
-        """Return image info for the given ID.
-
-        With LXD VMs, there are two possible keys that image_id could refer to;
-        we try the more recent one first, followed by the older key.
-
-        (If image_hash_key is passed, then that is used unambiguously.)
-        """
-        if image_hash_key is not None:
-            return super()._image_info(image_id, image_hash_key=image_hash_key)
-        with suppress(ValueError):
-            return super()._image_info(
-                image_id, image_hash_key=self.DISK_KVM_HASH_KEY
-            )
-        with suppress(ValueError):
-            return super()._image_info(
-                image_id, image_hash_key=self.DISK_UEFI1_KEY
-            )
-
-        return super()._image_info(
-            image_id, image_hash_key=self.DISK1_HASH_KEY
-        )
+    def __init__(self, *args, **kwargs):
+        """Run LXDVirtualMachine constructor."""
+        super().__init__(*args, **kwargs)
+        self._is_container = False
 
     def build_necessary_profiles(self, image_id):
         """Build necessary profiles to launch the LXD instance.
@@ -615,7 +430,7 @@ class LXDVirtualMachine(_BaseLXD):
             A list containing the profiles created
         """
         image_id = self._normalize_image_id(image_id)
-        base_release = self._extract_release_from_image_id(image_id)
+        base_release = ImageLocator.find_release(image_id)
         if base_release not in ["xenial", "bionic"]:
             base_release = "default"
         profile_name = f"pycloudlib-vm-{base_release}"
@@ -675,28 +490,3 @@ class LXDVirtualMachine(_BaseLXD):
         cmd.append("--vm")
 
         return cmd
-
-    def _get_image_hash_key(self, release=None):
-        """Get the correct hash key to be used to launch LXD instance.
-
-        When query simplestreams for image information, we receive a
-        dictionary of metadata. In that metadata we have the necessary
-        information to allows us to launch the required image. However,
-        we must know which key to use in the metadata dict to allows
-        to launch the image.
-
-        Args:
-            release: string, optional, Ubuntu release
-
-        Returns
-            A string specifying which key of the metadata dictionary
-            should be used to launch the image.
-        """
-        if release == "bionic":
-            # Older releases do not have disk-kvm.img
-            return self.DISK1_HASH_KEY
-
-        if release == "xenial":
-            return self.DISK_UEFI1_KEY
-
-        return self.DISK_KVM_HASH_KEY
