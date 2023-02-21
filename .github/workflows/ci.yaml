@@ -4,7 +4,7 @@ on: [pull_request]
 
 jobs:
   tox:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Install dependencies
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox
