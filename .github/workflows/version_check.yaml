@@ -13,7 +13,7 @@ jobs:
       - name: Check version
         id: check-version
         run: |
-          if [[ $(git diff origin/main origin/${GITHUB_HEAD_REF} -- VERSION | wc -c) -eq 0 ]]
+          if [[ $(git diff origin/main -- VERSION | wc -c) -eq 0 ]]
           then
             echo "VERSION file must be updated"
             exit 1
