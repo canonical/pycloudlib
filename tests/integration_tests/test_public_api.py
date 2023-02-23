@@ -105,7 +105,9 @@ def exercise_instance(instance: BaseInstance):
         pytest.param(pycloudlib.EC2, id="ec2"),
         pytest.param(pycloudlib.GCE, id="gce"),
         pytest.param(pycloudlib.IBM, id="ibm"),
-        pytest.param(pycloudlib.LXDContainer, id="lxd_container"),
+        pytest.param(
+            pycloudlib.LXDContainer, id="lxd_container", marks=pytest.mark.ci
+        ),
         pytest.param(pycloudlib.LXDVirtualMachine, id="lxd_vm"),
         pytest.param(pycloudlib.OCI, id="oci"),
         # For openstack we first need a reliable way of obtaining the
