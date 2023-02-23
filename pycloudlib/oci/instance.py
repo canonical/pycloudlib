@@ -2,6 +2,8 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """OCI instance."""
 
+from time import sleep
+
 import oci
 
 from pycloudlib.errors import PycloudlibError
@@ -96,7 +98,21 @@ class OciInstance(BaseInstance):
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""
-        self.compute_client.instance_action(self.instance_data.id, "RESET")
+        last_exception = None
+        for _ in range(30):
+            try:
+                self.compute_client.instance_action(
+                    self.instance_data.id, "RESET"
+                )
+                return
+            except oci.exceptions.ServiceError as e:
+                last_exception = e
+                if last_exception.status == 409:
+                    sleep(0.5)
+                else:
+                    raise
+        if last_exception:
+            raise last_exception
 
     def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
