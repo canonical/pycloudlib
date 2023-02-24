@@ -1,21 +1,12 @@
-name: Pycloudlib Tox jobs
+name: Pycloudlib Post Merge Check
 
-on: [pull_request]
+on: [pull_request]  # Here for testing...will change before merge
 
 concurrency:
   group: "ci-${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
-  # tox-defaults:
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #     - name: Install dependencies
-  #       run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox
-  #     - name: Git checkout
-  #       uses: actions/checkout@v3
-  #     - name: Run tox
-  #       run: tox
   integration-tests:
     runs-on: ubuntu-latest
     steps:
@@ -25,17 +16,24 @@ jobs:
           sudo apt-get install -qqy distro-info tox
           sudo snap install lxd
       - name: Initialize LXD
+        env:
+          GCE_CREDENTIALS_JSON: ${{ secrets.GCE_CREDENTIALS_JSON }}
+          PYCLOUDLIB_TOML: ${{ secrets.PYCLOUDLIB_TOML }}
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           ssh-keygen -P "" -q -f ~/.ssh/cloudinit_id_rsa
           mkdir -p ~/.config
-          echo "[lxd]" > ~/.config/pycloudlib.toml
+          echo "$GCE_CREDENTIALS_JSON" > ~/.config/gce_credentials
+          echo "$PYCLOUDLIB_TOML" > ~/.config/pycloudlib.toml
           sudo adduser $USER lxd
           # Jammy GH Action runners have docker installed, which edits iptables
           # in a way that is incompatible with lxd.
           # https://linuxcontainers.org/lxd/docs/master/howto/network_bridge_firewalld/#prevent-issues-with-lxd-and-docker
           sudo iptables -I DOCKER-USER -j ACCEPT
           sudo lxd init --auto
+      # - name: Setup tmate session
+        # uses: mxschmitt/action-tmate@v3
       - name: Git checkout
         uses: actions/checkout@v3
       - name: Run CI integration tests
-        run: sg lxd -c 'tox -e integration-tests-ci'
+        run: sg lxd -c 'tox -e integration-tests-main-check'

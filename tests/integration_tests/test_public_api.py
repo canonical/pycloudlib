@@ -82,7 +82,7 @@ def exercise_instance(instance: BaseInstance):
     "CloudType",
     [
         pytest.param(pycloudlib.Azure, id="azure"),
-        pytest.param(pycloudlib.EC2, id="ec2"),
+        pytest.param(pycloudlib.EC2, id="ec2", marks=pytest.mark.main_check),
         pytest.param(pycloudlib.GCE, id="gce"),
         pytest.param(pycloudlib.IBM, id="ibm"),
         pytest.param(
