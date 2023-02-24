@@ -101,9 +101,11 @@ def exercise_instance(instance: BaseInstance):
 @pytest.mark.parametrize(
     "cloud",
     [
-        pytest.param(pycloudlib.Azure, id="azure"),
-        pytest.param(pycloudlib.EC2, id="ec2"),
-        pytest.param(pycloudlib.GCE, id="gce"),
+        pytest.param(
+            pycloudlib.Azure, id="azure", marks=pytest.mark.main_check
+        ),
+        pytest.param(pycloudlib.EC2, id="ec2", marks=pytest.mark.main_check),
+        pytest.param(pycloudlib.GCE, id="gce", marks=pytest.mark.main_check),
         pytest.param(pycloudlib.IBM, id="ibm"),
         pytest.param(
             pycloudlib.LXDContainer, id="lxd_container", marks=pytest.mark.ci
