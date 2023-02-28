@@ -1,6 +1,8 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base Key Class."""
 
+import os
+
 
 class KeyPair:
     """Key Class."""
@@ -23,6 +25,9 @@ class KeyPair:
             self.private_key_path = private_key_path
         else:
             self.private_key_path = self.public_key_path.replace(".pub", "")
+
+        self.public_key_path = os.path.expanduser(self.public_key_path)
+        self.private_key_path = os.path.expanduser(self.private_key_path)
 
     def __str__(self):
         """Create string representation of class."""
