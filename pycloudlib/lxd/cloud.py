@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
 import warnings
+from abc import ABC
 
 import yaml
 
@@ -12,17 +13,14 @@ from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
 
 
-class _BaseLXD(BaseCloud):
+class _BaseLXD(BaseCloud, ABC):
     """LXD Base Cloud Class."""
 
     _type = "lxd"
     _daily_remote = "ubuntu-daily"
     _releases_remote = "ubuntu"
     _lxd_instance_cls = LXDInstance
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._is_container = True
+    _is_container: bool
 
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
