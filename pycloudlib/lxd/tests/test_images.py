@@ -4,14 +4,14 @@ from unittest import mock
 
 import pytest
 
-from pycloudlib.lxd._images import ImageLocator
+from pycloudlib.lxd import _images
 
 M_PATH = "pycloudlib.lxd._images."
 
 
 @mock.patch(M_PATH + "subp")
-class TestImageLocator:  # pylint: disable=W0212
-    """Test class for ImageLocator."""
+class TestImages:  # pylint: disable=W0212
+    """Test class for _images."""
 
     @pytest.mark.parametrize(
         "images",
@@ -24,7 +24,7 @@ class TestImageLocator:  # pylint: disable=W0212
             ],
         ),
     )
-    @mock.patch.object(ImageLocator, "_find_images")
+    @mock.patch(M_PATH + "_find_images")
     def test_find_image_serial(self, m_find_images, m_subp, images):
         """Test find_image_serial method."""
         image_id = "my:image_id"
@@ -35,7 +35,7 @@ class TestImageLocator:  # pylint: disable=W0212
             expected_result = "s0"
 
         m_find_images.return_value = images
-        assert expected_result == ImageLocator.find_image_serial(image_id)
+        assert expected_result == _images.find_image_serial(image_id)
 
         assert [
             mock.call("my", (("fingerprint", "image_id"),))
@@ -78,7 +78,7 @@ class TestImageLocator:  # pylint: disable=W0212
         content = ["image_0", "image_1"]
         m_subp.return_value = json.dumps(content)
         remote = "remote"
-        assert content == ImageLocator._find_images(remote, filters)
+        assert content == _images._find_images(remote, filters)
         assert [expected_call] == m_subp.call_args_list
 
     @pytest.mark.parametrize(
@@ -92,7 +92,7 @@ class TestImageLocator:  # pylint: disable=W0212
     )
     def test_normalize_remote(self, m_subp, remote_in, remote_out):
         """Test _normalize_remote method."""
-        assert remote_out == ImageLocator._normalize_remote(remote_in)
+        assert remote_out == _images._normalize_remote(remote_in)
         assert [] == m_subp.call_args_list
 
     @pytest.mark.parametrize(
@@ -106,11 +106,11 @@ class TestImageLocator:  # pylint: disable=W0212
             ([{"properties": {"os": "ubuntu", "x": "lunar"}}], None),
         ),
     )
-    @mock.patch.object(ImageLocator, "_find_images")
+    @mock.patch(M_PATH + "_find_images")
     def test_find_release(self, m_find_images, m_subp, images, output):
         """Test find_release method."""
         m_find_images.return_value = images
-        assert output == ImageLocator.find_release("remote:image_id")
+        assert output == _images.find_release("remote:image_id")
         assert [] == m_subp.call_args_list
 
     @pytest.mark.parametrize(
@@ -166,7 +166,7 @@ class TestImageLocator:  # pylint: disable=W0212
             ),
         ),
     )
-    @mock.patch.object(ImageLocator, "_find_images")
+    @mock.patch(M_PATH + "_find_images")
     def test_find_last_fingerprint(
         self,
         m_find_images,
@@ -257,7 +257,7 @@ class TestImageLocator:  # pylint: disable=W0212
                     )
                 )
 
-        assert expected_output == ImageLocator.find_last_fingerprint(
+        assert expected_output == _images.find_last_fingerprint(
             daily, release, is_container, arch
         )
         assert expected_find_images_calls == m_find_images.call_args_list

@@ -6,7 +6,7 @@ import yaml
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
-from pycloudlib.lxd._images import ImageLocator
+from pycloudlib.lxd import _images
 from pycloudlib.lxd.defaults import base_vm_profiles
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.util import subp
@@ -220,7 +220,7 @@ class _BaseLXD(BaseCloud):
 
         """
         image_id = self._normalize_image_id(image_id)
-        series = ImageLocator.find_release(image_id)
+        series = _images.find_release(image_id)
 
         cmd = self._prepare_command(
             name=name,
@@ -320,7 +320,7 @@ class _BaseLXD(BaseCloud):
 
         """
         self._log.debug("finding released Ubuntu image for %s", release)
-        return ImageLocator.find_last_fingerprint(
+        return _images.find_last_fingerprint(
             daily=False,
             release=release,
             arch=arch,
@@ -341,7 +341,7 @@ class _BaseLXD(BaseCloud):
 
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
-        return ImageLocator.find_last_fingerprint(
+        return _images.find_last_fingerprint(
             daily=True,
             release=release,
             arch=arch,
@@ -361,7 +361,7 @@ class _BaseLXD(BaseCloud):
         self._log.debug(
             "finding image serial for LXD Ubuntu image %s", image_id
         )
-        return ImageLocator.find_image_serial(image_id)
+        return _images.find_image_serial(image_id)
 
     def delete_image(self, image_id, **kwargs):
         """Delete the image.
@@ -430,7 +430,7 @@ class LXDVirtualMachine(_BaseLXD):
             A list containing the profiles created
         """
         image_id = self._normalize_image_id(image_id)
-        base_release = ImageLocator.find_release(image_id)
+        base_release = _images.find_release(image_id)
         if base_release not in ["xenial", "bionic"]:
             base_release = "default"
         profile_name = f"pycloudlib-vm-{base_release}"

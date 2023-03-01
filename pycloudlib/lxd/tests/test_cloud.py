@@ -32,7 +32,7 @@ class TestLaunch:
             (None, pytest.raises(ValueError)),
         ),
     )
-    @mock.patch(M_PATH + "ImageLocator.find_release")
+    @mock.patch(M_PATH + "_images.find_release")
     def test_launch_validates_image_id(
         self, m_find_release, image_id, expectation
     ):
