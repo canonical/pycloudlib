@@ -3,6 +3,7 @@
 
 import time
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
 
 
@@ -45,7 +46,7 @@ class AzureInstance(BaseInstance):
             if power_state == "VM stopped":
                 return
             time.sleep(1)
-        raise TimeoutError
+        raise PycloudlibTimeoutError
 
     @property
     def image_id(self):

@@ -4,7 +4,12 @@ from typing import Optional
 
 
 class PycloudlibException(Exception):
-    """Root exception."""
+    """Root pycloudlib exception.
+
+    This exception is not meant to be raise by pycloudlib. The intention
+    is that every custom pycloudlib exception will inherit from this one,
+    allowing client code to catch any expection by catching this one.
+    """
 
 
 class PycloudlibError(PycloudlibException, RuntimeError):
@@ -107,4 +112,12 @@ class NetworkNotFoundError(ResourceNotFoundError):
 
 
 class CloudSetupError(PycloudlibException):
-    """Raise if there is some problem with a pycloudlib's Cloud set up."""
+    """Raised if there is some problem with a pycloudlib's Cloud set up."""
+
+
+class CloudError(PycloudlibException):
+    """Represents errors comming from Cloud's SDKs."""
+
+
+class PycloudlibTimeoutError(PycloudlibException, TimeoutError):
+    """Timeout error."""

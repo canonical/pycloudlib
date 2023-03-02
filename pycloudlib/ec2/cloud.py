@@ -10,7 +10,11 @@ from pycloudlib.config import ConfigFile
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
-from pycloudlib.errors import ImageNotFoundError
+from pycloudlib.errors import (
+    CloudSetupError,
+    ImageNotFoundError,
+    PycloudlibError,
+)
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 
 
@@ -61,11 +65,11 @@ class EC2(BaseCloud):
             self.resource = session.resource("ec2")
             self.region = session.region_name
         except botocore.exceptions.NoRegionError as e:
-            raise RuntimeError(
+            raise CloudSetupError(
                 "Please configure default region in $HOME/.aws/config"
             ) from e
         except botocore.exceptions.NoCredentialsError as e:
-            raise RuntimeError(
+            raise CloudSetupError(
                 "Please configure ec2 credentials in $HOME/.aws/credentials"
             ) from e
 
@@ -347,7 +351,7 @@ class EC2(BaseCloud):
             try:
                 [subnet_id] = [s.id for s in vpc.vpc.subnets.all()]
             except ValueError as e:
-                raise RuntimeError(
+                raise PycloudlibError(
                     "Too many subnets in vpc {}. pycloudlib does not support"
                     " launching into VPCs with multiple subnets".format(vpc.id)
                 ) from e

@@ -7,6 +7,7 @@ import logging
 from botocore.exceptions import ClientError
 
 from pycloudlib.ec2.util import _tag_resource
+from pycloudlib.errors import CloudError
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ class VPC:
                 CidrBlock=ipv4_cidr, AmazonProvidedIpv6CidrBlock=True
             )
         except ClientError as error:
-            raise RuntimeError(error) from error
+            raise CloudError(error) from error
 
         vpc.wait_until_available()
 

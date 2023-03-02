@@ -8,6 +8,7 @@ from azure.identity import AzureCliCredential, ClientSecretCredential
 from knack.util import CLIError
 
 from pycloudlib import util
+from pycloudlib.errors import CloudSetupError
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def get_client(resource, config_dict: dict):
     )
     missing_keys = required_keys.difference(set(config_dict.keys()))
     if missing_keys:
-        raise RuntimeError(
+        raise CloudSetupError(
             "No AZ cli config found, missing required keys: {}".format(
                 ", ".join(missing_keys)
             )

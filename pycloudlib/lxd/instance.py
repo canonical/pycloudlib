@@ -4,6 +4,7 @@ import json
 import re
 import time
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import subp
 
@@ -126,8 +127,8 @@ class LXDInstance(BaseInstance):
         Returns:
             IP address assigned to instance.
 
-        Raises: TimeoutError when exhausting retries trying to parse lxc list
-            for ip addresses.
+        Raises: PycloudlibTimeoutError when exhausting retries trying to parse
+            lxc list for ip addresses.
         """
         retries = 150
 
@@ -155,7 +156,7 @@ class LXDInstance(BaseInstance):
                         return ip
             retries -= 1
             time.sleep(1)
-        raise TimeoutError(
+        raise PycloudlibTimeoutError(
             "Unable to determine IP address after 150 retries."
             " exit:{} stdout: {} stderr: {}".format(
                 result.return_code, result.stdout, result.stderr
@@ -453,7 +454,7 @@ class LXDInstance(BaseInstance):
         :param desired_state: String representing one of lxc instance states
             seen by `lxc ls -s`. For example, ACTIVE, FROZEN, RUNNING, STOPPED
         :param retries: Integer for number of retry attempts before raising a
-            TimeoutError.
+            PycloudlibTimeoutError.
         """
         self._log.debug("waiting for %s: %s", desired_state, self.name)
         for _ in range(num_retries):
@@ -471,7 +472,7 @@ class LXDInstance(BaseInstance):
             if result == desired_state:
                 return
             time.sleep(1)
-        raise TimeoutError
+        raise PycloudlibTimeoutError
 
     def wait_for_stop(self):
         """Wait for cloud instance to transition to stop state."""
@@ -507,7 +508,7 @@ class LXDInstance(BaseInstance):
             if processes > -1:
                 return
             time.sleep(1)
-        raise TimeoutError
+        raise PycloudlibTimeoutError
 
 
 class LXDVirtualMachineInstance(LXDInstance):
