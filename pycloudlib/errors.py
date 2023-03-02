@@ -1,4 +1,8 @@
-"""Module containing pycloudlib errors."""
+"""Module containing pycloudlib errors.
+
+Each cloud can have specific errors, please refer to each
+`pycloudlib.<cloud>.errors` module.
+"""
 import enum
 from typing import Optional
 
@@ -6,7 +10,7 @@ from typing import Optional
 class PycloudlibException(Exception):
     """Root pycloudlib exception.
 
-    This exception is not meant to be raise by pycloudlib. The intention
+    This exception is not meant to be raised by pycloudlib. The intention
     is that every custom pycloudlib exception will inherit from this one,
     allowing client code to catch any expection by catching this one.
     """

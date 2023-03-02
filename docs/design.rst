@@ -33,7 +33,11 @@ In addition interactions with the instance are covered by a standard set of comm
 Exceptions
 ==========
 
-All exceptions from underlying libraries are passed directly through for the end-user. There are a large number of exceptions to catch and possibilities, not to mention that they can change over time. By not catching them it informs the user that issues are found with what they are doing instead of hiding it from them.
+The custom pycloudlib exceptions are located in :py:mod:`pycloudlib.errors`.
+Specific clouds can implement custom exceptions, refer to `pycloudlib.<cloud>.errors`.
+
+Exceptions from underlying libraries will be wrapped in a :py:class:`pycloudlib.errors.CloudError`,
+some of them will be leaked directly through for the end-user.
 
 Logging
 =======
