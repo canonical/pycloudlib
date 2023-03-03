@@ -16,6 +16,7 @@ from paramiko.ssh_exception import (
     SSHException,
 )
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.result import Result
 from pycloudlib.util import shell_pack, shell_quote
 
@@ -478,7 +479,7 @@ class BaseInstance(ABC):
                     return
             time.sleep(1)
 
-        raise OSError(
+        raise PycloudlibTimeoutError(
             "Instance can't be reached after 40 minutes. "
             "Failed to obtain new boot id",
         )
