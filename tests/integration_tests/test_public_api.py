@@ -2,7 +2,7 @@ import ipaddress
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Generator, Type
+from typing import Generator
 
 import pytest
 
@@ -132,7 +132,7 @@ def test_public_api(cloud: BaseCloud):
         exercise_instance(instance)
 
         instance.clean()
-        instance.execute("rm /var/tmp/example.txt")
+        result = instance.execute("sudo rm /var/tmp/example.txt")
         snapshot_id = cloud.snapshot(instance)
 
     try:
