@@ -14,7 +14,6 @@ import paramiko
 from pycloudlib.config import ConfigFile, parse_config
 from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
-from pycloudlib.streams import Streams
 from pycloudlib.util import get_timestamped_tag, validate_tag
 
 _RequiredValues = Optional[Sequence[Optional[Any]]]
@@ -207,35 +206,6 @@ class BaseCloud(ABC):
         """
         self._log.debug("using SSH key from %s", public_key_path)
         self.key_pair = KeyPair(public_key_path, private_key_path, name)
-
-    @staticmethod
-    def _streams_query(filters, daily=True):
-        """Query the cloud-images streams applying a filter.
-
-        Args:
-            filters: list of 'field=value' strings, filters to apply
-            daily: bool, query the 'daily' stream (default: True)
-
-        Returns:
-            a list of dictionaries containing the streams metadata of the
-            images matching 'filters'.
-
-        """
-        if daily:
-            mirror_url = "https://cloud-images.ubuntu.com/daily"
-        else:
-            mirror_url = "https://cloud-images.ubuntu.com/releases"
-
-        stream = Streams(
-            mirror_url=mirror_url,
-            keyring_path="/usr/share/keyrings/ubuntu-cloudimage-keyring.gpg",
-        )
-
-        result = stream.query(filters)
-        if not result:
-            raise ValueError(f"No images found matching filters: {filters}")
-
-        return result
 
     def _check_and_set_config(
         self,

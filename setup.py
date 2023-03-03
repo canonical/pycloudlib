@@ -45,7 +45,6 @@ INSTALL_REQUIRES = [
     "pyyaml >= 5.1",
     "requests >= 2.22",
     "toml == 0.10",
-    "python-simplestreams == 0.1.0.post19",
 ]
 
 EXTRAS_REQUIRE = {

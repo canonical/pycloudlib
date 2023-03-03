@@ -4,10 +4,10 @@ import io
 from unittest import mock
 
 import pytest
-import yaml
 
-from pycloudlib.lxd.cloud import LXDContainer, LXDVirtualMachine
-from pycloudlib.result import Result
+from pycloudlib.lxd.cloud import LXDContainer
+
+M_PATH = "pycloudlib.lxd.cloud."
 
 CONFIG = """\
 [lxd]
@@ -32,12 +32,12 @@ class TestLaunch:
             (None, pytest.raises(ValueError)),
         ),
     )
-    @mock.patch("pycloudlib.lxd.cloud._BaseLXD._extract_release_from_image_id")
+    @mock.patch(M_PATH + "_images.find_release")
     def test_launch_validates_image_id(
-        self, extract_release, image_id, expectation
+        self, m_find_release, image_id, expectation
     ):
         """Validate image_id or raise exceptions before calling init/start."""
-        extract_release.return_value = "bionic"
+        m_find_release.return_value = "bionic"
         cloud = LXDContainer(tag="test", config_file=io.StringIO(CONFIG))
         init_kwargs = {
             "image_id": image_id,
@@ -150,94 +150,3 @@ class TestProfileCreation:
                 ["lxc", "profile", "edit", profile_name], data=profile_config
             ),
         ]
-
-
-@mock.patch("pycloudlib.lxd.cloud.subp")
-class Test_LxcImageInfo:  # pylint: disable=W0212
-    """Tests LXDVirtualMachine._lxc_image_info."""
-
-    def test_happy_path(self, m_subp):
-        """Command succeeds and returns valid YAML."""
-        image_id = "my:image_id"
-        content = {"my": "data"}
-        m_subp.return_value = Result(yaml.dump(content), "", 0)
-
-        ret = LXDVirtualMachine(
-            tag="test", config_file=io.StringIO(CONFIG)
-        )._lxc_image_info(image_id)
-
-        assert content == ret
-        expected_call = mock.call(["lxc", "image", "info", image_id], rcs=())
-        assert [expected_call] == m_subp.call_args_list
-
-    def test_command_failure_returns_empty_dict(self, m_subp):
-        """Command failure even with valid YAML returns empty dict."""
-        content = {"my": "data"}
-        m_subp.return_value = Result(yaml.dump(content), "", 1)
-
-        assert {} == LXDVirtualMachine(
-            tag="test", config_file=io.StringIO(CONFIG)
-        )._lxc_image_info("image_id")
-
-    def test_invalid_yaml_returns_empty_dict(self, m_subp):
-        """Invalid YAML even with command success returns empty dict."""
-        m_subp.return_value = Result("{:a}", "", 0)
-
-        assert {} == LXDVirtualMachine(
-            tag="test", config_file=io.StringIO(CONFIG)
-        )._lxc_image_info("image_id")
-
-
-class TestExtractReleaseFromImageId:
-    """Test LXDVirtualMachine _extract_release_from_image_id method.
-
-    This method should only be executed by LXDVirtualMachine instances.
-    """
-
-    @pytest.mark.parametrize(
-        "expected_release,lxc_image_info",
-        [
-            # Test the various cases in which we expect to fallthrough
-            ("fallthrough", {}),
-            ("fallthrough", {"Properties": {}}),
-            ("fallthrough", {"Properties": {"os": "ubuntu"}}),
-            ("fallthrough", {"Properties": {"os": "Ubuntu"}}),
-            ("fallthrough", {"Properties": {"release": "bionic"}}),
-            (
-                "fallthrough",
-                {"Properties": {"os": "notubuntu", "release": "bionic"}},
-            ),
-            # Test the two spelling of Ubuntu which we accept
-            (
-                "our_release",
-                {"Properties": {"os": "ubuntu", "release": "our_release"}},
-            ),
-            (
-                "our_release",
-                {"Properties": {"os": "Ubuntu", "release": "our_release"}},
-            ),
-        ],
-    )
-    @mock.patch.object(
-        LXDVirtualMachine,
-        "_image_info",
-        return_value=[{"release": "fallthrough"}],
-    )
-    def test_correct_paths_taken(
-        self, m__image_info, expected_release, lxc_image_info
-    ):
-        """Test that we fallthrough when the image is missing required info."""
-        image_id = mock.sentinel.image_id
-        cloud = LXDVirtualMachine(tag="test", config_file=io.StringIO(CONFIG))
-        with mock.patch.object(
-            cloud, "_lxc_image_info", return_value=lxc_image_info
-        ) as m__lxc_image_info:
-            # pylint: disable=W0212
-            assert expected_release == cloud._extract_release_from_image_id(
-                image_id
-            )
-
-        assert [mock.call(image_id)] == m__lxc_image_info.call_args_list
-
-        if expected_release == "fallthrough":
-            assert [mock.call(image_id)] == m__image_info.call_args_list
