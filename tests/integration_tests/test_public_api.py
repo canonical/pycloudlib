@@ -21,7 +21,7 @@ runcmd:
 @pytest.fixture
 def cloud(request):
     cloud_instance: BaseCloud = request.param(
-        tag="pycloudlib-integration",
+        tag="pycl-test",
         timestamp_suffix=True,
     )
 
