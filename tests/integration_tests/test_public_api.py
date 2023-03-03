@@ -14,7 +14,7 @@ from pycloudlib.util import LTS_RELEASES
 cloud_config = """\
 #cloud-config
 runcmd:
-  - echo 'hello' > /var/tmp/example.txt
+  - echo 'hello' >> /var/tmp/example.txt
 """
 
 
@@ -70,11 +70,8 @@ def exercise_push_pull(instance: BaseInstance):
 
 
 def exercise_instance(instance: BaseInstance):
-    with suppress(NotImplementedError):
-        assert instance.name is not None
-
-    with suppress(NotImplementedError):
-        assert ipaddress.ip_address(instance.ip)
+    assert instance.name is not None
+    assert ipaddress.ip_address(instance.ip)
 
     with suppress(NotImplementedError):
         ip_address = instance.add_network_interface()
@@ -86,7 +83,6 @@ def exercise_instance(instance: BaseInstance):
     exercise_push_pull(instance)
 
     assert_example_output(instance)
-    instance.execute("sync")
     boot_id = instance.get_boot_id()
     instance.restart()
     assert boot_id != instance.get_boot_id()
@@ -136,6 +132,7 @@ def test_public_api(cloud: BaseCloud):
         exercise_instance(instance)
 
         instance.clean()
+        instance.execute("rm /var/tmp/example.txt")
         snapshot_id = cloud.snapshot(instance)
 
     try:

@@ -107,10 +107,12 @@ class OciInstance(BaseInstance):
                 return
             except oci.exceptions.ServiceError as e:
                 last_exception = e
-                if last_exception.status == 409:
-                    sleep(0.5)
-                else:
+                if last_exception.status != 409:
                     raise
+                self._log.debug(
+                    "Received 409 attempting to RESET instance. Retrying"
+                )
+                sleep(0.5)
         if last_exception:
             raise last_exception
 
