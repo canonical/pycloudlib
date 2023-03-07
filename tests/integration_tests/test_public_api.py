@@ -117,6 +117,7 @@ def exercise_instance(instance: BaseInstance):
 def test_public_api(cloud: BaseCloud):
     """Shallow test of (most) public functions in the base API."""
     latest_lts = LTS_RELEASES[-1]
+    print(f"Using Ubuntu {latest_lts} release")
     try:
         image_id = cloud.released_image(release=latest_lts)
     except NotImplementedError:
