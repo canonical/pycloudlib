@@ -6,6 +6,7 @@ import pytest
 from ibm_vpc import DetailedResponse
 from mock import MagicMock
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.ibm._util import (
     get_first,
     iter_pages,
@@ -171,7 +172,7 @@ class TestWaitUntil:
         check_fn = MagicMock()
         check_fn.return_value = False
 
-        with pytest.raises(TimeoutError, match="<msg>"):
+        with pytest.raises(PycloudlibTimeoutError, match="<msg>"):
             wait_until(
                 check_fn=check_fn,
                 timeout_seconds=20,

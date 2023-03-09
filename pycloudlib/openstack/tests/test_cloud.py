@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from openstack.connection import Connection
 
+from pycloudlib.errors import CloudSetupError
 from pycloudlib.openstack.cloud import Openstack
 
 CONFIG = """\
@@ -48,9 +49,11 @@ class TestOpenstackKeypair:
         """Test pre-existing openstack keypair has different content."""
         openstack_keypair_mock = mock.Mock()
         openstack_keypair_mock.public_key = m_public_key_content()
-        m_openstack.return_value.get_keypair.return_value = "something else"
+        m_openstack.return_value.get_keypair.return_value = mock.Mock(
+            public_key="something else"
+        )
         cloud = Openstack(
             tag="test", network=None, config_file=StringIO(CONFIG)
         )
-        with pytest.raises(Exception):
+        with pytest.raises(CloudSetupError):
             cloud._get_openstack_keypair()

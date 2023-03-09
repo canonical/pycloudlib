@@ -6,13 +6,10 @@ from typing import Callable, Iterator, Optional
 
 from ibm_vpc import DetailedResponse
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.util import get_query_param
 
 _IBMCallable = Callable[..., DetailedResponse]
-
-
-class IBMException(Exception):
-    """IBM exception root."""
 
 
 def iter_pages(
@@ -75,5 +72,5 @@ def wait_until(
             return True
         sleep(1)
     if raise_on_fail:
-        raise TimeoutError(timeout_msg_fn())
+        raise PycloudlibTimeoutError(timeout_msg_fn())
     return False

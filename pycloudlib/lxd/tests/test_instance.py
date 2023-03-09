@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
 from pycloudlib.result import Result
 
@@ -386,7 +387,7 @@ class TestIP:
                 "",
                 0,
                 150,
-                TimeoutError(
+                PycloudlibTimeoutError(
                     "Unable to determine IP address after 150 retries."
                     " exit:0 stdout: unparseable stderr: "
                 ),
@@ -396,7 +397,7 @@ class TestIP:
                 "",
                 1,
                 150,
-                TimeoutError(
+                PycloudlibTimeoutError(
                     "Unable to determine IP address after 150 retries."
                     " exit:1 stdout:"
                 ),
@@ -406,7 +407,7 @@ class TestIP:
                 "",
                 0,
                 150,
-                TimeoutError(
+                PycloudlibTimeoutError(
                     "Unable to determine IP address after 150 retries."
                     " exit:0 stdout:  stderr: "
                 ),
@@ -428,7 +429,7 @@ class TestIP:
     ):
         """IPv4 output matches specific vm name from `lxc list`.
 
-        Errors are retried and result in TimeoutError on failure.
+        Errors are retried and result in PycloudlibTimeoutError on failure.
         """
         if len(stdouts) > 1:
             m_subp.side_effect = [

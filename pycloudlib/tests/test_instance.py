@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from paramiko import SSHException
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.result import Result
 
@@ -65,7 +66,7 @@ class TestWait:
             mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)
         ] * 2
 
-        with pytest.raises(OSError) as excinfo:
+        with pytest.raises(PycloudlibTimeoutError) as excinfo:
             instance.wait()
 
         assert expected_msg == str(excinfo.value)
@@ -194,7 +195,7 @@ class TestWaitForRestart:
             mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)
         ] * 2
 
-        with pytest.raises(OSError) as excinfo:
+        with pytest.raises(PycloudlibTimeoutError) as excinfo:
             instance.wait_for_restart(
                 old_boot_id="11111111-1111-1111-1111-111111111111"
             )

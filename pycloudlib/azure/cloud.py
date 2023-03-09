@@ -12,6 +12,11 @@ from pycloudlib.azure import util
 from pycloudlib.azure.instance import AzureInstance
 from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
+from pycloudlib.errors import (
+    InstanceNotFoundError,
+    NetworkNotFoundError,
+    PycloudlibError,
+)
 from pycloudlib.util import get_timestamped_tag, update_nested
 
 UBUNTU_DAILY_IMAGES = {
@@ -798,9 +803,9 @@ class Azure(BaseCloud):
             if ip_address.id == ip_address_id:
                 return ip_address.ip_address
 
-        raise RuntimeError(
-            """
-            Error locationg the ip address: {}.
+        raise PycloudlibError(
+            f"""
+            Error locationg the ip address: {ip_address_id}.
             This ip address was not found in this subscription.
             """
         )
@@ -826,12 +831,7 @@ class Azure(BaseCloud):
                 instance_nic = nic
 
         if instance_nic is None:
-            raise RuntimeError(
-                """
-                Error locationg the network interface: {}.
-                This network interface was not found in this subscription.
-                """
-            )
+            raise NetworkNotFoundError(resource_id=nic_id)
 
         return self._retrieve_ip_from_network_interface(nic=instance_nic)
 
@@ -873,21 +873,19 @@ class Azure(BaseCloud):
                     self.registered_instances[instance.name] = azure_instance
                     return azure_instance
 
-            raise Exception(
-                "Could not locate the instance: {}".format(instance_id)
-            )
+            raise InstanceNotFoundError(instance_id)
 
         if instance_id in self.registered_instances:
             instance = self.registered_instances[instance_id]
 
             if instance.status == "deleted":
-                raise Exception(
-                    "The image {} was already deleted".format(instance_id)
+                raise PycloudlibError(
+                    f"The image {instance_id} was already deleted"
                 )
 
             return instance
 
-        raise Exception("Could not find {}".format(instance_id))
+        raise InstanceNotFoundError(resource_id=instance_id)
 
     def snapshot(
         self, instance, clean=True, delete_provisioned_user=True, **kwargs

@@ -6,6 +6,7 @@ from time import sleep
 import googleapiclient.discovery
 from googleapiclient.errors import HttpError
 
+from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.gce.util import get_credentials, raise_on_error
 from pycloudlib.instance import BaseInstance
 
@@ -160,7 +161,7 @@ class GceInstance(BaseInstance):
                 "Check GCE console."
             )
             if raise_on_fail:
-                raise TimeoutError(msg)
+                raise PycloudlibTimeoutError(msg)
             self._log.warning(msg)
 
     def wait_for_stop(self):
@@ -177,7 +178,7 @@ class GceInstance(BaseInstance):
                 break
             sleep(1)
         else:
-            raise TimeoutError(
+            raise PycloudlibTimeoutError(
                 f"Expected {status} state, but found {response['status']} "
                 f"after waiting {sleep_seconds} seconds. "
                 "Check GCE console for more details."
