@@ -16,7 +16,7 @@ class PycloudlibException(Exception):
     """
 
 
-class PycloudlibError(PycloudlibException, RuntimeError):
+class PycloudlibError(PycloudlibException):
     """Error that doesn’t fall in any of the other categories."""
 
 
@@ -123,5 +123,5 @@ class CloudError(PycloudlibException):
     """Represents errors comming from Cloud's SDKs."""
 
 
-class PycloudlibTimeoutError(PycloudlibException, TimeoutError):
+class PycloudlibTimeoutError(PycloudlibException):
     """Timeout error."""
