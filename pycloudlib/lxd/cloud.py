@@ -1,8 +1,8 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD Cloud type."""
-from itertools import count
 import warnings
 from abc import ABC
+from itertools import count
 
 import yaml
 
