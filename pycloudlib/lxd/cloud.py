@@ -2,6 +2,7 @@
 """LXD Cloud type."""
 import warnings
 from abc import ABC
+from itertools import count
 
 import yaml
 
@@ -20,6 +21,7 @@ class _BaseLXD(BaseCloud, ABC):
     _daily_remote = "ubuntu-daily"
     _releases_remote = "ubuntu"
     _lxd_instance_cls = LXDInstance
+    _instance_counter = count()
     _is_container: bool
 
     def clone(self, base, new_instance_name):
@@ -291,7 +293,7 @@ class _BaseLXD(BaseCloud, ABC):
                 f" Found: {image_id}"
             )
         instance = self.init(
-            name=name,
+            name=name or f"{self.tag}-{next(self._instance_counter)}",
             image_id=image_id,
             ephemeral=ephemeral,
             network=network,
