@@ -55,14 +55,10 @@ class BaseCloud(ABC):
         user = getpass.getuser()
         self.key_pair = KeyPair(
             public_key_path=os.path.expandvars(
-                os.path.expanduser(
-                    self.config.get(
-                        "public_key_path", f"~{user}/.ssh/id_rsa.pub"
-                    )
-                )
+                self.config.get("public_key_path", f"~{user}/.ssh/id_rsa.pub")
             ),
             private_key_path=os.path.expandvars(
-                os.path.expanduser(self.config.get("private_key_path", ""))
+                self.config.get("private_key_path", "")
             ),
             name=self.config.get("key_name", user),
         )

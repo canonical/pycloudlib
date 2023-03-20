@@ -199,7 +199,12 @@ class BaseInstance(ABC):
 
         This will clean out specifically the cloud-init files and system logs.
         """
-        self.execute("sudo cloud-init clean --logs")
+        result = self.execute("sudo cloud-init clean --logs --machine-id")
+        if result.failed:
+            # --machine-id likely isn't supported on this version.
+            # Manually reset machine-id even though this is less portable
+            self.execute("sudo cloud-init clean --logs")
+            self.execute("sudo echo 'uninitialized' > /etc/machine-id")
         self.execute("sudo rm -rf /var/log/syslog")
 
     def _run_command(self, command, stdin):
