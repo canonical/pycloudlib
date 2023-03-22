@@ -170,8 +170,8 @@ def is_pro_image(image_id, registered_image):
 
     Check the image id string for patterns found only on
     pro images. However, snapshot images do not have pro
-    information on ther image id. We are enconding that
-    information on the registed_image dict, which represents
+    information on their image id. We are enconding that
+    information on the registered_image dict, which represents
     the base image that created the snapshot. Therefore,
     we fail at looking in the image id string, we look it up
     at the registered_image dict.

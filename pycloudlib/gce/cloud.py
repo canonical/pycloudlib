@@ -1,9 +1,9 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """GCE Cloud type.
 
-This is an initial implimentation of the GCE class. It enables
+This is an initial implementation of the GCE class. It enables
 authentication into the cloud, finding an image, and launching an
-instance. It however, does not allow any further actions from occuring.
+instance. It however, does not allow any further actions from occurring.
 """
 
 import logging
