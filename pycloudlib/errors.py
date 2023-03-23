@@ -12,7 +12,7 @@ class PycloudlibException(Exception):
 
     This exception is not meant to be raised by pycloudlib. The intention
     is that every custom pycloudlib exception will inherit from this one,
-    allowing client code to catch any expection by catching this one.
+    allowing client code to catch any exception by catching this one.
     """
 
 
@@ -120,7 +120,7 @@ class CloudSetupError(PycloudlibException):
 
 
 class CloudError(PycloudlibException):
-    """Represents errors comming from Cloud's SDKs."""
+    """Represents errors coming from Cloud's SDKs."""
 
 
 class PycloudlibTimeoutError(PycloudlibException):
