@@ -74,3 +74,25 @@ network = ""  # openstack network list
 # key_name = ""  # Defaults to your username if not set
 
 [lxd]
+
+[vmware]
+# These are likely defined as environment variables if using govc. They correspond to:
+# GOVC_URL
+# GOVC_USERNAME
+# GOVC_PASSWORD
+# GOVC_DATACENTER
+# GOVC_DATASTORE
+# GOVC_FOLDER
+# GOVC_INSECURE
+#
+# respectively.
+server = ""
+username = ""
+password = ""
+datacenter = ""
+datastore = ""
+folder = ""  # The folder to place new VMs as well as to find TEMPLATE VMs
+insecure_transport = false
+# public_key_path = "~/.ssh/id_rsa.pub"
+# private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
+# key_name = ""  # Defaults to your username if not set
