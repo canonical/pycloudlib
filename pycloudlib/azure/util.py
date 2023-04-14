@@ -3,11 +3,8 @@
 import logging
 import re
 
-from azure.core.exceptions import ClientAuthenticationError
-from azure.identity import AzureCliCredential, ClientSecretCredential
-from knack.util import CLIError
+from azure.identity import ClientSecretCredential
 
-from pycloudlib import util
 from pycloudlib.errors import CloudSetupError
 
 logger = logging.getLogger(__name__)
@@ -35,57 +32,24 @@ def get_client(resource, config_dict: dict):
         The client for the resource passed as parameter.
 
     """
-    if not util.subp("command -v az", shell=True, rcs=[0, 1, 127]).ok:
-        logger.debug(
-            "No azure-cli 'az' command found. Trying explicit config params"
-        )
-    else:
-        try:
-            cli_credential = AzureCliCredential()
-            subscription_id = config_dict.get("subscriptionId")
-            client = resource(cli_credential, subscription_id=subscription_id)
-            return client
-        except CLIError:
-            logger.debug(
-                "No valid azure-cli config found."
-                " Trying explicit config params"
-            )
-        except ClientAuthenticationError:
-            logger.debug(
-                "Authentication error: No valid azure-cli config found."
-                " Trying explicit config params"
-            )
-
     required_keys = frozenset(
         {"clientId", "clientSecret", "tenantId", "subscriptionId"}
     )
     missing_keys = required_keys.difference(set(config_dict.keys()))
     if missing_keys:
         raise CloudSetupError(
-            "No AZ cli config found, missing required keys: {}".format(
+            "Missing required Azure credentials: {}".format(
                 ", ".join(missing_keys)
             )
         )
 
-    parameters = {
-        "active_directory": "https://login.microsoftonline.com",
-        "resource_manager": "https://management.azure.com/",
-        "active_directory_graph_resource_id": "https://graph.windows.net/",
-        "sql_management": "https://management.core.windows.net:8443/",
-        "gallery": "https://gallery.azure.com/",
-        "management": "https://management.core.windows.net/",
-    }
-    parameters.update(config_dict)
     credential = ClientSecretCredential(
-        tenant_id=parameters["tenantId"],
-        client_id=parameters["clientId"],
-        client_secret=parameters["clientSecret"],
-        authority=parameters["active_directory"],
+        tenant_id=config_dict["tenantId"],
+        client_id=config_dict["clientId"],
+        client_secret=config_dict["clientSecret"],
     )
 
-    return resource(
-        credential, subscription_id=parameters["subscriptionId"], **parameters
-    )
+    return resource(credential, subscription_id=config_dict["subscriptionId"])
 
 
 def parse_image_id(image_id):
