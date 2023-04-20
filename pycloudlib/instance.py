@@ -200,12 +200,15 @@ class BaseInstance(ABC):
 
         This will clean out specifically the cloud-init files and system logs.
         """
-        result = self.execute("sudo cloud-init clean --logs --machine-id")
-        if result.failed:
-            # --machine-id likely isn't supported on this version.
-            # Manually reset machine-id even though this is less portable
-            self.execute("sudo cloud-init clean --logs")
-            self.execute("sudo echo 'uninitialized' > /etc/machine-id")
+        # TODO: revert this commit once bionic-pro images contain
+        # cloud-init >= v23.1 .
+        # We end up hitting LP: #1508766 on systemd == 237 (bionic) because
+        # the cloud-init's fix [1] for LP: #1999680 is not included on some
+        # bionic-pro cloud images.
+        #
+        # [1] https://github.com/canonical/cloud-init/commit/abfdf1d83995cc20e
+        self.execute("sudo cloud-init clean --logs")
+        self.execute("sudo echo 'uninitialized' > /etc/machine-id")
         self.execute("sudo rm -rf /var/log/syslog")
 
     def _run_command(self, command, stdin):
