@@ -200,7 +200,7 @@ class BaseInstance(ABC):
 
         This will clean out specifically the cloud-init files and system logs.
         """
-        # TODO: revert this commit once bionic-pro images contain
+        # Note: revert this commit once bionic-pro images contain
         # cloud-init >= v23.1 .
         # We end up hitting LP: #1508766 on systemd == 237 (bionic) because
         # the cloud-init's fix [1] for LP: #1999680 is not included on some
