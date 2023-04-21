@@ -6,6 +6,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from contextlib import suppress
+from typing import Optional
 
 import paramiko
 from paramiko.ssh_exception import (
@@ -26,7 +27,7 @@ class BaseInstance(ABC):
 
     _type = "base"
 
-    def __init__(self, key_pair):
+    def __init__(self, key_pair, username: Optional[str] = None):
         """Set up instance."""
         self._log = logging.getLogger(__name__)
         self._ssh_client = None
@@ -36,7 +37,7 @@ class BaseInstance(ABC):
         self.boot_timeout = 120
         self.key_pair = key_pair
         self.port = "22"
-        self.username = "ubuntu"
+        self.username = username or "ubuntu"
         self.connect_timeout = 60
         self.banner_timeout = 60
 

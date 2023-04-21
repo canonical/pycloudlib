@@ -12,7 +12,7 @@ class AzureInstance(BaseInstance):
 
     _type = "azure"
 
-    def __init__(self, key_pair, client, instance):
+    def __init__(self, key_pair, client, instance, username=None):
         """Set up instance.
 
         Args:
@@ -20,7 +20,7 @@ class AzureInstance(BaseInstance):
             client: Azure compute management client
             instance: created azure instance object
         """
-        super().__init__(key_pair)
+        super().__init__(key_pair, username=username)
 
         self._client = client
         self._instance = instance

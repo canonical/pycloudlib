@@ -14,7 +14,7 @@ class EC2Instance(BaseInstance):
 
     _type = "ec2"
 
-    def __init__(self, key_pair, client, instance):
+    def __init__(self, key_pair, client, instance, username=None):
         """Set up instance.
 
         Args:
@@ -22,7 +22,7 @@ class EC2Instance(BaseInstance):
             client: boto3 client object
             instance: created boto3 instance object
         """
-        super().__init__(key_pair)
+        super().__init__(key_pair, username)
 
         self._instance = instance
         self._ip = None
