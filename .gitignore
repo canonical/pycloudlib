@@ -17,6 +17,7 @@ cover
 .vscode/
 .mypy_cache/
 .pytest_cache/
+.python-version
 
 # Docs
 docs/_build
