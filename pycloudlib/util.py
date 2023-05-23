@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, urlparse
 from pycloudlib.result import Result
 
 UBUNTU_RELEASE_VERSION_MAP = {
+    "mantic": "23.10",
     "lunar": "23.04",
     "kinetic": "22.10",
     "jammy": "22.04",

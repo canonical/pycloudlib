@@ -27,6 +27,7 @@ UBUNTU_DAILY_IMAGES = {
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",
     "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily",
     "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily",
+    "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
