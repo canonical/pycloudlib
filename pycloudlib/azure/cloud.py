@@ -20,35 +20,35 @@ from pycloudlib.errors import (
 from pycloudlib.util import get_timestamped_tag, update_nested
 
 UBUNTU_DAILY_IMAGES = {
-    "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS",
-    "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS",
-    "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts",
-    "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily",
-    "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts",
-    "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily",
-    "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily",
-    "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily",
+    "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS:latest",
+    "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS:latest",
+    "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts:latest",  # noqa: E501
+    "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily:latest",  # noqa: E501
+    "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts:latest",  # noqa: E501
+    "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily:latest",  # noqa: E501
+    "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily:latest",
+    "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily:latest",  # noqa: E501
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
-    "xenial": "Canonical:0001-com-ubuntu-pro-xenial:pro-16_04-lts",
-    "bionic": "Canonical:0001-com-ubuntu-pro-bionic:pro-18_04-lts",
-    "focal": "Canonical:0001-com-ubuntu-pro-focal:pro-20_04-lts",
-    "jammy": "Canonical:0001-com-ubuntu-pro-jammy:pro-22_04-lts",
+    "xenial": "Canonical:0001-com-ubuntu-pro-xenial:pro-16_04-lts:latest",
+    "bionic": "Canonical:0001-com-ubuntu-pro-bionic:pro-18_04-lts:latest",
+    "focal": "Canonical:0001-com-ubuntu-pro-focal:pro-20_04-lts:latest",
+    "jammy": "Canonical:0001-com-ubuntu-pro-jammy:pro-22_04-lts:latest",
 }
 
 UBUNTU_DAILY_PRO_FIPS_IMAGES = {
-    "xenial": "Canonical:0001-com-ubuntu-pro-xenial-fips:pro-fips-16_04-private",  # noqa
-    "bionic": "Canonical:0001-com-ubuntu-pro-bionic-fips:pro-fips-18_04",
-    "focal": "Canonical:0001-com-ubuntu-pro-focal-fips:pro-fips-20_04",
+    "xenial": "Canonical:0001-com-ubuntu-pro-xenial-fips:pro-fips-16_04-private:latest",  # noqa: E501
+    "bionic": "Canonical:0001-com-ubuntu-pro-bionic-fips:pro-fips-18_04:latest",  # noqa: E501
+    "focal": "Canonical:0001-com-ubuntu-pro-focal-fips:pro-fips-20_04:latest",
 }
 
 UBUNTU_RELEASE_IMAGES = {
-    "xenial": "Canonical:UbuntuServer:16.04-LTS",
-    "bionic": "Canonical:UbuntuServer:18.04-LTS",
-    "focal": "Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2",
-    "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2",
-    "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2",
+    "xenial": "Canonical:UbuntuServer:16.04-LTS:latest",
+    "bionic": "Canonical:UbuntuServer:18.04-LTS:latest",
+    "focal": "Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2:latest",
+    "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2:latest",
+    "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
 }
 
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(

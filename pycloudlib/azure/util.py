@@ -118,11 +118,7 @@ def get_image_reference_params(image_id):
 
     """
     img_dict = parse_image_id(image_id)
-    if img_dict.get("publisher") == "Canonical":
-        # If the image id starts with 'Canonical", we know that it is a
-        # marketplace image, and to we must reference it using the
-        # combination of publisher, offer, sku and version info
-        img_dict.update({"version": "latest"})
+    if img_dict:
         return img_dict
 
     # Custom images can be directly referenced by their id
