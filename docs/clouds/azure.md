@@ -38,7 +38,7 @@ To find latest daily Azure image for a release of Ubuntu:
 
 ```python
 azure.daily_image('xenial')
-"Canonical:UbuntuServer:16.04-DAILY-LTS"
+"Canonical:UbuntuServer:16.04-DAILY-LTS:latest"
 ```
 
 The return Azure image can then be used for launching instances.
@@ -48,15 +48,15 @@ The return Azure image can then be used for launching instances.
 Launching an instance requires at a minimum an Azure image.
 
 ```python
-inst_0 = azure.launch('Canonical:UbuntuServer:14.04.0-LTS')
-inst_1 = azure.launch('Canonical:UbuntuServer:18.04-DAILY-LTS')
+inst_0 = azure.launch('Canonical:UbuntuServer:14.04.0-LTS:latest')
+inst_1 = azure.launch('Canonical:UbuntuServer:18.04-DAILY-LTS:latest')
 ```
 
 If further customization of an instance is required, a user can pass additional arguments to the launch command and have them passed on.
 
 ```python
 inst = azure.launch(
-    image_id='Canonical:UbuntuServer:14.04.0-LTS',
+    image_id='Canonical:UbuntuServer:14.04.0-LTS:latest',
     user_data='#cloud-config\nfinal_message: "system up!"',
 )
 ```
@@ -67,7 +67,7 @@ By default, the launch method will wait for cloud-init to finish initializing be
 instances = []
 for inst in range(num_instances):
     instances.append(
-        azure.launch('Canonical:UbuntuServer:18.04-DAILY-LTS', wait=False))
+        azure.launch('Canonical:UbuntuServer:18.04-DAILY-LTS:latest', wait=False))
 
 for instance in instances:
     instance.wait()
@@ -93,7 +93,7 @@ instance = azure.get_instance('my-azure-vm')
 A snapshot of an instance is used to generate a new backing Azure image. The generated image can in turn get used to launch new instances. This allows for customization of an image and then re-use of that image.
 
 ```python
-inst = azure.launch('Canonical:UbuntuServer:14.04.0-LTS')
+inst = azure.launch('Canonical:UbuntuServer:14.04.0-LTS:latest')
 inst.execute('touch /etc/foobar')
 image_id_snapshot = azure.snapshot(inst)
 inst_prime = azure.launch(image_id_snapshot)
