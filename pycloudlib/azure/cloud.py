@@ -324,7 +324,7 @@ class Azure(BaseCloud):
         return ip_poller.result()
 
     def _create_network_interface_client(
-        self, ip_address_id, subnet_id, nsg_id
+        self, ip_address_id, subnet_id, nsg_id, nic_params=None
     ):
         """Create a network interface client.
 
@@ -335,6 +335,7 @@ class Azure(BaseCloud):
             ip_address_id: string, The ip address id
             subnet_id: string, the subnet id
             nsg_id: string, the network security group id
+            nic_params: dict, configuration overrides
 
         Returns:
             The ip address created by Azure
@@ -343,23 +344,26 @@ class Azure(BaseCloud):
         nic_name = "{}-nic".format(self.tag)
         ip_config_name = "{}-ip-config".format(self.tag)
 
+        nic_config = {
+            "location": self.location,
+            "ip_configurations": [
+                {
+                    "name": ip_config_name,
+                    "subnet": {"id": subnet_id},
+                    "public_ip_address": {"id": ip_address_id},
+                }
+            ],
+            "network_security_group": {"id": nsg_id},
+            "tags": {"name": self.tag},
+        }
+
+        if nic_params:
+            update_nested(nic_config, nic_params)
+
         self._log.debug("Creating Azure network interface")
         nic_poller = (
             self.network_client.network_interfaces.begin_create_or_update(
-                self.resource_group.name,
-                nic_name,
-                {
-                    "location": self.location,
-                    "ip_configurations": [
-                        {
-                            "name": ip_config_name,
-                            "subnet": {"id": subnet_id},
-                            "public_ip_address": {"id": ip_address_id},
-                        }
-                    ],
-                    "network_security_group": {"id": nsg_id},
-                    "tags": {"name": self.tag},
-                },
+                self.resource_group.name, nic_name, nic_config
             )
         )
 
@@ -603,8 +607,11 @@ class Azure(BaseCloud):
                   Default results in a name of <tag>-vm
             inbound_ports: List of strings, optional inbound ports
                            to enable in the instance.
-            kwargs: dict, other named arguments to provide to
-                    virtual_machines.begin_create_or_update
+            kwargs:
+                - vm_params: dict to override configuration for
+                virtual_machines.begin_create_or_update
+                - nic_params: dict to override configuration for
+                network_client.network_interfaces.begin_create_or_update
 
         Returns:
             Azure Instance object
@@ -666,6 +673,7 @@ class Azure(BaseCloud):
                 ip_address_id=ip_address.id,
                 subnet_id=subnet.id,
                 nsg_id=network_security_group.id,
+                nic_params=kwargs.get("nic_params", None),
             )
 
             self._log.debug(
