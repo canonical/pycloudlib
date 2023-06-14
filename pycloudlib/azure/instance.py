@@ -2,6 +2,7 @@
 """Azure instance."""
 
 import time
+from typing import List
 
 from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
@@ -136,13 +137,21 @@ class AzureInstance(BaseInstance):
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         )
 
-    def delete(self, wait=True):
+    # pylint: disable=broad-except
+    def delete(self, wait=True) -> List[Exception]:
         """Delete instance."""
-        delete = self._client.virtual_machines.begin_delete(
-            resource_group_name=self._instance["rg_name"], vm_name=self.name
-        )
+        if self.status == "deleted":
+            return []
+        try:
+            delete = self._client.virtual_machines.begin_delete(
+                resource_group_name=self._instance["rg_name"],
+                vm_name=self.name,
+            )
 
-        if wait:
-            delete.wait()
+            if wait:
+                delete.wait()
+            self.status = "deleted"
+        except Exception as e:
+            return [e]
 
-        self.status = "deleted"
+        return []

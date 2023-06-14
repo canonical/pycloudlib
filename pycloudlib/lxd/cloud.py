@@ -3,6 +3,7 @@
 import warnings
 from abc import ABC
 from itertools import count
+from typing import List
 
 import yaml
 
@@ -24,6 +25,12 @@ class _BaseLXD(BaseCloud, ABC):
     _instance_counter = count()
     _is_container: bool
 
+    def __init__(self, *args, **kwargs):
+        """Initialize the LXD Instance."""
+        super().__init__(*args, **kwargs)
+        self.created_profiles = []
+        self.created_snapshots = []
+
     def clone(self, base, new_instance_name):
         """Create copy of an existing instance or snapshot.
 
@@ -42,7 +49,9 @@ class _BaseLXD(BaseCloud, ABC):
         """
         self._log.debug("cloning %s to %s", base, new_instance_name)
         subp(["lxc", "copy", base, new_instance_name])
-        return LXDInstance(new_instance_name)
+        instance = LXDInstance(new_instance_name)
+        self.created_instances.append(instance)
+        return instance
 
     def create_profile(self, profile_name, profile_config, force=False):
         """Create a lxd profile.
@@ -74,6 +83,7 @@ class _BaseLXD(BaseCloud, ABC):
         self._log.debug("Creating profile %s ...", profile_name)
         subp(["lxc", "profile", "create", profile_name])
         subp(["lxc", "profile", "edit", profile_name], data=profile_config)
+        self.created_profiles.append(profile_name)
 
     def delete_instance(self, instance_name, wait=True):
         """Delete an instance.
@@ -241,13 +251,15 @@ class _BaseLXD(BaseCloud, ABC):
             name = result.split("Instance name is: ")[1]
 
         self._log.debug("Created %s", name)
-        return self._lxd_instance_cls(
+        instance = self._lxd_instance_cls(
             name=name,
             key_pair=self.key_pair,
             execute_via_ssh=execute_via_ssh,
             series=series,
             ephemeral=ephemeral,
         )
+        self.created_instances.append(instance)
+        return instance
 
     def launch(
         self,
@@ -386,7 +398,33 @@ class _BaseLXD(BaseCloud, ABC):
         if clean:
             instance.clean()
 
-        return instance.snapshot(name)
+        snapshot_name = instance.snapshot(name)
+        self.created_snapshots.append(snapshot_name)
+        return snapshot_name
+
+    # pylint: disable=broad-except
+    def clean(self) -> List[Exception]:
+        """Cleanup ALL artifacts associated with this Cloud instance.
+
+        Cleanup any cloud artifacts created at any time during this class's
+        existence. This includes all instances, snapshots, resources, etc.
+        """
+        exceptions = super().clean()
+
+        for snapshot in self.created_snapshots:
+            try:
+                subp(["lxc", "image", "delete", snapshot])
+            except RuntimeError as e:
+                if "Image not found" not in str(e):
+                    exceptions.append(e)
+
+        for profile in self.created_profiles:
+            try:
+                subp(["lxc", "profile", "delete", profile])
+            except RuntimeError as e:
+                if "Profile not found" not in str(e):
+                    exceptions.append(e)
+        return exceptions
 
 
 class LXDContainer(_BaseLXD):

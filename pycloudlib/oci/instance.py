@@ -3,6 +3,7 @@
 """OCI instance."""
 
 from time import sleep
+from typing import List
 
 import oci
 
@@ -86,15 +87,20 @@ class OciInstance(BaseInstance):
         # self.compute_client.get_console_history_content(...)
         raise NotImplementedError
 
-    def delete(self, wait=True):
+    # pylint: disable=broad-except
+    def delete(self, wait=True) -> List[Exception]:
         """Delete the instance.
 
         Args:
             wait: wait for instance to be deleted
         """
-        self.compute_client.terminate_instance(self.instance_data.id)
-        if wait:
-            self.wait_for_delete()
+        try:
+            self.compute_client.terminate_instance(self.instance_data.id)
+            if wait:
+                self.wait_for_delete()
+        except Exception as e:
+            return [e]
+        return []
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""

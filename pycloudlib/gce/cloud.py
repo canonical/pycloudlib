@@ -303,11 +303,16 @@ class GCE(BaseCloud):
         Args:
             image_id: string, id of the image to delete
         """
-        api_image_id = (
-            self.compute.images()
-            .get(project=self.project, image=os.path.basename(image_id))
-            .execute()["id"]
-        )
+        try:
+            api_image_id = (
+                self.compute.images()
+                .get(project=self.project, image=os.path.basename(image_id))
+                .execute()["id"]
+            )
+        except googleapiclient.errors.HttpError as e:
+            if "was not found" not in str(e):
+                raise
+            return
         response = (
             self.compute.images()
             .delete(
@@ -418,6 +423,7 @@ class GCE(BaseCloud):
         raise_on_error(result)
 
         instance = self.get_instance(result["id"], name=result["name"])
+        self.created_instances.append(instance)
         return instance
 
     def snapshot(self, instance: GceInstance, clean=True, **kwargs):
@@ -462,9 +468,11 @@ class GCE(BaseCloud):
         raise_on_error(operation)
         self._wait_for_operation(operation)
 
-        return "projects/{}/global/images/{}".format(
+        image_id = "projects/{}/global/images/{}".format(
             self.project, snapshot_name
         )
+        self.created_images.append(image_id)
+        return image_id
 
     def _wait_for_operation(
         self, operation, operation_type="global", sleep_seconds=300

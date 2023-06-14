@@ -19,22 +19,18 @@ runcmd:
 
 @pytest.fixture
 def cloud(request):
-    cloud_instance: BaseCloud = request.param(
-        tag="pycl-test",
-        timestamp_suffix=True,
-    )
+    cloud_instance: BaseCloud
+    with request.param(
+        tag="pycl-test", timestamp_suffix=True
+    ) as cloud_instance:
+        if isinstance(cloud_instance, pycloudlib.EC2):
+            cloud_instance.upload_key(
+                public_key_path=cloud_instance.config["public_key_path"],
+                private_key_path=cloud_instance.config["private_key_path"],
+                name=cloud_instance.tag,
+            )
 
-    if isinstance(cloud_instance, pycloudlib.EC2):
-        cloud_instance.upload_key(
-            public_key_path=cloud_instance.config["public_key_path"],
-            private_key_path=cloud_instance.config["private_key_path"],
-            name=cloud_instance.tag,
-        )
-
-    yield cloud_instance
-
-    if isinstance(cloud_instance, pycloudlib.EC2):
-        cloud_instance.delete_key(name=cloud_instance.tag)
+        yield cloud_instance
 
 
 def assert_example_output(instance: BaseInstance):
@@ -115,25 +111,19 @@ def test_public_api(cloud: BaseCloud):
         # Not sure there's a great way to test this other than not raising
         cloud.image_serial(image_id)
 
-    try:
-        with cloud.launch(
-            image_id=image_id, user_data=cloud_config
-        ) as instance:
-            instance.wait()
-            exercise_instance(instance)
+    with cloud.launch(image_id=image_id, user_data=cloud_config) as instance:
+        instance.wait()
+        exercise_instance(instance)
+        instance.clean()
+        instance.execute("sudo rm /var/tmp/example.txt")
+        snapshot_id = cloud.snapshot(instance)
+        instance.delete()  # Remove me
 
-            instance.clean()
-            instance.execute("sudo rm /var/tmp/example.txt")
-            snapshot_id = cloud.snapshot(instance)
+    instance_from_snapshot = cloud.launch(
+        image_id=snapshot_id, user_data=cloud_config
+    )
+    instance_from_snapshot.wait()
+    exercise_instance(instance_from_snapshot)
 
-        try:
-            with cloud.launch(
-                image_id=snapshot_id, user_data=cloud_config
-            ) as instance_from_snapshot:
-                instance_from_snapshot.wait()
-                exercise_instance(instance_from_snapshot)
-        finally:
-            cloud.delete_image(snapshot_id)
-    finally:
-        if isinstance(cloud, pycloudlib.Azure):
-            cloud.delete_resource_group()
+    cloud.delete_image(snapshot_id)  # Remove me
+

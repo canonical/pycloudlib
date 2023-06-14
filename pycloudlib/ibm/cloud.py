@@ -3,6 +3,7 @@
 
 from typing import List, Optional
 
+from ibm_cloud_sdk_core import ApiException
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 from ibm_platform_services import ResourceManagerV2
 from ibm_vpc import VpcV1
@@ -51,6 +52,8 @@ class IBM(BaseCloud):
             config_file,
             required_values=[resource_group, api_key, region],
         )
+        self.created_vpcs: List[VPC] = []
+        self.created_keys: List[str] = []
 
         self._resource_group = (
             resource_group
@@ -133,7 +136,11 @@ class IBM(BaseCloud):
             image_id: string, id of the image to delete
             **kwargs: dictionary of other arguments to pass to delete_image
         """
-        self._client.delete_image(image_id).get_result()
+        try:
+            self._client.delete_image(image_id).get_result()
+        except ApiException as e:
+            if "does not exist" not in str(e):
+                raise
 
     def released_image(self, release, *, arch: str = "amd64", **kwargs):
         """ID of the latest released image for a particular release.
@@ -227,7 +234,9 @@ class IBM(BaseCloud):
         try:
             return VPC.from_existing(*args, **kwargs)
         except IBMException:
-            return VPC.create(*args, **kwargs)
+            vpc = VPC.create(*args, **kwargs)
+            self.created_vpcs.append(vpc)
+            return vpc
 
     def _create_floating_ip(self, name: Optional[str] = None) -> dict:
         name = name or f"{self.tag}-fi"
@@ -295,6 +304,7 @@ class IBM(BaseCloud):
             instance=raw_instance,
             floating_ip=floating_ip,
         )
+        self.created_instances.append(instance)
 
         return instance
 
@@ -338,6 +348,7 @@ class IBM(BaseCloud):
                 "Check IBM VPC console."
             ),
         )
+        self.created_images.append(snapshot_id)
         return snapshot_id
 
     def list_keys(self) -> List[str]:
@@ -377,8 +388,32 @@ class IBM(BaseCloud):
             return key["id"]
 
         self._log.info("Creating SSH key: %s", self.key_pair.name)
-        return self._client.create_key(
+        key_id = self._client.create_key(
             public_key=self.key_pair.public_key_content,
             name=self.key_pair.name,
             resource_group={"id": self.resource_group_id},
         ).get_result()["id"]
+        self.created_keys.append(key_id)
+        return key_id
+
+    # pylint: disable=broad-except
+    def clean(self) -> List[Exception]:
+        """Cleanup ALL artifacts associated with this Cloud instance.
+
+        Cleanup any cloud artifacts created at any time during this class's
+        existence. This includes all instances, snapshots, resources, etc.
+        """
+        # Not cleaning up floating ips here because they're 1:1
+        # with an instance and get cleaned up by the instance
+        exceptions = super().clean()
+        for vpc in self.created_vpcs:
+            try:
+                vpc.delete()
+            except Exception as e:
+                exceptions.append(e)
+        for key_id in self.created_keys:
+            try:
+                self._client.delete_key(key_id)
+            except Exception as e:
+                exceptions.append(e)
+        return exceptions

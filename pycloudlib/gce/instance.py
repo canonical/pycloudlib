@@ -2,6 +2,7 @@
 """GCE instance."""
 
 from time import sleep
+from typing import List
 
 import googleapiclient.discovery
 from googleapiclient.errors import HttpError
@@ -90,18 +91,27 @@ class GceInstance(BaseInstance):
         ip = result["networkInterfaces"][0]["accessConfigs"][0]["natIP"]
         return ip
 
-    def delete(self, wait=True):
+    # pylint: disable=broad-except
+    def delete(self, wait=True) -> List[Exception]:
         """Delete the instance.
 
         Args:
             wait: wait for instance to be deleted
         """
-        response = self.instance.delete(
-            project=self.project, zone=self.zone, instance=self.instance_id
-        ).execute()
-        raise_on_error(response)
-        if wait:
-            self.wait_for_delete()
+        if not self.instance_id:
+            return []
+        try:
+            response = self.instance.delete(
+                project=self.project, zone=self.zone, instance=self.instance_id
+            ).execute()
+            raise_on_error(response)
+            if wait:
+                self.wait_for_delete()
+            self.instance_id = None
+        except Exception as e:
+            return [e]
+
+        return []
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""

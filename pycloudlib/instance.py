@@ -6,7 +6,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from contextlib import suppress
-from typing import Optional
+from typing import List, Optional
 
 import paramiko
 from paramiko.ssh_exception import (
@@ -19,7 +19,7 @@ from paramiko.ssh_exception import (
 
 from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.result import Result
-from pycloudlib.util import shell_pack, shell_quote
+from pycloudlib.util import print_exception_list, shell_pack, shell_quote
 
 
 class BaseInstance(ABC):
@@ -42,10 +42,13 @@ class BaseInstance(ABC):
         self.banner_timeout = 60
 
     def __enter__(self):
+        """Enter context manager for this class."""
         return self
 
     def __exit__(self, _type, _value, _traceback):
-        self.delete()
+        """Exit context manager for this class."""
+        exceptions = self.delete()
+        print_exception_list(exceptions)
 
     @property
     @abstractmethod
@@ -84,7 +87,7 @@ class BaseInstance(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def delete(self, wait=True):
+    def delete(self, wait=True) -> List[Exception]:
         """Delete the instance.
 
         Args:

@@ -165,6 +165,7 @@ class Openstack(BaseCloud):
             network_id=network_id,
             connection=self.conn,
         )
+        self.created_instances.append(instance)
         return instance
 
     def snapshot(self, instance, clean=True, **kwargs):
@@ -184,6 +185,7 @@ class Openstack(BaseCloud):
         image = self.conn.create_image_snapshot(
             "{}-snapshot".format(self.tag), instance.server.id, wait=True
         )
+        self.created_images.append(image.id)
         return image.id
 
     def use_key(self, public_key_path, private_key_path=None, name=None):

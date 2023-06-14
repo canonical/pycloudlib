@@ -6,7 +6,7 @@ import logging
 from enum import Enum, auto
 from functools import partial
 from itertools import chain
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional
 
 from ibm_cloud_sdk_core import ApiException, DetailedResponse
 from ibm_vpc import VpcV1
@@ -653,18 +653,33 @@ class IBMInstance(BaseInstance):
     def _nic_id(self):
         return self._instance["primary_network_interface"]["id"]
 
-    def delete(self, wait=True):
+    # pylint: disable=broad-except
+    def delete(self, wait=True) -> List[Exception]:
         """Delete the instance.
 
         Args:
             wait: wait for instance to be deleted
         """
-        self._delete_instance(self.id)
+        exceptions = []
+        try:
+            self._delete_instance(self.id)
+        except ApiException as e:
+            if "Instance not found" not in str(e):
+                exceptions.append(e)
+
         self._log.debug("deleting instance %s", self.id)
         if wait:
-            self.wait_for_delete()
+            try:
+                self.wait_for_delete()
+            except Exception as e:
+                exceptions.append(e)
 
-        self._client.delete_floating_ip(self._floating_ip_id)
+        try:
+            self._client.delete_floating_ip(self._floating_ip_id)
+        except ApiException as e:
+            if "not found" not in str(e):
+                exceptions.append(e)
+        return exceptions
 
     def _refresh_instance(self) -> dict:
         self._instance = self._get_instance(self.id).get_result()

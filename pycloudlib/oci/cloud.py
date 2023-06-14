@@ -279,6 +279,7 @@ class OCI(BaseCloud):
         instance = self.get_instance(
             instance_data.id, retry_strategy=retry_strategy
         )
+        self.created_instances.append(instance)
         return instance
 
     def snapshot(self, instance, clean=True, name=None):
@@ -307,5 +308,7 @@ class OCI(BaseCloud):
             current_data=image_data,
             desired_state="AVAILABLE",
         )
+
+        self.created_images.append(image_data.id)
 
         return image_data.id

@@ -1,6 +1,7 @@
 """Openstack instance type."""
 import time
 from itertools import chain
+from typing import List
 
 import openstack
 from openstack.exceptions import (
@@ -95,23 +96,34 @@ class OpenstackInstance(BaseInstance):
             time.sleep(5)
         return "No console output"
 
-    def delete(self, wait=True):
+    # pylint: disable=broad-except
+    def delete(self, wait=True) -> List[Exception]:
         """Delete the instance.
 
         Args:
             wait: wait for instance to be deleted
         """
+        exceptions = []
         try:
             self.conn.compute.delete_server(self.server.id)
-        finally:
-            if self.delete_floating_ip:
+        except Exception as e:
+            exceptions.append(e)
+
+        if self.delete_floating_ip:
+            try:
                 self.conn.delete_floating_ip(self.floating_ip.id)
-            for port_id in self.added_local_ports:
+            except Exception as e:
+                exceptions.append(e)
+        for port_id in self.added_local_ports:
+            try:
                 self.conn.network.delete_port(
                     port=port_id, ignore_missing=True
                 )
+            except Exception as e:
+                exceptions.append(e)
         if wait:
             self.wait_for_delete()
+        return exceptions
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""
