@@ -277,7 +277,6 @@ class EC2(BaseCloud):
         try:
             snapshot_id = image.block_device_mappings[0]["Ebs"]["SnapshotId"]
         except AttributeError:
-            self._log.debug("Not deleting image as %s not found.", image_id)
             return
 
         self._log.debug("removing custom ami %s", image_id)

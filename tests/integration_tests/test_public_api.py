@@ -126,4 +126,3 @@ def test_public_api(cloud: BaseCloud):
     exercise_instance(instance_from_snapshot)
 
     cloud.delete_image(snapshot_id)  # Remove me
-

@@ -143,13 +143,19 @@ class AzureInstance(BaseInstance):
         if self.status == "deleted":
             return []
         try:
-            delete = self._client.virtual_machines.begin_delete(
+            poller = self._client.virtual_machines.begin_delete(
                 resource_group_name=self._instance["rg_name"],
                 vm_name=self.name,
             )
 
             if wait:
-                delete.wait()
+                poller.wait(timeout=300)
+                if not poller.done():
+                    return [
+                        PycloudlibTimeoutError(
+                            "Resource not deleted after 300 seconds"
+                        )
+                    ]
             self.status = "deleted"
         except Exception as e:
             return [e]

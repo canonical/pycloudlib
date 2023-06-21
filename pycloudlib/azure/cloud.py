@@ -19,6 +19,7 @@ from pycloudlib.errors import (
     InstanceNotFoundError,
     NetworkNotFoundError,
     PycloudlibError,
+    PycloudlibTimeoutError,
 )
 from pycloudlib.util import get_timestamped_tag, update_nested
 
@@ -997,9 +998,14 @@ class Azure(BaseCloud):
             self.resource_group = None
         if resource_group_name:
             with contextlib.suppress(ResourceNotFoundError):
-                self.resource_client.resource_groups.begin_delete(
+                poller = self.resource_client.resource_groups.begin_delete(
                     resource_group_name=resource_group_name
                 )
+                poller.wait(timeout=300)
+                if not poller.done():
+                    raise PycloudlibTimeoutError(
+                        "Resource not deleted after 300 seconds"
+                    )
 
     # pylint: disable=broad-except
     def clean(self) -> List[Exception]:

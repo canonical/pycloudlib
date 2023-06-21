@@ -31,7 +31,7 @@ class EC2Instance(BaseInstance):
 
         self.boot_timeout = 300
 
-        self.created_interfaces = []
+        self.created_interfaces: List[str] = []
 
     def __repr__(self):
         """Create string representation for class."""
@@ -262,9 +262,8 @@ class EC2Instance(BaseInstance):
                     return nic.private_ip_address
             time.sleep(1)
         raise PycloudlibError(
-            "Could not attach NIC with AttachmentId: {}".format(
-                response.get("AttachmentId", None)
-            )
+            "Could not attach NIC with AttachmentId: "
+            f'{response.get("AttachmentId", None)} after 5 attempts'
         )
 
     def _create_ebs_volume(self, size, drive_type):

@@ -161,7 +161,6 @@ class BaseCloud(ABC):
             image_id: string, image ID to use for the instance
             instance_type: string, type of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
-            wait: wait for instance to be live
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:
