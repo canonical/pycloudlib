@@ -17,7 +17,7 @@ from paramiko.ssh_exception import (
     SSHException,
 )
 
-from pycloudlib.errors import PycloudlibTimeoutError
+from pycloudlib.errors import CleanupError, PycloudlibTimeoutError
 from pycloudlib.result import Result
 from pycloudlib.util import print_exception_list, shell_pack, shell_quote
 
@@ -49,6 +49,8 @@ class BaseInstance(ABC):
         """Exit context manager for this class."""
         exceptions = self.delete()
         print_exception_list(exceptions)
+        if exceptions:
+            raise CleanupError(exceptions)
 
     @property
     @abstractmethod

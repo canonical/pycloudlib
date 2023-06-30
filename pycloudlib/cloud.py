@@ -12,6 +12,7 @@ from typing import Any, List, Optional, Sequence
 import paramiko
 
 from pycloudlib.config import ConfigFile, parse_config
+from pycloudlib.errors import CleanupError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.util import (
@@ -82,6 +83,8 @@ class BaseCloud(ABC):
         """Cleanup context manager for this class."""
         exceptions = self.clean()
         print_exception_list(exceptions)
+        if exceptions:
+            raise CleanupError(exceptions)
 
     @abstractmethod
     def delete_image(self, image_id: str, **kwargs):

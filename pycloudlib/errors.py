@@ -125,3 +125,11 @@ class CloudError(PycloudlibException):
 
 class PycloudlibTimeoutError(PycloudlibException):
     """Timeout error."""
+
+
+class CleanupError(PycloudlibException):
+    """Represents a list of exceptions that happen on resource cleanup.
+
+    Don't be too eager to handle this one. If it gets caught and silently
+    handled, you're likely to be leaking resources without realizing it.
+    """

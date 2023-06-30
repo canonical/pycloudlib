@@ -366,14 +366,8 @@ class EC2Instance(BaseInstance):
 
         return list(set(all_device_names) - used_device_names)[0]
 
-    def remove_network_interface(self, ip_address):
-        """Remove network interface based on IP address.
-
-        Find the NIC from the IP, detach from the instance, then delete the
-        NIC.
-        """
-        # Get the NIC from the IP
-        nic = next(
+    def _get_nic_matching_ip(self, ip_address):
+        return next(
             (
                 nic
                 for nic in self._instance.network_interfaces
@@ -381,6 +375,15 @@ class EC2Instance(BaseInstance):
             ),
             None,
         )
+
+    def remove_network_interface(self, ip_address):
+        """Remove network interface based on IP address.
+
+        Find the NIC from the IP, detach from the instance, then delete the
+        NIC.
+        """
+        # Get the NIC from the IP
+        nic = self._get_nic_matching_ip(ip_address)
         if not nic:
             self._log.debug(
                 "Not deleting NIC because no NIC with IP {} found."
@@ -395,12 +398,7 @@ class EC2Instance(BaseInstance):
         # Wait for detach
         for _ in range(60):
             self._instance.reload()
-            nics_matching_ip = [
-                nic
-                for nic in self._instance.network_interfaces
-                if nic.private_ip_address == ip_address
-            ]
-            if not nics_matching_ip:
+            if not self._get_nic_matching_ip(ip_address):
                 break
             time.sleep(1)
         else:
