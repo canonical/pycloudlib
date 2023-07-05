@@ -1,4 +1,5 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
+# pylint: disable=C0302
 """Azure Cloud type."""
 import base64
 import logging
@@ -8,7 +9,7 @@ from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 
-from pycloudlib.azure import util
+from pycloudlib.azure import security_types, util
 from pycloudlib.azure.instance import AzureInstance
 from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
@@ -49,6 +50,11 @@ UBUNTU_RELEASE_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2:latest",
     "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2:latest",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
+}
+
+UBUNTU_CVM_IMAGES = {
+    "focal": "Canonical:0001-com-ubuntu-confidential-vm-focal:20_04-lts-cvm:latest",  # noqa: E501
+    "jammy": "Canonical:0001-com-ubuntu-confidential-vm-jammy:22_04-lts-cvm:latest",  # noqa: E501
 }
 
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
@@ -533,6 +539,18 @@ class Azure(BaseCloud):
         self._log.debug("finding release Ubuntu image for %s", release)
         return self._get_image(release, UBUNTU_RELEASE_IMAGES)
 
+    def confidential_vm_image(self, release):
+        """Get the confidential computing vm image.
+
+        Args:
+            release: string, Ubuntu release to look for
+        Returns:
+            string, id of latest image
+
+        """
+        self._log.debug("finding confidential vm Ubuntu image for %s", release)
+        return self._get_image(release, UBUNTU_CVM_IMAGES)
+
     def _get_images_dict(self, image_type: ImageType):
         if image_type == ImageType.GENERIC:
             return UBUNTU_DAILY_IMAGES
@@ -595,6 +613,7 @@ class Azure(BaseCloud):
         name=None,
         inbound_ports=None,
         username=None,
+        security_type=security_types.AzureSecurityType.STANDARD,
         **kwargs,
     ):
         """Launch virtual machine on Azure.
@@ -607,11 +626,14 @@ class Azure(BaseCloud):
                   Default results in a name of <tag>-vm
             inbound_ports: List of strings, optional inbound ports
                            to enable in the instance.
+            security_type: AzureSecurityType, security on vm image.
+                           Defaults to STANDARD
             kwargs:
                 - vm_params: dict to override configuration for
                 virtual_machines.begin_create_or_update
                 - nic_params: dict to override configuration for
                 network_client.network_interfaces.begin_create_or_update
+                - security_type_params: dict to configure security_types
 
         Returns:
             Azure Instance object
@@ -685,13 +707,21 @@ class Azure(BaseCloud):
                 "Found network interface: %s. Reusing it", nic.name
             )
 
+        vm_params = kwargs.get("vm_params", {})
+        os_disk_encryption = kwargs.get("security_type_params", {}).get(
+            "os_disk_encryption", None
+        )
+        security_types.configure_security_types_vm_params(
+            security_type, vm_params, os_disk_encryption
+        )
+
         vm = self._create_virtual_machine(
             image_id=image_id,
             instance_type=instance_type,
             nic_id=nic.id,
             user_data=user_data,
             name=name,
-            vm_params=kwargs.get("vm_params", None),
+            vm_params=vm_params,
         )
 
         instance_info = {
