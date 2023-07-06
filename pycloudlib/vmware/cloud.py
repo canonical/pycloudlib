@@ -150,7 +150,9 @@ class VMWare(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        return VMWareInstance(self.key_pair, instance_id, env=self.env)
+        return VMWareInstance(
+            key_pair=self.key_pair, vm_id=instance_id, env=self.env
+        )
 
     def launch(
         self,

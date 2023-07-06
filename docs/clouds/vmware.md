@@ -8,7 +8,7 @@ VMWare usage in Pycloudlib requires the [govc](https://github.com/vmware/govmomi
 
 ## Available Images
 
-To create new instances, pycloudlib will clone an existing VM within vSphere that is designated as the image source. In order to quality, the VM must meet the following requirements:
+To create new instances, pycloudlib will clone an existing VM within vSphere that is designated as the image source. In order to qualify, the VM must meet the following requirements:
 
 - A standard (non-template) VM.
 - Powered off

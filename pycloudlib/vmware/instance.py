@@ -67,9 +67,15 @@ class VMWareInstance(BaseInstance):
         Args:
             wait: wait for the instance shutdown
         """
-        subprocess.run(
-            ["govc", "vm.power", "-off", self.vm_id], env=self.env, check=True
-        )
+        try:
+            subprocess.run(
+                ["govc", "vm.power", "-off", self.vm_id],
+                env=self.env,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            if "Powered on" not in str(e):
+                raise
 
     def start(self, wait=True):
         """Start the instance.
@@ -77,9 +83,15 @@ class VMWareInstance(BaseInstance):
         Args:
             wait: wait for the instance to start.
         """
-        subprocess.run(
-            ["govc", "vm.power", "-on", self.vm_id], env=self.env, check=True
-        )
+        try:
+            subprocess.run(
+                ["govc", "vm.power", "-on", self.vm_id],
+                env=self.env,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            if "Powered on" not in str(e):
+                raise
         if wait:
             self.wait()
 

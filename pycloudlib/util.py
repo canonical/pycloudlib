@@ -381,6 +381,11 @@ def add_key_to_cloud_config(
     if not user_data:
         user_data_yaml = {"ssh_authorized_keys": [public_key]}
     else:
+        if not user_data.strip().startswith("#cloud-config"):
+            raise ValueError(
+                "Adding SSH key to cloud config is only supported for "
+                "user data having the '#cloud-config' header"
+            )
         user_data_yaml = yaml.safe_load(user_data)
         if "ssh_authorized_keys" not in user_data_yaml:
             user_data_yaml["ssh_authorized_keys"] = []
