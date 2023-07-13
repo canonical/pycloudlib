@@ -92,6 +92,7 @@ def exercise_instance(instance: BaseInstance):
         ),
         pytest.param(pycloudlib.LXDVirtualMachine, id="lxd_vm"),
         pytest.param(pycloudlib.OCI, id="oci"),
+        pytest.param(pycloudlib.Qemu, id="qemu"),
         pytest.param(pycloudlib.VMWare, id="vmware"),
         # For openstack we first need a reliable way of obtaining the
         # image id
@@ -132,6 +133,7 @@ def test_public_api(cloud: BaseCloud):
     )[-1][0]
     print(f"Checking latest daily devel release image: {latest_devel_release}")
     daily_devel_image_id = cloud.daily_image(release=latest_devel_release)
-    assert (
-        daily_devel_image_id
-    ), "Unable to find daily development image for {cloud.name}:{latest_devel_release}"
+    assert daily_devel_image_id, (
+        "Unable to find daily development image for "
+        f"{cloud._type}:{latest_devel_release}"
+    )

@@ -56,7 +56,7 @@ class TestWait:
     ):
         """Test wait calls when execute command fails."""
         instance = concrete_instance_cls(key_pair=None)
-        m_time.side_effect = [1, 2, 40 * 60, 40 * 60 + 1]
+        m_time.side_effect = [1, 1, 2, 40 * 60, 40 * 60 + 1]
         m_execute.side_effect = execute_effect
         expected_msg = (
             "Instance can't be reached after 40 minutes. "
@@ -186,7 +186,7 @@ class TestWaitForRestart:
         """Test wait calls when execute command fails."""
         m_execute.side_effect = execute_side_effect
         instance = concrete_instance_cls(key_pair=None)
-        m_time.side_effect = [1, 2, 40 * 60, 40 * 60 + 1]
+        m_time.side_effect = [1, 1, 2, 40 * 60, 40 * 60 + 1]
         expected_msg = (
             "Instance can't be reached after 40 minutes. "
             "Failed to obtain new boot id"

@@ -133,3 +133,7 @@ class CleanupError(PycloudlibException):
     Don't be too eager to handle this one. If it gets caught and silently
     handled, you're likely to be leaking resources without realizing it.
     """
+
+
+class MissingPrerequisiteError(PycloudlibException):
+    """Raised when a prerequisite is missing."""

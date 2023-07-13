@@ -10,6 +10,7 @@ from pycloudlib.ibm.cloud import IBM
 from pycloudlib.lxd.cloud import LXD, LXDContainer, LXDVirtualMachine
 from pycloudlib.oci.cloud import OCI
 from pycloudlib.openstack.cloud import Openstack
+from pycloudlib.qemu.cloud import Qemu
 from pycloudlib.vmware.cloud import VMWare
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "LXDVirtualMachine",
     "OCI",
     "Openstack",
+    "Qemu",
     "VMWare",
 ]
 
