@@ -390,5 +390,7 @@ def add_key_to_cloud_config(
         if "ssh_authorized_keys" not in user_data_yaml:
             user_data_yaml["ssh_authorized_keys"] = []
         user_data_yaml["ssh_authorized_keys"].append(public_key)
+    # pyyaml will "helpfully" split long lines on dump, which we do not want.
+    # Use an absurdly large width to ensure the yaml is written correctly.
     new_data = yaml.safe_dump(user_data_yaml, width=999999999)
     return "#cloud-config\n" + new_data
