@@ -10,6 +10,7 @@ from pycloudlib.ibm.cloud import IBM
 from pycloudlib.lxd.cloud import LXD, LXDContainer, LXDVirtualMachine
 from pycloudlib.oci.cloud import OCI
 from pycloudlib.openstack.cloud import Openstack
+from pycloudlib.vmware.cloud import VMWare
 
 __all__ = [
     "Azure",
@@ -21,6 +22,7 @@ __all__ = [
     "LXDVirtualMachine",
     "OCI",
     "Openstack",
+    "VMWare",
 ]
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())

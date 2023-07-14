@@ -108,6 +108,7 @@ def exercise_instance(instance: BaseInstance):
         ),
         pytest.param(pycloudlib.LXDVirtualMachine, id="lxd_vm"),
         pytest.param(pycloudlib.OCI, id="oci"),
+        pytest.param(pycloudlib.VMWare, id="vmware"),
         # For openstack we first need a reliable way of obtaining the
         # image id
         # pytest.param(pycloudlib.Openstack, id="openstack"),
@@ -133,7 +134,7 @@ def test_public_api(cloud: BaseCloud):
         exercise_instance(instance)
 
         instance.clean()
-        result = instance.execute("sudo rm /var/tmp/example.txt")
+        instance.execute("sudo rm /var/tmp/example.txt")
         snapshot_id = cloud.snapshot(instance)
 
     try:

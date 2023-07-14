@@ -11,8 +11,10 @@ import shlex
 import subprocess
 import tempfile
 from errno import ENOENT
-from typing import Dict
+from typing import Dict, Optional
 from urllib.parse import parse_qs, urlparse
+
+import yaml
 
 from pycloudlib.result import Result
 
@@ -369,3 +371,26 @@ def get_query_param(uri: str, param: str) -> list:
     ['r134-fe06d70f']
     """
     return get_query_params(uri).get(param, [])
+
+
+def add_key_to_cloud_config(
+    public_key: str,
+    user_data: Optional[str] = None,
+):
+    """Add a public key to the cloud-config."""
+    if not user_data:
+        user_data_yaml = {"ssh_authorized_keys": [public_key]}
+    else:
+        if not user_data.strip().startswith("#cloud-config"):
+            raise ValueError(
+                "Adding SSH key to cloud config is only supported for "
+                "user data having the '#cloud-config' header"
+            )
+        user_data_yaml = yaml.safe_load(user_data)
+        if "ssh_authorized_keys" not in user_data_yaml:
+            user_data_yaml["ssh_authorized_keys"] = []
+        user_data_yaml["ssh_authorized_keys"].append(public_key)
+    # pyyaml will "helpfully" split long lines on dump, which we do not want.
+    # Use an absurdly large width to ensure the yaml is written correctly.
+    new_data = yaml.safe_dump(user_data_yaml, width=999999999)
+    return "#cloud-config\n" + new_data
