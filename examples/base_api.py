@@ -22,50 +22,54 @@ def exercise_api(client: BaseCloud, image_id=None):
             image_id = client.daily_image("focal")
     print("image id: {}".format(image_id))
     print("launching instance...")
-    instance = client.launch(image_id=image_id, user_data=cloud_config)
+    with client.launch(image_id=image_id, user_data=cloud_config) as instance:
+        instance.wait()
+        print("instance name: {}".format(instance.name))
+        with suppress(NotImplementedError):
+            print("instance ip: {}".format(instance.ip))
 
-    print("instance name: {}".format(instance.name))
-    with suppress(NotImplementedError):
-        print("instance ip: {}".format(instance.ip))
+        print("starting instance...")
+        instance.start()
+        print("waiting for cloud-init...")
+        instance.execute("cloud-init status --wait --long")
+        with suppress(NotImplementedError):
+            instance.console_log()
+        example_output = instance.execute(
+            "cat /home/ubuntu/example.txt"
+        ).stdout
+        assert example_output == "hello", example_output
 
-    print("starting instance...")
-    instance.start()
-    print("waiting for cloud-init...")
-    instance.execute("cloud-init status --wait --long")
-    with suppress(NotImplementedError):
-        instance.console_log()
-    example_output = instance.execute("cat /home/ubuntu/example.txt").stdout
-    assert example_output == "hello", example_output
+        print("restarting instance...")
+        instance.execute("sync")  # Prevent's some wtfs :)
+        instance.restart()
+        example_output = instance.execute(
+            "cat /home/ubuntu/example.txt"
+        ).stdout
+        assert example_output == "hello", example_output
 
-    print("restarting instance...")
-    instance.execute("sync")  # Prevent's some wtfs :)
-    instance.restart()
-    example_output = instance.execute("cat /home/ubuntu/example.txt").stdout
-    assert example_output == "hello", example_output
-
-    print("shutting down instance...")
-    instance.shutdown()
-    print("starting instance...")
-    instance.start()
-    example_output = instance.execute("cat /home/ubuntu/example.txt").stdout
-    assert example_output == "hello", example_output
-    snapshot_id = None
-    with suppress(NotImplementedError):
-        print("snapshotting instance...")
-        snapshot_id = client.snapshot(instance)
-        print("snapshot image id: {}".format(snapshot_id))
-    if snapshot_id:
-        assert snapshot_id != image_id
-        instance_from_snapshot = client.launch(image_id=snapshot_id)
-        instance_from_snapshot.start()
-        instance_from_snapshot.execute("cloud-init status --wait --long")
-        print("deleting instance created from snapshot")
-        instance_from_snapshot.delete()
-        print("deleting snapshot...")
-        client.delete_image(snapshot_id)
-
-    print("deleting instance...")
-    instance.delete()
+        print("shutting down instance...")
+        instance.shutdown()
+        print("starting instance...")
+        instance.start()
+        example_output = instance.execute(
+            "cat /home/ubuntu/example.txt"
+        ).stdout
+        assert example_output == "hello", example_output
+        snapshot_id = None
+        with suppress(NotImplementedError):
+            print("snapshotting instance...")
+            snapshot_id = client.snapshot(instance)
+            print("snapshot image id: {}".format(snapshot_id))
+        if snapshot_id:
+            assert snapshot_id != image_id
+            with client.launch(image_id=snapshot_id) as instance_from_snapshot:
+                instance_from_snapshot.start()
+                instance_from_snapshot.execute(
+                    "cloud-init status --wait --long"
+                )
+                print("deleting instance created from snapshot")
+            print("deleting snapshot...")
+            client.delete_image(snapshot_id)
 
 
 ALL_CLOUDS: dict = {
@@ -96,6 +100,6 @@ if __name__ == "__main__":
             clouds[key] = ALL_CLOUDS[key]
     for cloud, cloud_kwargs in clouds.items():
         print("Using cloud: {}".format(cloud.__name__))
-        client_api = cloud(tag="base-api-test", **cloud_kwargs)
-        exercise_api(client_api, image_id=os.environ.get("IMAGE_ID"))
-        print()
+        with cloud(tag="base-api-test", **cloud_kwargs) as client_api:
+            exercise_api(client_api, image_id=os.environ.get("IMAGE_ID"))
+            print()

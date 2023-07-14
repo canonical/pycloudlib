@@ -1,7 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """AWS EC2 Cloud type."""
 import re
-from typing import Optional
+from typing import List, Optional
 
 import botocore
 
@@ -73,6 +73,9 @@ class EC2(BaseCloud):
                 "Please configure ec2 credentials in $HOME/.aws/credentials"
             ) from e
 
+        self.created_vpcs: List[VPC] = []
+        self.created_keys: List[str] = []
+
     def get_or_create_vpc(self, name, ipv4_cidr="192.168.1.0/20"):
         """Create a or return matching VPC.
 
@@ -93,7 +96,9 @@ class EC2(BaseCloud):
         )["Vpcs"]
         if vpcs:
             return VPC.from_existing(self.resource, vpc_id=vpcs[0]["VpcId"])
-        return VPC.create(self.resource, name=name, ipv4_cidr=ipv4_cidr)
+        new_vpc = VPC.create(self.resource, name=name, ipv4_cidr=ipv4_cidr)
+        self.created_vpcs.append(new_vpc)
+        return new_vpc
 
     def released_image(
         self,
@@ -269,7 +274,10 @@ class EC2(BaseCloud):
             image_id: string, id of the image to delete
         """
         image = self.resource.Image(image_id)
-        snapshot_id = image.block_device_mappings[0]["Ebs"]["SnapshotId"]
+        try:
+            snapshot_id = image.block_device_mappings[0]["Ebs"]["SnapshotId"]
+        except AttributeError:
+            return
 
         self._log.debug("removing custom ami %s", image_id)
         self.client.deregister_image(ImageId=image_id)
@@ -304,7 +312,6 @@ class EC2(BaseCloud):
         image_id,
         instance_type="t3.micro",  # Using nitro instance for IPv6
         user_data=None,
-        wait=True,
         vpc=None,
         username=None,
         **kwargs,
@@ -315,7 +322,6 @@ class EC2(BaseCloud):
             image_id: string, AMI ID to use default: latest Ubuntu LTS
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
-            wait: boolean, wait for instance to come up
             vpc: optional vpc object to create instance under
             kwargs: other named arguments to add to instance JSON
 
@@ -366,9 +372,7 @@ class EC2(BaseCloud):
         instance = EC2Instance(
             self.key_pair, self.client, instances[0], username=username
         )
-
-        if wait:
-            instance.wait()
+        self.created_instances.append(instance)
 
         return instance
 
@@ -403,6 +407,7 @@ class EC2(BaseCloud):
         )
         image_ami_edited = response["ImageId"]
         image = self.resource.Image(image_ami_edited)
+        self.created_images.append(image.id)
 
         self._wait_for_snapshot(image)
         _tag_resource(image, self.tag)
@@ -424,6 +429,7 @@ class EC2(BaseCloud):
             KeyName=name, PublicKeyMaterial=self.key_pair.public_key_content
         )
         self.use_key(public_key_path, private_key_path, name)
+        self.created_keys.append(name)
 
     def use_key(self, public_key_path, private_key_path=None, name=None):
         """Use an existing already uploaded key.
@@ -447,3 +453,24 @@ class EC2(BaseCloud):
         waiter = self.client.get_waiter("image_available")
         waiter.wait(ImageIds=[image.id])
         image.reload()
+
+    # pylint: disable=broad-except
+    def clean(self) -> List[Exception]:
+        """Cleanup ALL artifacts associated with this Cloud instance.
+
+        Cleanup any cloud artifacts created at any time during this class's
+        existence. This includes all instances, snapshots, resources, etc.
+        """
+        exceptions = super().clean()
+        for vpc in self.created_vpcs:
+            try:
+                vpc.delete()
+            except Exception as e:
+                exceptions.append(e)
+
+        for key in self.created_keys:
+            try:
+                self.delete_key(key)
+            except Exception as e:
+                exceptions.append(e)
+        return exceptions

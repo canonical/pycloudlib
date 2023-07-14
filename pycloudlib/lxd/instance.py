@@ -3,6 +3,7 @@
 import json
 import re
 import time
+from typing import List
 
 from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
@@ -223,7 +224,7 @@ class LXDInstance(BaseInstance):
             # log for this instance: raise NotImplementedError
             raise NotImplementedError from exc
 
-    def delete(self, wait=True):
+    def delete(self, wait=True) -> List[Exception]:
         """Delete the current instance.
 
         By default this will use the '--force' option to prevent the
@@ -236,10 +237,16 @@ class LXDInstance(BaseInstance):
         """
         self._log.debug("deleting %s", self.name)
 
-        subp(["lxc", "delete", self.name, "--force"])
+        try:
+            subp(["lxc", "delete", self.name, "--force"])
+        except RuntimeError as e:
+            if "Instance not found" not in str(e):
+                return [e]
 
         if wait:
             self.wait_for_delete()
+
+        return []
 
     def delete_snapshot(self, snapshot_name):
         """Delete a snapshot of the instance.

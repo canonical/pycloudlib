@@ -2,6 +2,7 @@
 """EC2 instance."""
 import string
 import time
+from typing import List
 
 import botocore
 
@@ -29,6 +30,8 @@ class EC2Instance(BaseInstance):
         self._client = client
 
         self.boot_timeout = 300
+
+        self.created_interfaces: List[str] = []
 
     def __repr__(self):
         """Create string representation for class."""
@@ -118,13 +121,25 @@ class EC2Instance(BaseInstance):
                 time.sleep(5)
         return "No Console Output [%s]" % self._instance
 
-    def delete(self, wait=True):
+    # pylint: disable=broad-except
+    def delete(self, wait=True) -> List[Exception]:
         """Delete instance."""
+        exceptions = []
+        # Even with DeleteOnTermination set True, nics can outlive instances
+        for ip in self.created_interfaces:
+            try:
+                self.remove_network_interface(ip)
+            except Exception as e:
+                exceptions.append(e)
         self._log.debug("deleting instance %s", self._instance.id)
-        self._instance.terminate()
+        try:
+            self._instance.terminate()
+            if wait:
+                self.wait_for_delete()
+        except Exception as e:
+            exceptions.append(e)
 
-        if wait:
-            self.wait_for_delete()
+        return exceptions
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""
@@ -231,21 +246,24 @@ class EC2Instance(BaseInstance):
 
         response = self._client.attach_network_interface(**args)
 
-        self._instance.reload()
-
-        for nic in self._instance.network_interfaces:
-            if nic.attachment["AttachmentId"] == response["AttachmentId"]:
-                nic.modify_attribute(
-                    Attachment={
-                        "AttachmentId": response["AttachmentId"],
-                        "DeleteOnTermination": True,
-                    }
-                )
-                return nic.private_ip_address
+        # It's possible the attach worked correctly but it's not yet
+        # present in the nic attributes
+        for _ in range(5):
+            self._instance.reload()
+            for nic in self._instance.network_interfaces:
+                if nic.attachment["AttachmentId"] == response["AttachmentId"]:
+                    nic.modify_attribute(
+                        Attachment={
+                            "AttachmentId": response["AttachmentId"],
+                            "DeleteOnTermination": True,
+                        }
+                    )
+                    self.created_interfaces.append(nic.private_ip_address)
+                    return nic.private_ip_address
+            time.sleep(1)
         raise PycloudlibError(
-            "Could not attach NIC with AttachmentId: {}".format(
-                response.get("AttachmentId", None)
-            )
+            "Could not attach NIC with AttachmentId: "
+            f'{response.get("AttachmentId", None)} after 5 attempts'
         )
 
     def _create_ebs_volume(self, size, drive_type):
@@ -348,6 +366,16 @@ class EC2Instance(BaseInstance):
 
         return list(set(all_device_names) - used_device_names)[0]
 
+    def _get_nic_matching_ip(self, ip_address):
+        return next(
+            (
+                nic
+                for nic in self._instance.network_interfaces
+                if nic.private_ip_address == ip_address
+            ),
+            None,
+        )
+
     def remove_network_interface(self, ip_address):
         """Remove network interface based on IP address.
 
@@ -355,24 +383,22 @@ class EC2Instance(BaseInstance):
         NIC.
         """
         # Get the NIC from the IP
-        nic = [
-            nic
-            for nic in self._instance.network_interfaces
-            if nic.private_ip_address == ip_address
-        ][0]
+        nic = self._get_nic_matching_ip(ip_address)
+        if not nic:
+            self._log.debug(
+                "Not deleting NIC because no NIC with IP {} found."
+            )
+            return
+
+        # Detach from the instance
         self._client.detach_network_interface(
             AttachmentId=nic.attachment["AttachmentId"]
         )
 
-        # Detach from the instance
+        # Wait for detach
         for _ in range(60):
             self._instance.reload()
-            nics = [
-                nic
-                for nic in self._instance.network_interfaces
-                if nic.id == ip_address
-            ]
-            if not nics:
+            if not self._get_nic_matching_ip(ip_address):
                 break
             time.sleep(1)
         else:
@@ -381,6 +407,7 @@ class EC2Instance(BaseInstance):
         # Delete the NIC
         try:
             self._client.delete_network_interface(NetworkInterfaceId=nic.id)
+            self._log.debug("NIC with IP %s deleted.", ip_address)
         except botocore.exceptions.ClientError:
             self._log.debug(
                 "Failed manually deleting network interface. "

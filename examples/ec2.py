@@ -15,15 +15,13 @@ def hot_add(ec2, daily):
     Give an example of hot adding a pair of network interfaces and a
     couple storage volumes of various sizes.
     """
-    instance = ec2.launch(daily, instance_type="m4.xlarge")
+    with ec2.launch(daily, instance_type="m4.xlarge") as instance:
+        instance.wait()
+        instance.add_network_interface()
+        instance.add_network_interface()
 
-    instance.add_network_interface()
-    instance.add_network_interface()
-
-    instance.add_volume(size=9)
-    instance.add_volume(size=10, drive_type="gp2")
-
-    instance.delete()
+        instance.add_volume(size=9)
+        instance.add_volume(size=10, drive_type="gp2")
 
 
 def launch_multiple(ec2, daily):
@@ -34,7 +32,7 @@ def launch_multiple(ec2, daily):
     """
     instances = []
     for _ in range(3):
-        instances.append(ec2.launch(daily, wait=False))
+        instances.append(ec2.launch(daily))
 
     for instance in instances:
         instance.wait()
@@ -48,22 +46,25 @@ def launch_multiple(ec2, daily):
 
 def snapshot(ec2, daily):
     """Create a snapshot from a customized image and launch it."""
-    instance = ec2.launch(daily)
-    instance.execute("touch custom_config_file")
+    with ec2.launch(daily) as instance:
+        instance.wait()
+        instance.execute("touch custom_config_file")
 
-    image = ec2.snapshot(instance)
-    new_instance = ec2.launch(image)
-    new_instance.execute("ls")
+        image = ec2.snapshot(instance)
+        new_instance = ec2.launch(image)
+        new_instance.wait()
+        new_instance.execute("ls")
 
-    new_instance.delete()
-    ec2.delete_image(image)
-    instance.delete()
+        new_instance.delete()
+        ec2.delete_image(image)
 
 
 def custom_vpc(ec2, daily):
     """Launch instances using a custom VPC."""
     vpc = ec2.get_or_create_vpc(name="test-vpc")
-    ec2.launch(daily, vpc=vpc)
+    with ec2.launch(daily, vpc=vpc) as instance:
+        instance.wait()
+        instance.execute("whoami")
 
     # vpc.delete will also delete any associated instances in that VPC
     vpc.delete()
@@ -74,39 +75,38 @@ def launch_basic(ec2, daily):
 
     Simple launching of an instance, run a command, and delete.
     """
-    instance = ec2.launch(daily)
-    instance.console_log()
-    print(instance.execute("lsb_release -a"))
+    with ec2.launch(daily) as instance:
+        instance.wait()
+        instance.console_log()
+        print(instance.execute("lsb_release -a"))
 
-    instance.shutdown()
-    instance.start()
-    instance.restart()
+        instance.shutdown()
+        instance.start()
+        instance.restart()
 
-    # Various Attributes
-    print(instance.ip)
-    print(instance.id)
-    print(instance.image_id)
-    print(instance.availability_zone)
-
-    instance.delete()
+        # Various Attributes
+        print(instance.ip)
+        print(instance.id)
+        print(instance.image_id)
+        print(instance.availability_zone)
 
 
 def launch_pro(ec2, daily):
     """Show basic functionality on PRO instances."""
     print("Launching Pro instance...")
-    instance = ec2.launch(daily)
-    print(instance.execute("sudo ua status --wait"))
-    print("Deleting Pro instance...")
-    instance.delete()
+    with ec2.launch(daily) as instance:
+        instance.wait()
+        print(instance.execute("sudo ua status --wait"))
+        print("Deleting Pro instance...")
 
 
 def launch_pro_fips(ec2, daily):
     """Show basic functionality on PRO instances."""
     print("Launching Pro FIPS instance...")
-    instance = ec2.launch(daily)
-    print(instance.execute("sudo ua status --wait"))
-    print("Deleting Pro FIPS instance...")
-    instance.delete()
+    with ec2.launch(daily) as instance:
+        instance.wait()
+        print(instance.execute("sudo ua status --wait"))
+        print("Deleting Pro FIPS instance...")
 
 
 def handle_ssh_key(ec2, key_name):
@@ -135,23 +135,23 @@ def demo():
     Connects to EC2 and finds the latest daily image. Then runs
     through a number of examples.
     """
-    ec2 = pycloudlib.EC2(tag="examples")
-    key_name = "test-ec2"
-    handle_ssh_key(ec2, key_name)
+    with pycloudlib.EC2(tag="examples") as ec2:
+        key_name = "test-ec2"
+        handle_ssh_key(ec2, key_name)
 
-    daily = ec2.daily_image(release="bionic")
-    daily_pro = ec2.daily_image(release="bionic", image_type=ImageType.PRO)
-    daily_pro_fips = ec2.daily_image(
-        release="bionic", image_type=ImageType.PRO_FIPS
-    )
+        daily = ec2.daily_image(release="bionic")
+        daily_pro = ec2.daily_image(release="bionic", image_type=ImageType.PRO)
+        daily_pro_fips = ec2.daily_image(
+            release="bionic", image_type=ImageType.PRO_FIPS
+        )
 
-    launch_basic(ec2, daily)
-    launch_pro(ec2, daily_pro)
-    launch_pro_fips(ec2, daily_pro_fips)
-    custom_vpc(ec2, daily)
-    snapshot(ec2, daily)
-    launch_multiple(ec2, daily)
-    hot_add(ec2, daily)
+        launch_basic(ec2, daily)
+        launch_pro(ec2, daily_pro)
+        launch_pro_fips(ec2, daily_pro_fips)
+        custom_vpc(ec2, daily)
+        snapshot(ec2, daily)
+        launch_multiple(ec2, daily)
+        hot_add(ec2, daily)
 
 
 if __name__ == "__main__":

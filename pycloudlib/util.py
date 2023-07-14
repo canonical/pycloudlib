@@ -9,9 +9,11 @@ import platform
 import re
 import shlex
 import subprocess
+import sys
 import tempfile
+import traceback
 from errno import ENOENT
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 import yaml
@@ -394,3 +396,13 @@ def add_key_to_cloud_config(
     # Use an absurdly large width to ensure the yaml is written correctly.
     new_data = yaml.safe_dump(user_data_yaml, width=999999999)
     return "#cloud-config\n" + new_data
+
+
+def print_exception_list(exceptions: List[Exception]):
+    """Print a list of exceptions (including traceback) to stderr."""
+    if exceptions:
+        print("Encountered exception(s) during cleanup!\n", file=sys.stderr)
+        for i, e in enumerate(exceptions, start=1):
+            print(f"===== EXCEPTION {i} =====", file=sys.stderr)
+            traceback.print_exception(type(e), e, e.__traceback__)
+            print("", file=sys.stderr)

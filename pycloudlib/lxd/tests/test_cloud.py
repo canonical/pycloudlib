@@ -43,7 +43,6 @@ class TestLaunch:
             "image_id": image_id,
             "instance_type": "inst_type",
             "user_data": "ud",
-            "wait": False,
             "name": "name",
             "ephemeral": True,
             "network": "netname",
@@ -57,7 +56,6 @@ class TestLaunch:
             with mock.patch.object(cloud, "init") as lxd_init:
                 lxd_init.return_value = inst
                 inst = cloud.launch(**init_kwargs)
-                wait_val = init_kwargs.pop("wait")
                 assert lxd_init.call_args_list == [
                     mock.call(
                         name="name",
@@ -73,7 +71,7 @@ class TestLaunch:
                     )
                 ]
                 # pylint: disable=no-member
-                assert inst.start.call_args_list == [mock.call(wait_val)]
+                assert inst.start.call_args_list == [mock.call(wait=False)]
                 # pylint: disable=no-member
 
         if not image_id:

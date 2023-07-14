@@ -99,9 +99,13 @@ class VMWare(BaseCloud):
             raise ValueError(
                 f"{image_id} is a core template and cannot be deleted."
             )
-        subprocess.run(
-            ["govc", "vm.destroy", image_id], env=self.env, check=True
-        )
+        try:
+            subprocess.run(
+                ["govc", "vm.destroy", image_id], env=self.env, check=True
+            )
+        except subprocess.CalledProcessError as e:
+            if "not found" not in str(e):
+                raise
 
     def daily_image(self, release: str, **kwargs):
         """Return released_image for VMWare.
@@ -159,7 +163,6 @@ class VMWare(BaseCloud):
         image_id: str,
         instance_type=None,
         user_data=None,
-        wait: bool = True,
         **kwargs,
     ) -> VMWareInstance:
         """Launch an instance.
@@ -179,6 +182,18 @@ class VMWare(BaseCloud):
 
         instance_name = f"{self.tag}-{next(self._instance_counter)}"
 
+        # VMWare does provide the option to pass a public key through the
+        # mounted cdrom device using ovf xml, but then cloud-init will
+        # detect the ovf datasource rather than the VMWare datasource.
+        # If we want to use the VMWare datasource, there is no other
+        # way to provide a public key other than through the userdata.
+        user_data = add_key_to_cloud_config(
+            self.key_pair.public_key_content, user_data
+        )
+
+        b64_metadata = base64.b64encode(METADATA.encode()).decode()
+        b64_userdata = base64.b64encode(user_data.encode()).decode()
+
         subprocess.run(
             [
                 "govc",
@@ -192,17 +207,8 @@ class VMWare(BaseCloud):
             check=True,
         )
 
-        # VMWare does provide the option to pass a public key through the
-        # mounted cdrom device using ovf xml, but then cloud-init will
-        # detect the ovf datasource rather than the VMWare datasource.
-        # If we want to use the VMWare datasource, there is no other
-        # way to provide a public key other than through the userdata.
-        user_data = add_key_to_cloud_config(
-            self.key_pair.public_key_content, user_data
-        )
-
-        b64_metadata = base64.b64encode(METADATA.encode()).decode()
-        b64_userdata = base64.b64encode(user_data.encode()).decode()
+        instance = VMWareInstance(self.key_pair, instance_name, env=self.env)
+        self.created_instances.append(instance)
 
         subprocess.run(
             [
@@ -223,11 +229,7 @@ class VMWare(BaseCloud):
             check=True,
         )
 
-        instance = VMWareInstance(self.key_pair, instance_name, env=self.env)
         instance.start()
-        if wait:
-            instance.wait()
-
         return instance
 
     def snapshot(self, instance, clean=True, **kwargs):
@@ -255,4 +257,7 @@ class VMWare(BaseCloud):
             env=self.env,
             check=True,
         )
+
+        self.created_images.append(image_name)
+
         return image_name

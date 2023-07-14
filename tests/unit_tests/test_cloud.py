@@ -33,9 +33,7 @@ class CloudSubclass(BaseCloud):
     def get_instance(self, instance_id):
         """Skeletal get_instance."""
 
-    def launch(
-        self, image_id, instance_type=None, user_data=None, wait=True, **kwargs
-    ):
+    def launch(self, image_id, instance_type=None, user_data=None, **kwargs):
         """Skeletal launch."""
 
     def snapshot(self, instance, clean=True, **kwargs):

@@ -2,9 +2,11 @@
 # pylint: disable=C0302
 """Azure Cloud type."""
 import base64
+import contextlib
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
+from azure.core.exceptions import ResourceNotFoundError
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
@@ -17,6 +19,7 @@ from pycloudlib.errors import (
     InstanceNotFoundError,
     NetworkNotFoundError,
     PycloudlibError,
+    PycloudlibTimeoutError,
 )
 from pycloudlib.util import get_timestamped_tag, update_nested
 
@@ -108,6 +111,8 @@ class Azure(BaseCloud):
                 tenant_id,
             ],
         )
+
+        self.created_resource_groups: List = []
 
         self._log.debug("logging into Azure")
         self.location = region or self.config.get("region") or "centralus"
@@ -236,10 +241,15 @@ class Azure(BaseCloud):
         resource_name = "{}-rg".format(self.tag)
         self._log.debug("Creating Azure resource group")
 
-        return self.resource_client.resource_groups.create_or_update(
+        with contextlib.suppress(ResourceNotFoundError):
+            return self.resource_client.resource_groups.get(resource_name)
+
+        resource_group = self.resource_client.resource_groups.create_or_update(
             resource_name,
             {"location": self.location, "tags": {"name": self.tag}},
         )
+        self.created_resource_groups.append(resource_group)
+        return resource_group
 
     def _create_virtual_network(self, address_prefixes=None):
         """Create a virtual network.
@@ -501,6 +511,8 @@ class Azure(BaseCloud):
             image_id: string, The id of the image to be deleted
         """
         image_name = util.get_resource_name_from_id(image_id)
+        if not image_name:
+            return
         resource_group_name = util.get_resource_group_name_from_id(image_id)
 
         delete_poller = self.compute_client.images.begin_delete(
@@ -510,8 +522,9 @@ class Azure(BaseCloud):
         delete_poller.wait()
 
         if delete_poller.status() == "Succeeded":
-            self._log.debug("Image %s was deleted", image_id)
-            del self.registered_images[image_id]
+            if image_id in self.registered_images:
+                del self.registered_images[image_id]
+                self._log.debug("Image %s was deleted", image_id)
         else:
             self._log.debug(
                 "Error deleting %s. Status: %d",
@@ -609,7 +622,6 @@ class Azure(BaseCloud):
         image_id,
         instance_type="Standard_DS1_v2",
         user_data=None,
-        wait=True,
         name=None,
         inbound_ports=None,
         username=None,
@@ -621,7 +633,6 @@ class Azure(BaseCloud):
         Args:
             image_id: string, Ubuntu image to use
             user_data: string, user-data to pass to virtual machine
-            wait: boolean, wait for instance to come up
             name: string, optional name to give the vm when launching.
                   Default results in a name of <tag>-vm
             inbound_ports: List of strings, optional inbound ports
@@ -737,8 +748,7 @@ class Azure(BaseCloud):
             username=username,
         )
 
-        if wait:
-            instance.wait()
+        self.created_instances.append(instance)
 
         self.registered_instances[vm.name] = instance
         return instance
@@ -968,6 +978,8 @@ class Azure(BaseCloud):
         image_id = image.id
         image_name = image.name
 
+        self.created_images.append(image_id)
+
         self.registered_images[image_id] = {
             "name": image_name,
             "sku": instance.sku,
@@ -976,11 +988,37 @@ class Azure(BaseCloud):
 
         return image_id
 
-    def delete_resource_group(self):
-        """Delete a resource group."""
-        if self.resource_group:
-            self.resource_client.resource_groups.begin_delete(
-                resource_group_name=self.resource_group.name
-            )
+    def delete_resource_group(self, resource_group_name: Optional[str] = None):
+        """Delete a resource group.
 
+        If no resource group is provided, delete self.resource_group
+        """
+        if resource_group_name is None and self.resource_group:
+            resource_group_name = self.resource_group.name
             self.resource_group = None
+        if resource_group_name:
+            with contextlib.suppress(ResourceNotFoundError):
+                poller = self.resource_client.resource_groups.begin_delete(
+                    resource_group_name=resource_group_name
+                )
+                poller.wait(timeout=300)
+                if not poller.done():
+                    raise PycloudlibTimeoutError(
+                        "Resource not deleted after 300 seconds"
+                    )
+
+    # pylint: disable=broad-except
+    def clean(self) -> List[Exception]:
+        """Cleanup ALL artifacts associated with this Cloud instance.
+
+        This includes all instances, snapshots, resources, etc.
+        To ensure cleanup isn't interrupted, any exceptions raised during
+        cleanup operations will be collected and returned.
+        """
+        exceptions = super().clean()
+        for resource_group in self.created_resource_groups:
+            try:
+                self.delete_resource_group(resource_group.name)
+            except Exception as e:
+                exceptions.append(e)
+        return exceptions

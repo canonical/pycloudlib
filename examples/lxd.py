@@ -19,20 +19,23 @@ def snapshot_instance():
     instance to the snapshot level.
     Finally, launch another instance from the snapshot of the instance.
     """
-    lxd = pycloudlib.LXDContainer("example-snapshot")
-    inst = lxd.launch(name="pycloudlib-snapshot-base", image_id=RELEASE)
+    with pycloudlib.LXDContainer("example-snapshot") as lxd:
+        with lxd.launch(
+            name="pycloudlib-snapshot-base", image_id=RELEASE
+        ) as inst:
+            inst.wait()
+            snapshot_name = "snapshot"
+            inst.local_snapshot(snapshot_name)
+            inst.restore(snapshot_name)
 
-    snapshot_name = "snapshot"
-    inst.local_snapshot(snapshot_name)
-    inst.restore(snapshot_name)
+            child = lxd.clone(
+                "%s/%s" % (inst.name, snapshot_name),
+                "pycloudlib-snapshot-child",
+            )
 
-    child = lxd.clone(
-        "%s/%s" % (inst.name, snapshot_name), "pycloudlib-snapshot-child"
-    )
-
-    child.delete()
-    inst.delete_snapshot(snapshot_name)
-    inst.delete(wait=False)
+            child.delete()
+            inst.delete_snapshot(snapshot_name)
+            inst.delete(wait=False)
 
 
 def image_snapshot_instance(ephemeral_instance=False):
@@ -41,25 +44,27 @@ def image_snapshot_instance(ephemeral_instance=False):
     Create an snapshot image from a running instance an show
     how to launch a new instance based of this image snapshot
     """
-    lxd = pycloudlib.LXDContainer("example-image-snapshot")
-    inst = lxd.launch(
-        name="pycloudlib-snapshot-base",
-        image_id=RELEASE,
-        ephemeral=ephemeral_instance,
-    )
-    inst.execute("touch snapshot-test.txt")
-    print("Base instance output: {}".format(inst.execute("ls")))
-    snapshot_image = lxd.snapshot(instance=inst)
+    with pycloudlib.LXDContainer("example-image-snapshot") as lxd:
+        with lxd.launch(
+            name="pycloudlib-snapshot-base",
+            image_id=RELEASE,
+            ephemeral=ephemeral_instance,
+        ) as inst:
+            inst.wait()
+            inst.execute("touch snapshot-test.txt")
+            print("Base instance output: {}".format(inst.execute("ls")))
+            snapshot_image = lxd.snapshot(instance=inst)
 
-    snapshot_inst = lxd.launch(
-        name="pycloudlib-snapshot-image",
-        image_id=snapshot_image,
-        ephemeral=ephemeral_instance,
-    )
-    print("Snapshot instance output: {}".format(snapshot_inst.execute("ls")))
-
-    snapshot_inst.delete()
-    inst.delete()
+            with lxd.launch(
+                name="pycloudlib-snapshot-image",
+                image_id=snapshot_image,
+                ephemeral=ephemeral_instance,
+            ) as snapshot_inst:
+                print(
+                    "Snapshot instance output: {}".format(
+                        snapshot_inst.execute("ls")
+                    )
+                )
 
 
 def modify_instance():
@@ -71,18 +76,15 @@ def modify_instance():
     Once started the instance demonstrates some interactions with the
     instance.
     """
-    lxd = pycloudlib.LXDContainer("example-modify")
+    with pycloudlib.LXDContainer("example-modify") as lxd:
+        with lxd.init("pycloudlib-modify-inst", RELEASE) as inst:
+            inst.edit("limits.memory", "3GB")
+            inst.start()
 
-    inst = lxd.init("pycloudlib-modify-inst", RELEASE)
-    inst.edit("limits.memory", "3GB")
-    inst.start()
-
-    inst.execute("uptime > /tmp/uptime")
-    inst.pull_file("/tmp/uptime", "/tmp/pulled_file")
-    inst.push_file("/tmp/pulled_file", "/tmp/uptime_2")
-    inst.execute("cat /tmp/uptime_2")
-
-    inst.delete(wait=False)
+            inst.execute("uptime > /tmp/uptime")
+            inst.pull_file("/tmp/uptime", "/tmp/pulled_file")
+            inst.push_file("/tmp/pulled_file", "/tmp/uptime_2")
+            inst.execute("cat /tmp/uptime_2")
 
 
 def launch_multiple():
@@ -96,9 +98,7 @@ def launch_multiple():
 
     instances = []
     for num in range(3):
-        inst = lxd.launch(
-            name="pycloudlib-%s" % num, image_id=RELEASE, wait=False
-        )
+        inst = lxd.launch(name="pycloudlib-%s" % num, image_id=RELEASE)
         instances.append(inst)
 
     for instance in instances:
@@ -172,69 +172,71 @@ def launch_options():
 
 def basic_lifecycle():
     """Demonstrate basic set of lifecycle operations with LXD."""
-    lxd = pycloudlib.LXDContainer("example-basic")
-    inst = lxd.launch(image_id=RELEASE)
-    inst.delete()
+    with pycloudlib.LXDContainer("example-basic") as lxd:
+        with lxd.launch(image_id=RELEASE) as inst:
+            inst.wait()
 
-    name = "pycloudlib-daily"
-    inst = lxd.launch(name=name, image_id=RELEASE)
-    inst.console_log()
+        name = "pycloudlib-daily"
+        with lxd.launch(name=name, image_id=RELEASE) as inst:
+            inst.wait()
+            inst.console_log()
 
-    result = inst.execute("uptime")
-    print(result)
-    print(result.return_code)
-    print(result.ok)
-    print(result.failed)
-    print(bool(result))
+            result = inst.execute("uptime")
+            print(result)
+            print(result.return_code)
+            print(result.ok)
+            print(result.failed)
+            print(bool(result))
 
-    inst.shutdown()
-    inst.start()
-    inst.restart()
+            inst.shutdown()
+            inst.start()
+            inst.restart()
 
-    # Custom attributes
-    print(inst.ephemeral)
-    print(inst.state)
+            # Custom attributes
+            print(inst.ephemeral)
+            print(inst.state)
 
-    inst = lxd.get_instance(name)
-    inst.delete()
+            inst = lxd.get_instance(name)
+            inst.delete()
 
 
 def launch_virtual_machine():
     """Demonstrate launching virtual machine scenario."""
-    lxd = pycloudlib.LXDVirtualMachine("example-vm")
+    with pycloudlib.LXDVirtualMachine("example-vm") as lxd:
+        pub_key_path = "lxd-pubkey"
+        priv_key_path = "lxd-privkey"
+        pub_key, priv_key = lxd.create_key_pair()
 
-    pub_key_path = "lxd-pubkey"
-    priv_key_path = "lxd-privkey"
-    pub_key, priv_key = lxd.create_key_pair()
+        with open(pub_key_path, "w", encoding="utf-8") as f:
+            f.write(pub_key)
 
-    with open(pub_key_path, "w", encoding="utf-8") as f:
-        f.write(pub_key)
+        with open(priv_key_path, "w", encoding="utf-8") as f:
+            f.write(priv_key)
 
-    with open(priv_key_path, "w", encoding="utf-8") as f:
-        f.write(priv_key)
+        lxd.use_key(
+            public_key_path=pub_key_path, private_key_path=priv_key_path
+        )
 
-    lxd.use_key(public_key_path=pub_key_path, private_key_path=priv_key_path)
+        image_id = lxd.released_image(release=RELEASE)
+        image_serial = lxd.image_serial(image_id)
+        print("Image serial: {}".format(image_serial))
+        name = "pycloudlib-vm"
+        with lxd.launch(name=name, image_id=image_id) as inst:
+            inst.wait()
+            print("Is vm: {}".format(inst.is_vm))
+            result = inst.execute("lsb_release -a")
+            print(result)
+            print(result.return_code)
+            print(result.ok)
+            print(result.failed)
+            print(bool(result))
 
-    image_id = lxd.released_image(release=RELEASE)
-    image_serial = lxd.image_serial(image_id)
-    print("Image serial: {}".format(image_serial))
-    name = "pycloudlib-vm"
-    inst = lxd.launch(name=name, image_id=image_id)
-    print("Is vm: {}".format(inst.is_vm))
-    result = inst.execute("lsb_release -a")
-    print(result)
-    print(result.return_code)
-    print(result.ok)
-    print(result.failed)
-    print(bool(result))
+            inst_2 = lxd.get_instance(name)
+            print(inst_2.execute("lsb_release -a"))
 
-    inst_2 = lxd.get_instance(name)
-    print(inst_2.execute("lsb_release -a"))
-
-    inst.shutdown()
-    inst.start()
-    inst.restart()
-    inst.delete()
+            inst.shutdown()
+            inst.start()
+            inst.restart()
 
 
 def demo():

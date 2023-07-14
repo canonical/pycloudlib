@@ -49,6 +49,7 @@ class TestCreateNetworkInterfaceClient:
             return_value=resource_group_mock
         )
         resource_group_mock.create_or_update.return_value = resource_mock
+        resource_group_mock.get.return_value = resource_mock
         type(network_client_mock).network_security_groups = mock.PropertyMock(
             return_value=network_group_mock
         )

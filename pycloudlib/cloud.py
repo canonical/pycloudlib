@@ -7,14 +7,19 @@ import io
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 
 import paramiko
 
 from pycloudlib.config import ConfigFile, parse_config
+from pycloudlib.errors import CleanupError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
-from pycloudlib.util import get_timestamped_tag, validate_tag
+from pycloudlib.util import (
+    get_timestamped_tag,
+    print_exception_list,
+    validate_tag,
+)
 
 _RequiredValues = Optional[Sequence[Optional[Any]]]
 
@@ -47,6 +52,9 @@ class BaseCloud(ABC):
             timestamp_suffix: Append a timestamped suffix to the tag string.
             config_file: path to pycloudlib configuration file
         """
+        self.created_instances: List[BaseInstance] = []
+        self.created_images: List[str] = []
+
         self._log = logging.getLogger(
             "{}.{}".format(__name__, self.__class__.__name__)
         )
@@ -67,8 +75,19 @@ class BaseCloud(ABC):
         else:
             self.tag = validate_tag(tag)
 
+    def __enter__(self):
+        """Enter context manager for this class."""
+        return self
+
+    def __exit__(self, _type, _value, _trackback):
+        """Cleanup context manager for this class."""
+        exceptions = self.clean()
+        print_exception_list(exceptions)
+        if exceptions:
+            raise CleanupError(exceptions)
+
     @abstractmethod
-    def delete_image(self, image_id, **kwargs):
+    def delete_image(self, image_id: str, **kwargs):
         """Delete an image.
 
         Args:
@@ -137,7 +156,6 @@ class BaseCloud(ABC):
         image_id: str,
         instance_type=None,
         user_data=None,
-        wait: bool = True,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.
@@ -146,7 +164,6 @@ class BaseCloud(ABC):
             image_id: string, image ID to use for the instance
             instance_type: string, type of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
-            wait: wait for instance to be live
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:
@@ -168,6 +185,27 @@ class BaseCloud(ABC):
 
         """
         raise NotImplementedError
+
+    # pylint: disable=broad-except
+    def clean(self) -> List[Exception]:
+        """Cleanup ALL artifacts associated with this Cloud instance.
+
+        This includes all instances, snapshots, resources, etc.
+        To ensure cleanup isn't interrupted, any exceptions raised during
+        cleanup operations will be collected and returned.
+        """
+        exceptions: List[Exception] = []
+        for instance in self.created_instances:
+            try:
+                instance.delete()
+            except Exception as e:
+                exceptions.append(e)
+        for image_id in self.created_images:
+            try:
+                self.delete_image(image_id)
+            except Exception as e:
+                exceptions.append(e)
+        return exceptions
 
     def list_keys(self):
         """List ssh key names present on the cloud for accessing instances.
