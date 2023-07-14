@@ -51,7 +51,7 @@ class VMWareInstance(BaseInstance):
 
     def delete(self, wait=True) -> List[Exception]:
         """Delete the instance."""
-        exceptions = []
+        exceptions: List[Exception] = []
         try:
             self.shutdown()
             subprocess.run(
