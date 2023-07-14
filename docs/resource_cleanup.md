@@ -20,7 +20,7 @@ print(output)
 
 When the context manager exits (even if due to an exception), all resources that were created during the lifetime of the `Cloud` or `Instance` object will automatically be cleaned up. Any exceptions raised during the cleanup process will be raised.
 
-Alternatively, if you don't want to use context managers, you can manually cleanup all resources using the `.clean()` method on `Cloud` objects and the `.delete()` method on `Instance` objects. For exampe, using EC2:
+Alternatively, if you don't want to use context managers, you can manually cleanup all resources using the `.clean()` method on `Cloud` objects and the `.delete()` method on `Instance` objects. For example, using EC2:
 
 ```python
 from pycloudlib.ec2.cloud import EC2
