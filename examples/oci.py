@@ -20,28 +20,26 @@ def demo(availability_domain, compartment_id):
     Connects to OCI and launches released image. Then runs
     through a number of examples.
     """
-    client = pycloudlib.OCI(
+    with pycloudlib.OCI(
         "oracle-test",
         availability_domain=availability_domain,
         compartment_id=compartment_id,
-    )
+    ) as client:
+        with client.launch(
+            image_id=client.released_image("focal"),
+            user_data=b64encode(cloud_config.encode()).decode(),
+        ) as instance:
+            instance.wait()
+            print(instance.instance_data)
+            print(instance.ip)
+            instance.execute("cloud-init status --wait --long")
+            print(instance.execute("cat /home/ubuntu/example.txt"))
 
-    instance = client.launch(
-        image_id=client.released_image("focal"),
-        user_data=b64encode(cloud_config.encode()).decode(),
-    )
+            snapshotted_image_id = client.snapshot(instance)
 
-    print(instance.instance_data)
-    print(instance.ip)
-    instance.execute("cloud-init status --wait --long")
-    print(instance.execute("cat /home/ubuntu/example.txt"))
-
-    snapshotted_image_id = client.snapshot(instance)
-
-    instance.delete()
-
-    new_instance = client.launch(image_id=snapshotted_image_id)
-    new_instance.delete()
+        with client.launch(image_id=snapshotted_image_id) as new_instance:
+            new_instance.wait()
+            new_instance.execute("whoami")
 
 
 if __name__ == "__main__":

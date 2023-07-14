@@ -34,36 +34,36 @@ def generic(gce):
     through a number of examples.
     """
     daily = gce.daily_image("bionic", arch="x86_64")
-    inst = gce.launch(daily)
-    print(inst.execute("lsb_release -a"))
-    inst.delete()
+    with gce.launch(daily) as inst:
+        inst.wait()
+        print(inst.execute("lsb_release -a"))
 
 
 def pro(gce):
     """Show example of running a GCE PRO machine."""
     daily = gce.daily_image("bionic", image_type=ImageType.PRO)
-    inst = gce.launch(daily)
-    print(inst.execute("sudo ua status --wait"))
-    inst.delete()
+    with gce.launch(daily) as inst:
+        inst.wait()
+        print(inst.execute("sudo ua status --wait"))
 
 
 def pro_fips(gce):
     """Show example of running a GCE PRO FIPS machine."""
     daily = gce.daily_image("bionic", image_type=ImageType.PRO_FIPS)
-    inst = gce.launch(daily)
-    print(inst.execute("sudo ua status --wait"))
-    inst.delete()
+    with gce.launch(daily) as inst:
+        inst.wait()
+        print(inst.execute("sudo ua status --wait"))
 
 
 def demo():
     """Show examples of launching GCP instances."""
     logging.basicConfig(level=logging.DEBUG)
-    gce = pycloudlib.GCE(tag="examples")
-    manage_ssh_key(gce)
+    with pycloudlib.GCE(tag="examples") as gce:
+        manage_ssh_key(gce)
 
-    generic(gce)
-    pro(gce)
-    pro_fips(gce)
+        generic(gce)
+        pro(gce)
+        pro_fips(gce)
 
 
 if __name__ == "__main__":

@@ -36,84 +36,81 @@ def demo():
     PS: we assume in this example that you are logged into
     you Azure account
     """
-    client = pycloudlib.Azure(tag="azure")
-    image_id = client.daily_image(release="focal")
+    with pycloudlib.Azure(tag="azure") as client:
+        image_id = client.daily_image(release="focal")
 
-    pub_key, priv_key = client.create_key_pair(key_name="test_integration")
-    pub_path, priv_path = save_keys(
-        key_name="test",
-        pub_key=pub_key,
-        priv_key=priv_key,
-    )
-    client.use_key(pub_path, priv_path)
+        pub_key, priv_key = client.create_key_pair(key_name="test_integration")
+        pub_path, priv_path = save_keys(
+            key_name="test",
+            pub_key=pub_key,
+            priv_key=priv_key,
+        )
+        client.use_key(pub_path, priv_path)
 
-    instance = client.launch(
-        image_id=image_id,
-        instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
-        user_data=cloud_config,
-    )
+        with client.launch(
+            image_id=image_id,
+            instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
+            user_data=cloud_config,
+        ) as instance:
+            instance.wait()
+            print(instance.ip)
+            print(instance.execute("cat /home/ubuntu/example.txt"))
 
-    print(instance.ip)
-    instance.wait()
-    print(instance.execute("cat /home/ubuntu/example.txt"))
+            snapshotted_image_id = client.snapshot(instance)
 
-    snapshotted_image_id = client.snapshot(instance)
-    instance.delete()
-
-    new_instance = client.launch(image_id=snapshotted_image_id)
-    new_instance.delete()
+        with client.launch(image_id=snapshotted_image_id) as new_instance:
+            new_instance.wait()
+            new_instance.execute("whoami")
 
 
 def demo_pro():
     """Show example of launchig a Ubuntu PRO image through Azure."""
-    client = pycloudlib.Azure(tag="azure")
-    image_id = client.daily_image(release="focal", image_type=ImageType.PRO)
+    with pycloudlib.Azure(tag="azure") as client:
+        image_id = client.daily_image(
+            release="focal", image_type=ImageType.PRO
+        )
 
-    pub_key, priv_key = client.create_key_pair(key_name="test_pro")
-    pub_path, priv_path = save_keys(
-        key_name="test_pro",
-        pub_key=pub_key,
-        priv_key=priv_key,
-    )
-    client.use_key(pub_path, priv_path)
+        pub_key, priv_key = client.create_key_pair(key_name="test_pro")
+        pub_path, priv_path = save_keys(
+            key_name="test_pro",
+            pub_key=pub_key,
+            priv_key=priv_key,
+        )
+        client.use_key(pub_path, priv_path)
 
-    print("Launching Focal Pro instance.")
-    instance = client.launch(
-        image_id=image_id,
-        instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
-    )
-
-    print(instance.ip)
-    instance.wait()
-    print(instance.execute("sudo ua status --wait"))
-    instance.delete()
+        print("Launching Focal Pro instance.")
+        with client.launch(
+            image_id=image_id,
+            instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
+        ) as instance:
+            instance.wait()
+            print(instance.ip)
+            print(instance.execute("sudo ua status --wait"))
 
 
 def demo_pro_fips():
     """Show example of launchig a Ubuntu PRO FIPS image through Azure."""
-    client = pycloudlib.Azure(tag="azure")
-    image_id = client.daily_image(
-        release="focal", image_type=ImageType.PRO_FIPS
-    )
+    with pycloudlib.Azure(tag="azure") as client:
+        image_id = client.daily_image(
+            release="focal", image_type=ImageType.PRO_FIPS
+        )
 
-    pub_key, priv_key = client.create_key_pair(key_name="test_pro_fips")
-    pub_path, priv_path = save_keys(
-        key_name="test_pro_fips",
-        pub_key=pub_key,
-        priv_key=priv_key,
-    )
-    client.use_key(pub_path, priv_path)
+        pub_key, priv_key = client.create_key_pair(key_name="test_pro_fips")
+        pub_path, priv_path = save_keys(
+            key_name="test_pro_fips",
+            pub_key=pub_key,
+            priv_key=priv_key,
+        )
+        client.use_key(pub_path, priv_path)
 
-    print("Launching Focal Pro FIPS instance.")
-    instance = client.launch(
-        image_id=image_id,
-        instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
-    )
-
-    print(instance.ip)
-    instance.wait()
-    print(instance.execute("sudo ua status --wait"))
-    instance.delete()
+        print("Launching Focal Pro FIPS instance.")
+        with client.launch(
+            image_id=image_id,
+            instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
+        ) as instance:
+            instance.wait()
+            print(instance.ip)
+            print(instance.execute("sudo ua status --wait"))
 
 
 if __name__ == "__main__":

@@ -10,22 +10,23 @@ import pycloudlib
 
 def snapshot(ibm, daily):
     """Create a snapshot from a customized image and launch it."""
-    instance = ibm.launch(daily)
-    instance.execute("touch custom_config_file")
+    with ibm.launch(daily) as instance:
+        instance.wait()
+        instance.execute("touch custom_config_file")
 
-    image = ibm.snapshot(instance)
-    new_instance = ibm.launch(image, name="example-snapshot")
-    new_instance.execute("ls")
+        image = ibm.snapshot(instance)
+        with ibm.launch(image, name="example-snapshot") as new_instance:
+            new_instance.execute("ls")
 
-    new_instance.delete()
     ibm.delete_image(image)
-    instance.delete()
 
 
 def custom_vpc(ibm, daily):
     """Launch instances using a custom VPC."""
     vpc = ibm.get_or_create_vpc(name="test-vpc")
-    ibm.launch(daily, vpc=vpc)
+    with ibm.launch(daily, vpc=vpc) as instance:
+        instance.wait()
+        instance.execute("whoami")
 
     # vpc.delete will also delete any associated instances in that VPC
     vpc.delete()
@@ -36,18 +37,17 @@ def launch_basic(ibm, daily, instance_type):
 
     Simple launching of an instance, run a command, and delete.
     """
-    instance = ibm.launch(daily, instance_type=instance_type)
-    print(instance.execute("lsb_release -a"))
+    with ibm.launch(daily, instance_type=instance_type) as instance:
+        instance.wait()
+        print(instance.execute("lsb_release -a"))
 
-    instance.shutdown()
-    instance.start()
-    instance.restart()
+        instance.shutdown()
+        instance.start()
+        instance.restart()
 
-    # Various Attributes
-    print(instance.ip)
-    print(instance.id)
-
-    instance.delete()
+        # Various Attributes
+        print(instance.ip)
+        print(instance.id)
 
 
 def manage_ssh_key(ibm, key_name):
@@ -81,15 +81,15 @@ def demo():
     Connects to IBM and finds the latest daily image. Then runs
     through a number of examples.
     """
-    ibm = pycloudlib.IBM(tag="examples")
-    manage_ssh_key(ibm, "test-ibm")
+    with pycloudlib.IBM(tag="examples") as ibm:
+        manage_ssh_key(ibm, "test-ibm")
 
-    daily = ibm.daily_image(release="bionic")
+        daily = ibm.daily_image(release="bionic")
 
-    # "bx2-metal-96x384" for a bare-metal instance
-    launch_basic(ibm, daily, "bx2-2x8")
-    custom_vpc(ibm, daily)
-    snapshot(ibm, daily)
+        # "bx2-metal-96x384" for a bare-metal instance
+        launch_basic(ibm, daily, "bx2-2x8")
+        custom_vpc(ibm, daily)
+        snapshot(ibm, daily)
 
 
 if __name__ == "__main__":

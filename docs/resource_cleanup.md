@@ -12,6 +12,7 @@ from pycloudlib.ec2.cloud import EC2
 
 with EC2(tag="example") as cloud:
     with cloud.launch("your-ami") as instance:
+        instance.wait()
         output = instance.execute("cat /etc/lsb-release").stdout
 
 
@@ -28,6 +29,7 @@ from pycloudlib.ec2.cloud import EC2
 
 cloud = EC2(tag="example")
 instance = cloud.launch("your-ami")
+instance.wait()
 instance.execute("cat /etc/lsb-release").stdout
 
 instance_cleanup_exceptions: List[Exception] = instance.delete()
