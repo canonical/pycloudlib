@@ -1,7 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """VMWare instance."""
 import subprocess
-from typing import Mapping, Optional
+from typing import List, Mapping, Optional
 
 from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
@@ -49,12 +49,18 @@ class VMWareInstance(BaseInstance):
         self._ip = ips[0]
         return ips[0]  # Not self._ip here because mypy isn't smart enough
 
-    def delete(self, wait=True):
+    def delete(self, wait=True) -> List[Exception]:
         """Delete the instance."""
-        self.shutdown()
-        subprocess.run(
-            ["govc", "vm.destroy", self.vm_id], env=self.env, check=True
-        )
+        exceptions = []
+        try:
+            self.shutdown()
+            subprocess.run(
+                ["govc", "vm.destroy", self.vm_id], env=self.env, check=True
+            )
+        except subprocess.CalledProcessError as e:
+            if "not found" not in str(e):
+                exceptions.append(e)
+        return exceptions
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""
