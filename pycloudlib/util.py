@@ -13,7 +13,7 @@ import sys
 import tempfile
 import traceback
 from errno import ENOENT
-from typing import Dict, List
+from typing import Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 import yaml
