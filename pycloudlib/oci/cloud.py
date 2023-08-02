@@ -33,6 +33,7 @@ class OCI(BaseCloud):
         compartment_id: Optional[str] = None,
         config_path: Optional[str] = None,
         config_dict: Optional[str] = None,
+        vcn_name: Optional[str] = None,
     ):
         """
         Initialize the connection to OCI.
@@ -52,6 +53,8 @@ class OCI(BaseCloud):
             config_path: Path of OCI config file
             config_dict: A dictionary containing the OCI config.
                 Overrides the values from config_path
+            vcn_name: Exact name of the VCN to use. If not provided, the newest
+                VCN in the given compartment will be used.
         """
         super().__init__(
             tag,
@@ -105,6 +108,8 @@ class OCI(BaseCloud):
                     "file.".format(config_path)
                 )
             self.oci_config = oci.config.from_file(config_path)  # type: ignore
+
+        self.vcn_name = vcn_name
 
         self._log.debug("Logging into OCI")
         self.compute_client = oci.core.ComputeClient(self.oci_config)  # type: ignore # noqa: E501
@@ -245,6 +250,8 @@ class OCI(BaseCloud):
             retry_strategy: a retry strategy from oci.retry module
                 to apply for this operation
             username: username to use when connecting via SSH
+            vcn_name: Name of the VCN to use. If not provided, the first VCN
+                found will be used
             **kwargs: dictionary of other arguments to pass as
                 LaunchInstanceDetails
 
@@ -258,7 +265,10 @@ class OCI(BaseCloud):
                 f" Found: {image_id}"
             )
         subnet_id = get_subnet_id(
-            self.network_client, self.compartment_id, self.availability_domain
+            self.network_client,
+            self.compartment_id,
+            self.availability_domain,
+            vcn_name=self.vcn_name,
         )
         metadata = {
             "ssh_authorized_keys": self.key_pair.public_key_content,
