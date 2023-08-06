@@ -3,7 +3,7 @@
 """OCI instance."""
 
 from time import sleep
-from typing import List
+from typing import List, Optional
 
 import oci
 
@@ -24,6 +24,8 @@ class OciInstance(BaseInstance):
         compartment_id,
         availability_domain,
         oci_config=None,
+        *,
+        username: Optional[str] = None,
     ):
         """Set up the instance.
 
@@ -35,9 +37,9 @@ class OciInstance(BaseInstance):
             availability_domain: One of the availability domains from:
                 'oci iam availability-domain list'
             oci_config: OCI configuration dictionary
-
+            username: username to use when connecting via SSH
         """
-        super().__init__(key_pair)
+        super().__init__(key_pair, username=username)
         self.instance_id = instance_id
         self.compartment_id = compartment_id
         self.availability_domain = availability_domain

@@ -156,6 +156,7 @@ class BaseCloud(ABC):
         image_id: str,
         instance_type=None,
         user_data=None,
+        username: Optional[str] = None,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.
@@ -164,6 +165,7 @@ class BaseCloud(ABC):
             image_id: string, image ID to use for the instance
             instance_type: string, type of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
+            username: username to use when connecting via SSH
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:

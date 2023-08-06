@@ -1,7 +1,7 @@
 """Openstack instance type."""
 import time
 from itertools import chain
-from typing import List
+from typing import List, Optional
 
 import openstack
 from openstack.exceptions import (
@@ -19,7 +19,15 @@ class OpenstackInstance(BaseInstance):
 
     _type = "openstack"
 
-    def __init__(self, key_pair, instance_id, network_id, connection=None):
+    def __init__(
+        self,
+        key_pair,
+        instance_id,
+        network_id,
+        connection=None,
+        *,
+        username: Optional[str] = None,
+    ):
         """Set up the instance.
 
         Args:
@@ -28,8 +36,9 @@ class OpenstackInstance(BaseInstance):
             network_id: if of the network this instance was created on
             connection: The connection used to create this instance.
                 If None, connection will be created.
+            username: username to use when connecting via SSH
         """
-        super().__init__(key_pair)
+        super().__init__(key_pair, username=username)
 
         if not connection:
             connection = openstack.connect()

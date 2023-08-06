@@ -624,7 +624,7 @@ class Azure(BaseCloud):
         user_data=None,
         name=None,
         inbound_ports=None,
-        username=None,
+        username: Optional[str] = None,
         security_type=security_types.AzureSecurityType.STANDARD,
         **kwargs,
     ):
@@ -639,6 +639,7 @@ class Azure(BaseCloud):
                            to enable in the instance.
             security_type: AzureSecurityType, security on vm image.
                            Defaults to STANDARD
+            username: username to use when connecting via SSH
             kwargs:
                 - vm_params: dict to override configuration for
                 virtual_machines.begin_create_or_update
@@ -887,7 +888,13 @@ class Azure(BaseCloud):
 
         return self._retrieve_ip_from_network_interface(nic=instance_nic)
 
-    def get_instance(self, instance_id, search_all=False):
+    def get_instance(
+        self,
+        instance_id,
+        search_all=False,
+        *,
+        username: Optional[str] = None,
+    ):
         """Get an instance by id.
 
         Args:
@@ -896,6 +903,7 @@ class Azure(BaseCloud):
                         for the instance in the entire reach of the
                         subsctription id. If false, we will search only
                         in the resource group created by this instance.
+            username: username to use when connecting via SSH
 
         Returns:
             An instance object to use to manipulate the instance further.
@@ -920,6 +928,7 @@ class Azure(BaseCloud):
                         key_pair=self.key_pair,
                         client=self.compute_client,
                         instance=instance_info,
+                        username=username,
                     )
 
                     self.registered_instances[instance.name] = azure_instance

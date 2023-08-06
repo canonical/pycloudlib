@@ -206,11 +206,14 @@ class IBM(BaseCloud):
             "IBM Cloud does not contain Ubuntu daily images"
         )
 
-    def get_instance(self, instance_id: str, **kwargs) -> BaseInstance:
+    def get_instance(
+        self, instance_id: str, *, username: Optional[str] = None, **kwargs
+    ) -> BaseInstance:
         """Get an instance by id.
 
         Args:
-            instance_id:
+            instance_id: ID used identify the instance
+            username: username to use when connecting via SSH
 
         Returns:
             An instance object to use to manipulate the instance further.
@@ -220,6 +223,7 @@ class IBM(BaseCloud):
             self.key_pair,
             client=self._client,
             instance_id=instance_id,
+            username=username,
         )
 
     def get_or_create_vpc(self, name: str) -> VPC:
@@ -257,6 +261,7 @@ class IBM(BaseCloud):
         *,
         name: Optional[str] = None,
         vpc: Optional[VPC] = None,
+        username: Optional[str] = None,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.
@@ -267,6 +272,7 @@ class IBM(BaseCloud):
             user_data: used by cloud-init to run custom scripts/configuration
             name: instance name
             vpc: VPC to allocate the instance in. If not given, the instance
+            username: username to use when connecting via SSH
             will be allocated in the zone's default VPC.
             **kwargs: dictionary of other arguments to pass to launch
 
@@ -303,6 +309,7 @@ class IBM(BaseCloud):
             client=self._client,
             instance=raw_instance,
             floating_ip=floating_ip,
+            username=username,
         )
         self.created_instances.append(instance)
 

@@ -86,7 +86,9 @@ class Openstack(BaseCloud):
         """
         raise NotImplementedError
 
-    def get_instance(self, instance_id, **kwargs) -> OpenstackInstance:
+    def get_instance(
+        self, instance_id, *, username: Optional[str] = None, **kwargs
+    ) -> OpenstackInstance:
         """Get an instance by id.
 
         Args:
@@ -100,6 +102,7 @@ class Openstack(BaseCloud):
             key_pair=self.key_pair,
             instance_id=instance_id,
             network_id=self._get_network_id(),
+            username=username,
         )
 
     def _get_network_id(self):
@@ -113,6 +116,8 @@ class Openstack(BaseCloud):
         image_id,
         instance_type="m1.small",
         user_data="",
+        *,
+        username: Optional[str] = None,
         **kwargs,
     ) -> OpenstackInstance:
         """Launch an instance.
@@ -121,6 +126,7 @@ class Openstack(BaseCloud):
             image_id: string, image ID to use for the instance
             instance_type: string, type (flavor) of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
+            username: username to use when connecting via SSH
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:
@@ -164,6 +170,7 @@ class Openstack(BaseCloud):
             instance_id=instance.id,
             network_id=network_id,
             connection=self.conn,
+            username=username,
         )
         self.created_instances.append(instance)
         return instance

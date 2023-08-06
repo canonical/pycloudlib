@@ -3,7 +3,7 @@
 import json
 import re
 import time
-from typing import List
+from typing import List, Optional
 
 from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
@@ -30,6 +30,8 @@ class LXDInstance(BaseInstance):
         execute_via_ssh=True,
         series=None,
         ephemeral=None,
+        *,
+        username: Optional[str] = None,
     ):
         """Set up instance.
 
@@ -42,8 +44,9 @@ class LXDInstance(BaseInstance):
             ephemeral: Boolean True if instance is ephemeral. If left
                 unspecified, ephemeral type will be determined and cached by
                 the ephemeral method.
+            username: username to use when connecting via SSH
         """
-        super().__init__(key_pair=key_pair)
+        super().__init__(key_pair=key_pair, username=username)
 
         self._name = name
         self.execute_via_ssh = execute_via_ssh

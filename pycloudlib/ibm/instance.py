@@ -451,9 +451,10 @@ class IBMInstance(BaseInstance):
         client: VpcV1,
         instance: dict,
         floating_ip: Optional[dict] = None,
+        username: Optional[str] = None,
     ):
         """Set up instance."""
-        super().__init__(key_pair)
+        super().__init__(key_pair, username=username)
 
         self._client = client
         self._instance = instance
@@ -475,7 +476,13 @@ class IBMInstance(BaseInstance):
 
     @classmethod
     def with_floating_ip(
-        cls, *args, client: VpcV1, instance: dict, floating_ip: dict, **kwargs
+        cls,
+        *args,
+        client: VpcV1,
+        instance: dict,
+        floating_ip: dict,
+        username: Optional[str] = None,
+        **kwargs,
     ) -> "IBMInstance":
         """Instantiate `self` from `instance` associated to `floating_ip`."""
         nic_id = instance["primary_network_interface"]["id"]
@@ -493,12 +500,18 @@ class IBMInstance(BaseInstance):
             client=client,
             instance=instance,
             floating_ip=floating_ip,
+            username=username,
             **kwargs,
         )
 
     @classmethod
     def from_existing(
-        cls, *args, client: VpcV1, instance: dict, **kwargs
+        cls,
+        *args,
+        client: VpcV1,
+        instance: dict,
+        username: Optional[str] = None,
+        **kwargs,
     ) -> "IBMInstance":
         """Instantiate `self` from `instance`.
 
@@ -513,12 +526,18 @@ class IBMInstance(BaseInstance):
             client=client,
             instance=instance,
             floating_ip=floating_ip,
+            username=username,
             **kwargs,
         )
 
     @classmethod
     def find_existing(
-        cls, *args, client: VpcV1, instance_id: str, **kwargs
+        cls,
+        *args,
+        client: VpcV1,
+        instance_id: str,
+        username: Optional[str] = None,
+        **kwargs,
     ) -> "IBMInstance":
         """Find an instance by ID."""
         instance = _IBMInstanceType.VSI.get_instance(client, instance_id)
@@ -534,6 +553,7 @@ class IBMInstance(BaseInstance):
             *args,
             client=client,
             instance=instance,
+            username=username,
             **kwargs,
         )
 
