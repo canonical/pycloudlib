@@ -901,10 +901,13 @@ class Azure(BaseCloud):
         Args:
             instance_id: string, The instance name to search by
             search_all: boolean, Flag that indicates that if we should search
-                        for the instance in the entire reach of the
-                        subsctription id. If false, we will search only
-                        in the resource group created by this instance.
+                for the instance in the entire reach of the
+                subsctription id. If false, we will search only
+                in the resource group created by this instance.
             username: username to use when connecting via SSH
+            **kwargs: dictionary of other arguments to be used by this
+                method. Currently unused but provided for base
+                class compatibility.
 
         Returns:
             An instance object to use to manipulate the instance further.

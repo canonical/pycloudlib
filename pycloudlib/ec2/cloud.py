@@ -302,6 +302,9 @@ class EC2(BaseCloud):
         Args:
             instance_id: ID used to identify the instance
             username: username to use when connecting via SSH
+            **kwargs: dictionary of other arguments to be used by this
+                method. Currently unused but provided for base
+                class compatibility.
 
         Returns:
             An instance object to use to manipulate the instance further.
