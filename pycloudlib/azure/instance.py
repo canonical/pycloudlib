@@ -2,7 +2,7 @@
 """Azure instance."""
 
 import time
-from typing import List
+from typing import List, Optional
 
 from pycloudlib.errors import PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
@@ -13,13 +13,16 @@ class AzureInstance(BaseInstance):
 
     _type = "azure"
 
-    def __init__(self, key_pair, client, instance, username=None):
+    def __init__(
+        self, key_pair, client, instance, *, username: Optional[str] = None
+    ):
         """Set up instance.
 
         Args:
             key_pair: SSH key object
             client: Azure compute management client
             instance: created azure instance object
+            username: username to use when connecting via SSH
         """
         super().__init__(key_pair, username=username)
 

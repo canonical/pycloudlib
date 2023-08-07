@@ -2,7 +2,7 @@
 """EC2 instance."""
 import string
 import time
-from typing import List
+from typing import List, Optional
 
 import botocore
 
@@ -15,13 +15,16 @@ class EC2Instance(BaseInstance):
 
     _type = "ec2"
 
-    def __init__(self, key_pair, client, instance, username=None):
+    def __init__(
+        self, key_pair, client, instance, *, username: Optional[str] = None
+    ):
         """Set up instance.
 
         Args:
             key_pair: SSH key object
             client: boto3 client object
             instance: created boto3 instance object
+            username: username to use when connecting via SSH
         """
         super().__init__(key_pair, username)
 

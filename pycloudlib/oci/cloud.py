@@ -197,11 +197,14 @@ class OCI(BaseCloud):
         """
         raise NotImplementedError
 
-    def get_instance(self, instance_id, **kwargs) -> OciInstance:
+    def get_instance(
+        self, instance_id, *, username: Optional[str] = None, **kwargs
+    ) -> OciInstance:
         """Get an instance by id.
 
         Args:
             instance_id: ocid of the instance
+            username: username to use when connecting via SSH
             **kwargs: dictionary of other arguments to pass to get_instance
         Returns:
             An instance object to use to manipulate the instance further.
@@ -218,6 +221,7 @@ class OCI(BaseCloud):
             compartment_id=self.compartment_id,
             availability_domain=self.availability_domain,
             oci_config=self.oci_config,
+            username=username,
         )
 
     def launch(
@@ -227,6 +231,7 @@ class OCI(BaseCloud):
         user_data=None,
         *,
         retry_strategy=None,
+        username: Optional[str] = None,
         **kwargs,
     ) -> OciInstance:
         """Launch an instance.
@@ -239,6 +244,7 @@ class OCI(BaseCloud):
                 provide custom Cloud-Init configuration
             retry_strategy: a retry strategy from oci.retry module
                 to apply for this operation
+            username: username to use when connecting via SSH
             **kwargs: dictionary of other arguments to pass as
                 LaunchInstanceDetails
 
@@ -277,7 +283,9 @@ class OCI(BaseCloud):
             instance_details, retry_strategy=retry_strategy
         ).data
         instance = self.get_instance(
-            instance_data.id, retry_strategy=retry_strategy
+            instance_data.id,
+            retry_strategy=retry_strategy,
+            username=username,
         )
         self.created_instances.append(instance)
         return instance

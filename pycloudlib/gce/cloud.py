@@ -10,7 +10,7 @@ import logging
 import os
 import time
 from itertools import count
-from typing import Optional
+from typing import Any, MutableMapping, Optional
 
 import googleapiclient.discovery
 
@@ -324,11 +324,19 @@ class GCE(BaseCloud):
 
         raise_on_error(response)
 
-    def get_instance(self, instance_id, name=None):
+    def get_instance(
+        self,
+        instance_id,
+        name=None,
+        *,
+        username: Optional[str] = None,
+        **kwargs,
+    ):
         """Get an instance by id.
 
         Args:
             instance_id: The instance ID returned upon creation
+            username: username to use when connecting via SSH
 
         Returns:
             An instance object to use to manipulate the instance further.
@@ -341,6 +349,7 @@ class GCE(BaseCloud):
             self.zone,
             self.credentials_path,
             name=name,
+            username=username,
         )
 
     def launch(
@@ -348,6 +357,8 @@ class GCE(BaseCloud):
         image_id,
         instance_type="n1-standard-1",
         user_data=None,
+        *,
+        username: Optional[str] = None,
         **kwargs,
     ):
         """Launch instance on GCE and print the IP address.
@@ -356,6 +367,7 @@ class GCE(BaseCloud):
             image_id: string, image ID for instance to use
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
+            username: username to use when connecting via SSH
             kwargs: other named arguments to add to instance JSON
         Raises: ValueError on invalid image_id
         """
@@ -365,7 +377,7 @@ class GCE(BaseCloud):
                 f" Found: {image_id}"
             )
         instance_name = "i{}-{}".format(next(self.instance_counter), self.tag)
-        config = {
+        config: MutableMapping[str, Any] = {
             "name": instance_name,
             "machineType": "zones/%s/machineTypes/%s"
             % (self.zone, instance_type),
@@ -422,7 +434,9 @@ class GCE(BaseCloud):
         )
         raise_on_error(result)
 
-        instance = self.get_instance(result["id"], name=result["name"])
+        instance = self.get_instance(
+            result["id"], name=result["name"], username=username
+        )
         self.created_instances.append(instance)
         return instance
 

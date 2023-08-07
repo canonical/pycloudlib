@@ -2,7 +2,7 @@
 """GCE instance."""
 
 from time import sleep
-from typing import List
+from typing import List, Optional
 
 import googleapiclient.discovery
 from googleapiclient.errors import HttpError
@@ -26,6 +26,7 @@ class GceInstance(BaseInstance):
         credentials_path,
         *,
         name=None,
+        username: Optional[str] = None,
     ):
         """Set up the instance.
 
@@ -34,13 +35,15 @@ class GceInstance(BaseInstance):
             instance_id: Id returned when creating the instance
             project: Project instance was created in
             zone: Zone instance was created in
+            name: Name of the instance
+            username: username to use when connecting via SSH
         """
         if project is None or zone is None:
             raise ValueError(
                 "kwargs 'project' and 'zone' are required. "
                 "Project: {}, Zone: {}".format(project, zone)
             )
-        super().__init__(key_pair)
+        super().__init__(key_pair, username=username)
         self.instance_id = instance_id
         self._name = name
         self.project = project

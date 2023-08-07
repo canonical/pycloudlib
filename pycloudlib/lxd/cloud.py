@@ -3,7 +3,7 @@
 import warnings
 from abc import ABC
 from itertools import count
-from typing import List
+from typing import List, Optional
 
 import yaml
 
@@ -96,17 +96,22 @@ class _BaseLXD(BaseCloud, ABC):
         inst = self.get_instance(instance_name)
         inst.delete(wait)
 
-    def get_instance(self, instance_id):
+    def get_instance(
+        self, instance_id, *, username: Optional[str] = None, **kwargs
+    ):
         """Get an existing instance.
 
         Args:
             instance_id: instance name to get
+            username: username to use when connecting via SSH
 
         Returns:
             The existing instance as a LXD instance object
 
         """
-        return self._lxd_instance_cls(instance_id, key_pair=self.key_pair)
+        return self._lxd_instance_cls(
+            instance_id, key_pair=self.key_pair, username=username
+        )
 
     def _normalize_image_id(self, image_id: str) -> str:
         if ":" not in image_id:
@@ -205,6 +210,7 @@ class _BaseLXD(BaseCloud, ABC):
         user_data=None,
         config_dict=None,
         execute_via_ssh=True,
+        username: Optional[str] = None,
     ):
         """Init a container.
 
@@ -257,6 +263,7 @@ class _BaseLXD(BaseCloud, ABC):
             execute_via_ssh=execute_via_ssh,
             series=series,
             ephemeral=ephemeral,
+            username=username,
         )
         self.created_instances.append(instance)
         return instance
@@ -273,6 +280,8 @@ class _BaseLXD(BaseCloud, ABC):
         profile_list=None,
         config_dict=None,
         execute_via_ssh=True,
+        *,
+        username: Optional[str] = None,
         **kwargs,
     ):
         """Set up and launch a container.
@@ -292,6 +301,7 @@ class _BaseLXD(BaseCloud, ABC):
             config_dict: dict, configuration values to pass
             execute_via_ssh: bool, optional, execute commands on the instance
                              via SSH if True (the default)
+            username: username to use when connecting via SSH
 
         Returns:
             The created LXD instance object
@@ -313,6 +323,7 @@ class _BaseLXD(BaseCloud, ABC):
             user_data=user_data,
             config_dict=config_dict,
             execute_via_ssh=execute_via_ssh,
+            username=username,
         )
         instance.start(wait=False)
 

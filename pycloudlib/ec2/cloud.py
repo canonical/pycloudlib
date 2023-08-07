@@ -294,18 +294,26 @@ class EC2(BaseCloud):
         self._log.debug("deleting SSH key %s", name)
         self.client.delete_key_pair(KeyName=name)
 
-    def get_instance(self, instance_id):
+    def get_instance(
+        self, instance_id, *, username: Optional[str] = None, **kwargs
+    ):
         """Get an instance by id.
 
         Args:
-            instance_id:
+            instance_id: ID used to identify the instance
+            username: username to use when connecting via SSH
+            **kwargs: dictionary of other arguments to be used by this
+                method. Currently unused but provided for base
+                class compatibility.
 
         Returns:
             An instance object to use to manipulate the instance further.
 
         """
         instance = self.resource.Instance(instance_id)
-        return EC2Instance(self.key_pair, self.client, instance)
+        return EC2Instance(
+            self.key_pair, self.client, instance, username=username
+        )
 
     def launch(
         self,
@@ -313,7 +321,8 @@ class EC2(BaseCloud):
         instance_type="t3.micro",  # Using nitro instance for IPv6
         user_data=None,
         vpc=None,
-        username=None,
+        *,
+        username: Optional[str] = None,
         **kwargs,
     ):
         """Launch instance on EC2.
@@ -323,6 +332,7 @@ class EC2(BaseCloud):
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
             vpc: optional vpc object to create instance under
+            username: username to use when connecting via SSH
             kwargs: other named arguments to add to instance JSON
 
         Returns:
