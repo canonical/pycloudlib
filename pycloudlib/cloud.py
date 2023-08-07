@@ -138,11 +138,14 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_instance(self, instance_id, **kwargs) -> BaseInstance:
+    def get_instance(
+        self, instance_id, *, username: Optional[str] = None, **kwargs
+    ) -> BaseInstance:
         """Get an instance by id.
 
         Args:
-            instance_id:
+            instance_id: ID identifying the instance
+            username: username to use when connecting via SSH
 
         Returns:
             An instance object to use to manipulate the instance further.
@@ -156,7 +159,6 @@ class BaseCloud(ABC):
         image_id: str,
         instance_type=None,
         user_data=None,
-        username: Optional[str] = None,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.

@@ -46,9 +46,9 @@ class OciInstance(BaseInstance):
         self._ip = None
 
         if oci_config is None:
-            oci_config = oci.config.from_file("~/.oci/config")
-        self.compute_client = oci.core.ComputeClient(oci_config)
-        self.network_client = oci.core.VirtualNetworkClient(oci_config)
+            oci_config = oci.config.from_file("~/.oci/config")  # type: ignore  # noqa: E501
+        self.compute_client = oci.core.ComputeClient(oci_config)  # type: ignore  # noqa: E501
+        self.network_client = oci.core.VirtualNetworkClient(oci_config)  # type: ignore  # noqa: E501
 
     def __repr__(self):
         """Create string representation of class."""

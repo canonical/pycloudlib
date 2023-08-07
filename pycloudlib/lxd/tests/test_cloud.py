@@ -68,6 +68,7 @@ class TestLaunch:
                         user_data="ud",
                         config_dict={"user.custom": "val"},
                         execute_via_ssh=True,
+                        username=None,
                     )
                 ]
                 # pylint: disable=no-member

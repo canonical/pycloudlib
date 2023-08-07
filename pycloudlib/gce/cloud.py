@@ -10,7 +10,7 @@ import logging
 import os
 import time
 from itertools import count
-from typing import Optional
+from typing import Any, MutableMapping, Optional
 
 import googleapiclient.discovery
 
@@ -325,7 +325,12 @@ class GCE(BaseCloud):
         raise_on_error(response)
 
     def get_instance(
-        self, instance_id, name=None, username: Optional[str] = None
+        self,
+        instance_id,
+        name=None,
+        *,
+        username: Optional[str] = None,
+        **kwargs,
     ):
         """Get an instance by id.
 
@@ -372,7 +377,7 @@ class GCE(BaseCloud):
                 f" Found: {image_id}"
             )
         instance_name = "i{}-{}".format(next(self.instance_counter), self.tag)
-        config = {
+        config: MutableMapping[str, Any] = {
             "name": instance_name,
             "machineType": "zones/%s/machineTypes/%s"
             % (self.zone, instance_type),

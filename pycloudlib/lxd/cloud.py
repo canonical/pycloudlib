@@ -96,7 +96,9 @@ class _BaseLXD(BaseCloud, ABC):
         inst = self.get_instance(instance_name)
         inst.delete(wait)
 
-    def get_instance(self, instance_id, *, username: Optional[str] = None):
+    def get_instance(
+        self, instance_id, *, username: Optional[str] = None, **kwargs
+    ):
         """Get an existing instance.
 
         Args:

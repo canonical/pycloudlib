@@ -894,6 +894,7 @@ class Azure(BaseCloud):
         search_all=False,
         *,
         username: Optional[str] = None,
+        **kwargs,
     ):
         """Get an instance by id.
 

@@ -52,7 +52,7 @@ class OpenstackInstance(BaseInstance):
         if self.floating_ip is None:
             self.floating_ip = self._create_and_attach_floating_ip()
             self.delete_floating_ip = True
-        self.added_local_ports = []
+        self.added_local_ports: List = []
 
     def _get_existing_floating_ip(self):
         server_addresses = chain(*self.server.addresses.values())

@@ -294,7 +294,9 @@ class EC2(BaseCloud):
         self._log.debug("deleting SSH key %s", name)
         self.client.delete_key_pair(KeyName=name)
 
-    def get_instance(self, instance_id, *, username: Optional[str] = None):
+    def get_instance(
+        self, instance_id, *, username: Optional[str] = None, **kwargs
+    ):
         """Get an instance by id.
 
         Args:
