@@ -128,9 +128,15 @@ class EC2(BaseCloud):
     def _get_name_for_image_type(
         self, release: str, image_type: ImageType, daily: bool
     ):
+        if release in LTS_RELEASES + ["lunar"]:
+            # Images before mantic don't have gp3 disk type
+            disk_type = "hvm-ssd"
+        else:  # Mantic and later
+            disk_type = "hvm-ssd-gp3"
         if image_type == ImageType.GENERIC:
-            base_location = "ubuntu/{}/hvm-ssd".format(
-                "images-testing" if daily else "images"
+            base_location = "ubuntu/{image_type}/{disk_type}".format(
+                image_type="images-testing" if daily else "images",
+                disk_type=disk_type,
             )
             if release in LTS_RELEASES:
                 return "{}/ubuntu-{}{}-*-server-*".format(
@@ -141,14 +147,17 @@ class EC2(BaseCloud):
                 base_location, release, "-daily" if daily else ""
             )
 
+        release_ver = UBUNTU_RELEASE_VERSION_MAP.get(release)
         if image_type == ImageType.PRO:
-            return "ubuntu-pro-server/images/hvm-ssd/ubuntu-{}-{}-*".format(
-                release, UBUNTU_RELEASE_VERSION_MAP[release]
+            return (
+                f"ubuntu-pro-server/images/{disk_type}/"
+                f"ubuntu-{release}-{release_ver}-*"
             )
 
         if image_type == ImageType.PRO_FIPS:
-            return "ubuntu-pro-fips*/images/hvm-ssd/ubuntu-{}-{}-*".format(
-                release, UBUNTU_RELEASE_VERSION_MAP[release]
+            return (
+                f"ubuntu-pro-fips*/images/{disk_type}/"
+                f"ubuntu-{release}-{release_ver}-*"
             )
 
         raise ValueError("Invalid image_type")
