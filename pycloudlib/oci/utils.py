@@ -71,6 +71,10 @@ def get_subnet_id(
     subnets = network_client.list_subnets(compartment_id, vcn_id=vcn_id).data
     subnet_id = None
     for subnet in subnets:
+        if subnet.prohibit_internet_ingress:  # skip subnet if it's private
+            print("Ignoring private subnet: " + subnet.id)
+            continue
+        print("Using public subnet: " + subnet.id)
         if subnet.availability_domain == availability_domain:
             subnet_id = subnet.id
             break
