@@ -165,7 +165,7 @@ class EC2(BaseCloud):
     def _get_owner(self, image_type: ImageType):
         return (
             "099720109477"
-            if image_type == ImageType.GENERIC
+            if image_type in (ImageType.GENERIC, ImageType.PRO)
             else "aws-marketplace"
         )
 
