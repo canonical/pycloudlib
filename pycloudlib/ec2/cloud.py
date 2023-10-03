@@ -106,6 +106,7 @@ class EC2(BaseCloud):
         *,
         arch: str = "x86_64",
         image_type: ImageType = ImageType.GENERIC,
+        include_deprecated: bool = False,
         **kwargs,
     ):
         """Find the id of the latest released image for a particular release.
@@ -121,7 +122,11 @@ class EC2(BaseCloud):
         """
         self._log.debug("finding released Ubuntu image for %s", release)
         image = self._find_latest_image(
-            release=release, arch=arch, image_type=image_type, daily=False
+            release=release,
+            arch=arch,
+            image_type=image_type,
+            daily=False,
+            include_deprecated=include_deprecated,
         )
         return image["ImageId"]
 
@@ -186,7 +191,12 @@ class EC2(BaseCloud):
         ]
 
     def _find_latest_image(
-        self, release: str, arch: str, image_type: ImageType, daily: bool
+        self,
+        release: str,
+        arch: str,
+        image_type: ImageType,
+        daily: bool,
+        include_deprecated: bool = False,
     ):
         filters = self._get_search_filters(
             release=release, arch=arch, image_type=image_type, daily=daily
@@ -196,6 +206,7 @@ class EC2(BaseCloud):
         images = self.client.describe_images(
             Owners=[owner],
             Filters=filters,
+            IncludeDeprecated=include_deprecated,
         )
 
         if not images.get("Images"):
@@ -213,6 +224,7 @@ class EC2(BaseCloud):
         *,
         arch: str = "x86_64",
         image_type: ImageType = ImageType.GENERIC,
+        include_deprecated: bool = False,
         **kwargs,
     ):
         """Find the id of the latest daily image for a particular release.
@@ -227,7 +239,11 @@ class EC2(BaseCloud):
         """
         self._log.debug("finding daily Ubuntu image for %s", release)
         image = self._find_latest_image(
-            release=release, arch=arch, image_type=image_type, daily=True
+            release=release,
+            arch=arch,
+            image_type=image_type,
+            daily=True,
+            include_deprecated=include_deprecated,
         )
         return image["ImageId"]
 
