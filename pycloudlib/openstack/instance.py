@@ -39,6 +39,7 @@ class OpenstackInstance(BaseInstance):
             username: username to use when connecting via SSH
         """
         super().__init__(key_pair, username=username)
+        self.instance_id = instance_id
 
         if not connection:
             connection = openstack.connect()
@@ -83,6 +84,11 @@ class OpenstackInstance(BaseInstance):
         return "{}(instance_id={})".format(
             self.__class__.__name__, self.server.id
         )
+
+    @property
+    def id(self) -> str:
+        """Return instance id."""
+        return self.instance_id
 
     @property
     def name(self):

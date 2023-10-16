@@ -26,6 +26,11 @@ class VMWareInstance(BaseInstance):
         self.env = env
 
     @property
+    def id(self) -> str:
+        """Return instance id."""
+        return self.vm_id
+
+    @property
     def name(self) -> str:
         """Return VM name."""
         return self.vm_id

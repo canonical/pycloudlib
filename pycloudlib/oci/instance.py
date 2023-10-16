@@ -59,6 +59,11 @@ class OciInstance(BaseInstance):
         )
 
     @property
+    def id(self) -> str:
+        """Return instance id."""
+        return self.instance_id
+
+    @property
     def name(self):
         """Return the instance name."""
         return self.instance_id

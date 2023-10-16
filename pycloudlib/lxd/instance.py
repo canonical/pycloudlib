@@ -16,6 +16,7 @@ MISSING_AGENT_MSG = (
 )
 
 
+# pylint: disable=too-many-public-methods
 class LXDInstance(BaseInstance):
     """LXD backed instance."""
 
@@ -118,6 +119,11 @@ class LXDInstance(BaseInstance):
             self._is_vm = bool(info_type == "virtual-machine")
 
         return self._is_vm
+
+    @property
+    def id(self) -> str:
+        """Return instance id."""
+        return self.name
 
     @property
     def name(self):
