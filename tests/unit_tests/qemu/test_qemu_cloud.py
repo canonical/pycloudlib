@@ -85,12 +85,11 @@ def test_unparseable_release_page(qemu):
     ):
         with pytest.raises(
             PycloudlibError,
-            match=(
-                "Could not parse url: "
-                "https://cloud-images.ubuntu.com/nonexistent/current"
-            ),
+            match=("Could not parse url: " "https://nonexistent"),
         ):
-            qemu.cloud._get_latest_image("nonexistent")
+            qemu.cloud._get_latest_image(
+                "https://nonexistent", "none", "none.img"
+            )
 
 
 @mock.patch(
@@ -105,36 +104,9 @@ def test_image_already_downloaded(_m_get, qemu, caplog):
     image1.touch()
     image2 = image_dir / "test2.img"
     image2.touch()
-    result = qemu.cloud._get_latest_image("none")
+    result = qemu.cloud._get_latest_image("https://none", "none", "none.img")
     assert result == str(image1.absolute())
     assert "Image already exists, skipping download" in caplog.text
-
-
-@pytest.mark.parametrize(
-    "contents,found",
-    [
-        (["test1.img", "test2.img", "test3.img"], False),
-        (["test1.img"], True),
-        ([], False),
-    ],
-)
-@mock.patch(
-    "pycloudlib.qemu.cloud.Qemu._get_latest_image", return_value="test"
-)
-def test_released_image(m_latest, contents, found, qemu):
-    """Test that released_image returns the correct image."""
-    image_dir = qemu.image_dir / "none" / "20231010"
-    image_dir.mkdir(parents=True)
-    for content in contents:
-        image = image_dir / content
-        image.touch()
-    result = qemu.cloud.released_image("none")
-    if found:
-        assert result == str(image_dir / contents[0])
-        m_latest.assert_not_called()
-    else:
-        assert result == "test"
-        m_latest.assert_called_once_with(release="none")
 
 
 def test_seed_iso_no_data(tmp_path: Path, qemu):

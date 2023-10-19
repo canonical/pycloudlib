@@ -16,7 +16,7 @@ from pycloudlib.config import ConfigFile
 from pycloudlib.errors import ImageNotFoundError, PycloudlibError
 from pycloudlib.qemu.instance import QemuInstance
 from pycloudlib.qemu.util import get_free_port
-from pycloudlib.util import add_key_to_cloud_config
+from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, add_key_to_cloud_config
 
 
 class Qemu(BaseCloud):
@@ -123,9 +123,14 @@ class Qemu(BaseCloud):
         Returns:
             A string with the kernel name for the specified release.
         """
-        return f"{release}-server-cloudimg-amd64-vmlinuz-generic"
+        if release in UBUNTU_RELEASE_VERSION_MAP:
+            prefix = release
+        else:
+            prefix = f"ubuntu-{release}"
 
-    def _get_latest_image(self, release) -> str:
+        return f"{prefix}-server-cloudimg-amd64-vmlinuz-generic"
+
+    def _get_latest_image(self, base_url, release, img_name) -> str:
         """Download the latest image for a particular release.
 
         Args:
@@ -135,17 +140,15 @@ class Qemu(BaseCloud):
             A string containing the path to the latest released image ID
             for the specified release.
         """
-        base_url = f"https://cloud-images.ubuntu.com/{release}/current"
         resp = requests.get(base_url, timeout=5)
         resp.raise_for_status()
         match = re.search(
-            r"<title>Ubuntu.*daily \[(?P<date>\d+).*</title>", resp.text
+            r"<title>Ubuntu.*\[(?P<date>\d+).*</title>", resp.text
         )
         if not match:
             raise PycloudlibError(f"Could not parse url: {base_url}")
         date = match["date"]
 
-        img_name = f"{release}-server-cloudimg-amd64.img"
         img_url = f"{base_url}/{img_name}"
 
         kernel_name = self._get_kernel_name_from_series(release)
@@ -177,21 +180,15 @@ class Qemu(BaseCloud):
             specified release.
 
         """
-        # If an image is already downloaded, pycloudlib should have downloaded
-        # it into a directory like
-        # jammy/20230901/jammy-server-cloudimg-amd64.img
-        series_dir = Path(self.image_dir, release)
-        if series_dir.is_dir():
-            for entry in sorted(series_dir.iterdir(), reverse=True):
-                if entry.is_dir():
-                    images = list(entry.glob("*.img"))
-                    if len(images) != 1:
-                        # Something weird here...try next directory
-                        continue
-                    return str(images[0].absolute())
-        # If we get here, we didn't find an image in the image_dir, so we need
-        # to download one
-        return self._get_latest_image(release=release)
+        base_url = (
+            f"https://cloud-images.ubuntu.com/releases/{release}/release"
+        )
+        release_number = UBUNTU_RELEASE_VERSION_MAP[release]
+        return self._get_latest_image(
+            base_url=base_url,
+            release=release_number,
+            img_name=f"ubuntu-{release_number}-server-cloudimg-amd64.img",
+        )
 
     def daily_image(self, release: str, **kwargs):
         """ID of the latest daily image for a particular release.
@@ -206,7 +203,11 @@ class Qemu(BaseCloud):
             specified release.
 
         """
-        return self._get_latest_image(release=release)
+        return self._get_latest_image(
+            base_url=f"https://cloud-images.ubuntu.com/{release}/current",
+            release=release,
+            img_name=f"{release}-server-cloudimg-amd64.img",
+        )
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a release.

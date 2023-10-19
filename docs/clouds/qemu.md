@@ -10,7 +10,7 @@ Pycloudlib currently supports launching x86-64 Ubuntu images using
 ## Requirements
 
 In addition to requirements specified in `setup.py`, on Ubuntu systems,
-the QEMU datasource requires the following packages:
+the QEMU cloud requires the following packages:
 
 * qemu-system-x86
 * qemu-utils  # for qemu-img
