@@ -54,6 +54,12 @@ class BaseInstance(ABC):
 
     @property
     @abstractmethod
+    def id(self) -> str:
+        """Return instance id."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def name(self):
         """Return instance name."""
         raise NotImplementedError
