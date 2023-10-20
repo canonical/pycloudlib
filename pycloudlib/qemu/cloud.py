@@ -13,7 +13,11 @@ import requests
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
-from pycloudlib.errors import ImageNotFoundError, PycloudlibError
+from pycloudlib.errors import (
+    ImageNotFoundError,
+    MissingPrerequisiteError,
+    PycloudlibError,
+)
 from pycloudlib.qemu.instance import QemuInstance
 from pycloudlib.qemu.util import get_free_port
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, add_key_to_cloud_config
@@ -57,6 +61,20 @@ class Qemu(BaseCloud):
                 "QEMU working_dir must be a valid path, "
                 f"not '{self.working_dir}'"
             )
+        self.qemu_binary = self.config.get("qemu_binary", "qemu-system-x86_64")
+
+        if not all(
+            [
+                shutil.which(self.qemu_binary),
+                shutil.which("qemu-img"),
+                shutil.which("genisoimage"),
+            ]
+        ):
+            raise MissingPrerequisiteError(
+                "QEMU requires qemu-system-x86_64, qemu-img, and genisoimage "
+                "to be installed. On Ubuntu, these can be installed with "
+                "'sudo apt install qemu-system-x86 qemu-utils genisoimage'"
+            )
 
         self.parent_dir = self.working_dir / f"pycl-qemu-{self.tag}"
         self.parent_dir.mkdir(parents=True, exist_ok=True)
@@ -64,7 +82,6 @@ class Qemu(BaseCloud):
             "Using '%s' as parent directory for all QEMU artifacts created",
             self.parent_dir,
         )
-        self.qemu_binary = self.config.get("qemu_binary", "qemu-system-x86_64")
 
     def _get_available_file(self, path: Path) -> Path:
         """Get the next available file in a directory.
@@ -143,7 +160,7 @@ class Qemu(BaseCloud):
         resp = requests.get(base_url, timeout=5)
         resp.raise_for_status()
         match = re.search(
-            r"<title>Ubuntu.*\[(?P<date>\d+).*</title>", resp.text
+            r"<title>Ubuntu.*\[(?P<date>[^]]+).*</title>", resp.text
         )
         if not match:
             raise PycloudlibError(f"Could not parse url: {base_url}")
@@ -453,8 +470,8 @@ class Qemu(BaseCloud):
             image_id,
         )
 
-        # We make a COW image from the base image so we can make destructive
-        # changes without modifying the original image
+        # We make a QCOW image from the base image so we can make
+        # destructive changes without modifying the original image
         instance_path = instance_dir / "inst.qcow2"
         self._create_qcow_image(
             instance_path=instance_path, base_image=base_image
@@ -508,13 +525,12 @@ class Qemu(BaseCloud):
                 driver = f"driver=raw,file={str(seed_path)},if=virtio"
                 qemu_args.extend(["-drive", driver])
 
-        if kernel_cmdline and not kernel_path:
-            kernel_path = self._get_kernel_path(
-                kernel_path=kernel_path,
-                kernel_cmdline=kernel_cmdline,
-                image_id=image_id,
-                base_image=base_image,
-            )
+        kernel_path = self._get_kernel_path(
+            kernel_path=kernel_path,
+            kernel_cmdline=kernel_cmdline,
+            image_id=image_id,
+            base_image=base_image,
+        )
 
         if kernel_path:
             kernel_cmdline = self._update_kernel_cmdline(
@@ -533,6 +549,7 @@ class Qemu(BaseCloud):
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            start_new_session=True,  # Ensure process can outlive parent
         )
         instance = QemuInstance(
             key_pair=self.key_pair,

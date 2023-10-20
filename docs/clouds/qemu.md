@@ -98,7 +98,7 @@ to access the host.
 
 Under the hood, Pycloudlib uses the QEMU Machine Protocol (QMP) to interact
 with running VMs. While this is generally meant to be an implementation
-detail, if needed,the socket file may be found in the `working_dir` with the
+detail, if needed, the socket file may be found in the `working_dir` with the
 name `qmp-socket`.
 
 A `QEMU Monitor` interface is not exposed.
