@@ -19,6 +19,13 @@ working_dir = "{dest}"
 """
 
 
+@pytest.fixture(autouse=True)
+def common_mocks():
+    """Mock out common functions."""
+    with mock.patch("shutil.which", return_value=True):
+        yield
+
+
 @pytest.fixture
 def qemu(tmp_path: Path):
     """Fixture to create a Qemu instance."""

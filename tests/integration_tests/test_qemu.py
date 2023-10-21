@@ -1,3 +1,7 @@
+"""Integration tests for Qemu class.""" ""
+import pytest
+import yaml
+
 from pycloudlib import Qemu
 
 SNAPSHOT_CONFIG = """\
@@ -10,7 +14,7 @@ bootcmd:
 def test_snapshots():
     """Test that snapshots work as expected."""
     # Since we're managing everything with directories, and qcow images
-    # are copy-on-wrtie, ensure multiple snapshots don't step on each other
+    # are copy-on-write, ensure multiple snapshots don't step on each other
     with Qemu(tag="test", timestamp_suffix=True) as cloud:
         image = cloud.released_image("jammy")
         instance = cloud.launch(
@@ -88,11 +92,51 @@ def test_kernel_cli():
         )
 
 
-def test_console_log():
-    with Qemu(tag="test", timestamp_suffix=True) as cloud:
-        image = cloud.released_image("jammy")
-        instance = cloud.launch(image_id=image)
-        instance.wait()
+V2_CONFIG = """\
+network:
+  version: 2
+  ethernets:
+    pycloudlib_test_qemu:
+      dhcp4: true
+      match:
+        name: e*
+"""
+
+
+class TestQemu:
+    """Tests that can use a common launch to save time."""
+
+    @pytest.fixture(scope="class")
+    def instance(self):
+        """Fixture for Qemu class."""
+        with Qemu(tag="test", timestamp_suffix=True) as cloud:
+            image = cloud.released_image("jammy")
+            instance = cloud.launch(
+                image_id=image,
+                user_data=SNAPSHOT_CONFIG % "1",
+                meta_data="instance-id: iid-local01\nlocal-hostname: cloudimg",
+                vendor_data=(
+                    "#cloud-config\nruncmd:\n - echo '2' > /var/tmp/two"
+                ),
+                network_data=V2_CONFIG,
+            )
+            instance.wait()
+            yield instance
+
+    def test_nocloud_data(self, instance):
+        """Test that nocloud data is passed through."""
+        assert instance.execute("cat /var/tmp/message") == "1"
+        assert instance.execute("cat /var/tmp/two") == "2"
+        assert instance.execute("hostname") == "cloudimg"
+        remote_netplan = instance.execute(
+            "cat /etc/netplan/50-cloud-init.yaml"
+        )
+        remote_yaml = yaml.load(remote_netplan, Loader=yaml.SafeLoader)
+        local_yaml = yaml.load(V2_CONFIG, Loader=yaml.SafeLoader)
+        assert local_yaml == remote_yaml
+
+    def test_console_log(self, instance):
+        """Test that console log is captured."""
         console_log = instance.console_log()
         assert "Booting from Hard Disk..." in console_log
-        assert "ubuntu login: " in console_log
+        assert "cloudimg login: " in console_log

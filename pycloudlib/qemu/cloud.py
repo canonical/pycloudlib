@@ -262,6 +262,7 @@ class Qemu(BaseCloud):
         user_data: Optional[str],
         meta_data: Optional[str],
         vendor_data: Optional[str] = None,
+        network_data: Optional[str] = None,
     ) -> Optional[Path]:
         """Create seed iso for passing cloud-init user data.
 
@@ -278,6 +279,7 @@ class Qemu(BaseCloud):
             user_data: cloud-init user data
             meta_data: cloud-init meta data
             vendor_data: cloud-init vendor data
+            network_data: cloud-init network data
 
         Returns:
             Path, path to seed iso
@@ -321,6 +323,11 @@ class Qemu(BaseCloud):
             vendor_data_path = instance_dir / "vendor-data"
             vendor_data_path.write_text(vendor_data, encoding="utf-8")
             args.append(str(vendor_data_path))
+
+        if network_data:
+            network_data_path = instance_dir / "network-config"
+            network_data_path.write_text(network_data, encoding="utf-8")
+            args.append(str(network_data_path))
 
         subprocess.run(
             args,
@@ -420,6 +427,7 @@ class Qemu(BaseCloud):
         user_data=None,
         meta_data=None,
         vendor_data=None,
+        network_data=None,
         kernel_cmdline="",
         kernel_path=None,
         no_seed_iso=False,
@@ -444,6 +452,7 @@ class Qemu(BaseCloud):
             user_data: used by cloud-init to run custom scripts/configuration
             meta_data: used by cloud-init for custom metadata
             vendor_data: used by cloud-init for custom vendor data
+            network_data: used by cloud-init for custom network data
             kernel_cmdline: kernel command line arguments
             kernel_path: path to kernel to use
             no_seed_iso: if True, do not create a seed iso
@@ -519,6 +528,7 @@ class Qemu(BaseCloud):
                 ),
                 meta_data=meta_data,
                 vendor_data=vendor_data,
+                network_data=network_data,
             )
 
             if seed_path:
