@@ -347,6 +347,7 @@ class EC2(BaseCloud):
         user_data=None,
         vpc=None,
         *,
+        disk_size_gb: int = 15,
         username: Optional[str] = None,
         **kwargs,
     ):
@@ -357,6 +358,7 @@ class EC2(BaseCloud):
             instance_type: string, instance type to launch
             user_data: string, user-data to pass to instance
             vpc: optional vpc object to create instance under
+            disk_size_gb: size of instance disk in GB
             username: username to use when connecting via SSH
             kwargs: other named arguments to add to instance JSON
 
@@ -379,6 +381,16 @@ class EC2(BaseCloud):
                 {
                     "ResourceType": "instance",
                     "Tags": [{"Key": "Name", "Value": self.tag}],
+                }
+            ],
+            "BlockDeviceMappings": [
+                {
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                        "DeleteOnTermination": True,
+                        "VolumeSize": disk_size_gb,
+                        "VolumeType": "gp3",
+                    },
                 }
             ],
         }
