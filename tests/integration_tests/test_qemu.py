@@ -118,7 +118,7 @@ class TestQemu:
                 vendor_data=(
                     "#cloud-config\nruncmd:\n - echo '2' > /var/tmp/two"
                 ),
-                network_data=V2_CONFIG,
+                network_config=V2_CONFIG,
             )
             instance.wait()
             yield instance
