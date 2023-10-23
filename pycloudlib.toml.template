@@ -56,6 +56,8 @@ project = ""  # glcoud config get-value project
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # Defaults to your username if not set
 
+[lxd]
+
 [oci]
 config_path = "~/.oci/config"
 availability_domain = ""  # Likely in ~/.oci/oci_cli_rc
@@ -73,7 +75,10 @@ network = ""  # openstack network list
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # Defaults to your username if not set
 
-[lxd]
+[qemu]
+image_dir = "/path/to/image/directory"
+# working_dir = "/tmp"
+# qemu_binary = "qemu-system-x86_64"
 
 [vmware]
 # These are likely defined as environment variables if using govc. They correspond to:
