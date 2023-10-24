@@ -71,9 +71,8 @@ class _BaseLXD(BaseCloud, ABC):
         ]
 
         if profile_name in profile_list and not force:
-            msg = "The profile named {} already exists".format(profile_name)
+            msg = f"The profile named {profile_name} already exists"
             self._log.debug(msg)
-            print(msg)
             return
 
         if force:
@@ -250,7 +249,7 @@ class _BaseLXD(BaseCloud, ABC):
             config_dict=config_dict,
         )
 
-        print(cmd)
+        self._log.info(cmd)
         result = subp(cmd)
 
         if not name:

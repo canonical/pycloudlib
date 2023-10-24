@@ -84,21 +84,19 @@ class TestProfileCreation:
     """Tests covering pycloudlib.lxd.cloud.create_profile method."""
 
     @mock.patch("pycloudlib.lxd.cloud.subp")
-    def test_create_profile_that_already_exists(self, m_subp):
+    def test_create_profile_that_already_exists(self, m_subp, caplog):
         """Tests creating a profile that already exists."""
         m_subp.return_value = """
             - name: test_profile
         """
         cloud = LXDContainer(tag="test", config_file=io.StringIO(CONFIG))
 
-        fake_stdout = io.StringIO()
-        with contextlib.redirect_stdout(fake_stdout):
-            cloud.create_profile(
-                profile_name="test_profile", profile_config="profile_config"
-            )
+        cloud.create_profile(
+            profile_name="test_profile", profile_config="profile_config"
+        )
 
         expected_msg = "The profile named test_profile already exists"
-        assert expected_msg in fake_stdout.getvalue().strip()
+        assert expected_msg in caplog.text
         assert m_subp.call_args_list == [
             mock.call(["lxc", "profile", "list", "--format", "yaml"])
         ]

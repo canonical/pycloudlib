@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Utilities for OCI images and instances."""
+import logging
 import time
 from typing import TYPE_CHECKING, Optional
 
@@ -7,6 +8,9 @@ from pycloudlib.errors import PycloudlibError
 
 if TYPE_CHECKING:
     import oci
+
+
+log = logging.getLogger(__name__)
 
 
 def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
@@ -72,9 +76,9 @@ def get_subnet_id(
     subnet_id = None
     for subnet in subnets:
         if subnet.prohibit_internet_ingress:  # skip subnet if it's private
-            print("Ignoring private subnet: " + subnet.id)
+            log.debug("Ignoring private subnet: %s", subnet.id)
             continue
-        print("Using public subnet: " + subnet.id)
+        log.debug("Using public subnet: %s", subnet.id)
         if subnet.availability_domain == availability_domain:
             subnet_id = subnet.id
             break
