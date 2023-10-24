@@ -82,6 +82,7 @@ class Qemu(BaseCloud):
             "Using '%s' as parent directory for all QEMU artifacts created",
             self.parent_dir,
         )
+        self.current_count = count()
 
     def _get_available_file(self, path: Path) -> Path:
         """Get the next available file in a directory.
@@ -97,11 +98,10 @@ class Qemu(BaseCloud):
             check = f"{path}-%i"
         else:
             check = f"{path.parent}/{path.stem}-%i{path.suffix}"
-        for i in count():
-            path = Path(check % i)
+        while True:
+            path = Path(check % next(self.current_count))
             if not path.exists():
                 return path
-        return Path()  # Unreachable. Here for typing
 
     def delete_image(self, image_id, **kwargs):
         """Delete an image.
