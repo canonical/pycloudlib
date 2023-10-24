@@ -17,7 +17,7 @@ from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.util import (
     get_timestamped_tag,
-    print_exception_list,
+    log_exception_list,
     validate_tag,
 )
 
@@ -82,7 +82,7 @@ class BaseCloud(ABC):
     def __exit__(self, _type, _value, _trackback):
         """Cleanup context manager for this class."""
         exceptions = self.clean()
-        print_exception_list(exceptions)
+        log_exception_list(exceptions)
         if exceptions:
             raise CleanupError(exceptions)
 

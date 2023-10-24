@@ -4,12 +4,12 @@
 import base64
 import collections.abc
 import datetime
+import logging
 import os
 import platform
 import re
 import shlex
 import subprocess
-import sys
 import tempfile
 import traceback
 from errno import ENOENT
@@ -31,6 +31,8 @@ UBUNTU_RELEASE_VERSION_MAP = {
 }
 
 LTS_RELEASES = ["xenial", "bionic", "focal", "jammy"]
+
+log = logging.getLogger(__name__)
 
 
 def chmod(path, mode):
@@ -398,11 +400,10 @@ def add_key_to_cloud_config(
     return "#cloud-config\n" + new_data
 
 
-def print_exception_list(exceptions: List[Exception]):
+def log_exception_list(exceptions: List[Exception]):
     """Print a list of exceptions (including traceback) to stderr."""
     if exceptions:
-        print("Encountered exception(s) during cleanup!\n", file=sys.stderr)
+        log.error("Encountered exception(s) during cleanup!")
         for i, e in enumerate(exceptions, start=1):
-            print(f"===== EXCEPTION {i} =====", file=sys.stderr)
-            traceback.print_exception(type(e), e, e.__traceback__)
-            print("", file=sys.stderr)
+            tb = traceback.format_exception(type(e), e, e.__traceback__)
+            log.error("===== EXCEPTION %s =====\n%s", i, "".join(tb))
