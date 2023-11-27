@@ -21,6 +21,7 @@ import yaml
 from pycloudlib.result import Result
 
 UBUNTU_RELEASE_VERSION_MAP = {
+    "noble": "24.04",
     "mantic": "23.10",
     "lunar": "23.04",
     "kinetic": "22.10",
