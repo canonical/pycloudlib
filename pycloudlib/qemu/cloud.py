@@ -175,7 +175,7 @@ class Qemu(BaseCloud):
         try:
             download_dir.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
-            img_files = list(download_dir.glob("*.img"))
+            img_files = sorted(list(download_dir.glob("*.img")))
             if img_files:
                 self._log.debug("Image already exists, skipping download")
                 return str(img_files[0].absolute())
