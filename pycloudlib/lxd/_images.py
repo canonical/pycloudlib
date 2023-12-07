@@ -2,12 +2,14 @@
 import functools
 import itertools
 import json
+import logging
 from typing import Any, List, Optional, Sequence, Tuple
 
 from pycloudlib.util import subp
 
 _REMOTE_DAILY = "ubuntu-daily"
 _REMOTE_RELEASE = "ubuntu"
+log = logging.getLogger(__name__)
 
 
 def find_last_fingerprint(
@@ -145,4 +147,16 @@ def _find_images(
     if filters is not None:
         compiled_filters = map(lambda f: f"{f[0]}={f[1]}", filters)
         cmd.extend(compiled_filters)
-    return json.loads(subp(cmd))
+    num = 5
+
+    # retry for resilience against connection reset by peer
+    image_json = []
+    for i in range(num):
+        try:
+            image_json = json.loads(subp(cmd))
+            break
+        except RuntimeError as e:
+            if i == num - 1:
+                raise e
+            log.warning("Failed to get image list, retrying due to: %s", e)
+    return image_json
