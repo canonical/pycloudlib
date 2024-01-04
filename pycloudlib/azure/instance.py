@@ -35,7 +35,7 @@ class AzureInstance(BaseInstance):
         """Wait for instance to be deleted."""
         raise NotImplementedError
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         for _ in range(100):
             power_state = (

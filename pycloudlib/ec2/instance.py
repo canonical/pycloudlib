@@ -176,19 +176,19 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for instance to be up."""
         self._log.debug("wait for instance running %s", self._instance.id)
         self._instance.wait_until_running()
         self._log.debug("reloading instance state %s", self._instance.id)
         self._instance.reload()
 
-    def wait_for_delete(self):
+    def wait_for_delete(self, **kwargs):
         """Wait for instance to be deleted."""
         self._instance.wait_until_terminated()
         self._instance.reload()
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         self._instance.wait_until_stopped()
         self._instance.reload()

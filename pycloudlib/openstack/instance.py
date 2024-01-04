@@ -170,7 +170,7 @@ class OpenstackInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for instance to be up."""
         self.conn.compute.wait_for_server(self.server, status="ACTIVE")
 
@@ -182,7 +182,7 @@ class OpenstackInstance(BaseInstance):
             # We can 404 here is instance is already deleted
             pass
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         self.conn.compute.wait_for_server(self.server, status="SHUTOFF")
 
