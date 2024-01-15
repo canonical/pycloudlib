@@ -157,16 +157,16 @@ class BaseInstance(ABC):
         """
         raise NotImplementedError
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for the cloud instance to be up.
 
         Subclasses should implement this if their cloud provides a way of
         detecting when an instance has started through their API.
         """
 
-    def wait(self):
+    def wait(self, **kwargs):
         """Wait for instance to be up and cloud-init to be complete."""
-        self._wait_for_instance_start()
+        self._wait_for_instance_start(**kwargs)
         self._wait_for_execute()
         self._wait_for_cloudinit()
 
@@ -185,7 +185,7 @@ class BaseInstance(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         raise NotImplementedError
 

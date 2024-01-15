@@ -2,7 +2,9 @@
 """Utilities for OCI images and instances."""
 import logging
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Dict, Optional
+
+from oci.retry import DEFAULT_RETRY_STRATEGY  # pylint: disable=E0611,E0401
 
 from pycloudlib.errors import PycloudlibError
 
@@ -13,7 +15,13 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
+def wait_till_ready(
+    func,
+    current_data,
+    desired_state,
+    sleep_seconds=1000,
+    func_kwargs: Dict[str, str] = None,
+):
     """Wait until the results of function call reach a desired lifecycle state.
 
     Args:
@@ -21,11 +29,15 @@ def wait_till_ready(func, current_data, desired_state, sleep_seconds=1000):
         current_data: Structure containing the initial id and lifecycle state
         desired_state: Desired value of "lifecycle_state"
         sleep_seconds: How long to wait in seconds
+        func_kwargs: Dictionary with keyword arguments to pass to the function
     Returns:
         The updated version of the current_data
     """
+    if func_kwargs is None:
+        func_kwargs = {}
+
     for _ in range(sleep_seconds):
-        current_data = func(current_data.id).data
+        current_data = func(current_data.id, **func_kwargs).data
         if current_data.lifecycle_state == desired_state:
             return current_data
         time.sleep(1)
@@ -42,6 +54,8 @@ def get_subnet_id(
     compartment_id: str,
     availability_domain: str,
     vcn_name: Optional[str] = None,
+    *,
+    retry_strategy=DEFAULT_RETRY_STRATEGY,
 ) -> str:
     """Get a subnet id linked to `availability_domain`.
 
@@ -54,6 +68,7 @@ def get_subnet_id(
         availability_domain: Domain to look for subnet id in.
         vcn_name: Exact name of the VCN to use. If not provided, the newest
             VCN in the given compartment will be used.
+        retry_strategy: A retry strategy to apply to the API calls
     Returns:
         id of the subnet selected
     Raises:
@@ -62,7 +77,9 @@ def get_subnet_id(
     """
     if vcn_name is not None:  # if vcn_name specified, use that vcn
         vcns = network_client.list_vcns(
-            compartment_id, display_name=vcn_name
+            compartment_id,
+            display_name=vcn_name,
+            retry_strategy=retry_strategy,
         ).data
         if len(vcns) == 0:
             raise PycloudlibError(f"Unable to determine vcn name: {vcn_name}")
@@ -70,9 +87,17 @@ def get_subnet_id(
             raise PycloudlibError(f"Found multiple vcns with name: {vcn_name}")
         vcn_id = vcns[0].id
     else:  # if no vcn_name specified, use most recently created vcn
-        vcn_id = network_client.list_vcns(compartment_id).data[0].id
+        vcn_id = (
+            network_client.list_vcns(
+                compartment_id, retry_strategy=retry_strategy
+            )
+            .data[0]
+            .id
+        )
 
-    subnets = network_client.list_subnets(compartment_id, vcn_id=vcn_id).data
+    subnets = network_client.list_subnets(
+        compartment_id, vcn_id=vcn_id, retry_strategy=retry_strategy
+    ).data
     subnet_id = None
     for subnet in subnets:
         if subnet.prohibit_internet_ingress:  # skip subnet if it's private

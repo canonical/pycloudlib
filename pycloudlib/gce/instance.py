@@ -147,7 +147,7 @@ class GceInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for instance to be up."""
         self._wait_for_status("RUNNING")
         self._ip = self._get_ip()
@@ -177,7 +177,7 @@ class GceInstance(BaseInstance):
                 raise PycloudlibTimeoutError(msg)
             self._log.warning(msg)
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         self._wait_for_status("TERMINATED")
 
