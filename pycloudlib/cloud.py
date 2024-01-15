@@ -29,6 +29,7 @@ class ImageType(enum.Enum):
     """Allowed image types when launching cloud images."""
 
     GENERIC = "generic"
+    MINIMAL = "minimal"
     PRO = "Pro"
     PRO_FIPS = "Pro FIPS"
 

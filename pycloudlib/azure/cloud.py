@@ -35,6 +35,13 @@ UBUNTU_DAILY_IMAGES = {
     "noble": "Canonical:0001-com-ubuntu-server-noble-daily:24_04-daily-lts:latest",  # noqa: E501
 }
 
+UBUNTU_MINIMAL_DAILY_IMAGES = {
+    "focal": "Canonical:0001-com-ubuntu-minimal-focal-daily:minimal-20_04-daily-lts:latest",  # noqa: E501
+    "jammy": "Canonical:0001-com-ubuntu-minimal-jammy-daily:minimal-22_04-daily-lts:latest",  # noqa: E501
+    "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
+    "noble": "Canonical:0001-com-ubuntu-minimal-noble-daily:minimal-24_04-daily-lts:latest",  # noqa: E501
+}
+
 UBUNTU_DAILY_PRO_IMAGES = {
     "xenial": "Canonical:0001-com-ubuntu-pro-xenial:pro-16_04-lts:latest",
     "bionic": "Canonical:0001-com-ubuntu-pro-bionic:pro-18_04-lts:latest",
@@ -568,12 +575,12 @@ class Azure(BaseCloud):
     def _get_images_dict(self, image_type: ImageType):
         if image_type == ImageType.GENERIC:
             return UBUNTU_DAILY_IMAGES
-
         if image_type == ImageType.PRO:
             return UBUNTU_DAILY_PRO_IMAGES
-
         if image_type == ImageType.PRO_FIPS:
             return UBUNTU_DAILY_PRO_FIPS_IMAGES
+        if image_type == ImageType.MINIMAL:
+            return UBUNTU_MINIMAL_DAILY_IMAGES
 
         raise ValueError("Invalid image_type")
 
