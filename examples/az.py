@@ -37,7 +37,9 @@ def demo():
     you Azure account
     """
     with pycloudlib.Azure(tag="azure") as client:
-        image_id = client.daily_image(release="focal")
+        image_id = client.daily_image(
+            release="jammy", image_type=ImageType.MINIMAL
+        )
 
         pub_key, priv_key = client.create_key_pair(key_name="test_integration")
         pub_path, priv_path = save_keys(
