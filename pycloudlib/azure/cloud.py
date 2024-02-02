@@ -7,13 +7,13 @@ import datetime
 import logging
 from typing import Dict, List, Optional
 
-from azure.core.exceptions import ResourceNotFoundError
+from azure.core.exceptions import HttpResponseError, ResourceNotFoundError
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 
 from pycloudlib.azure import security_types, util
-from pycloudlib.azure.instance import AzureInstance
+from pycloudlib.azure.instance import AzureInstance, VMInstanceStatus
 from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
@@ -92,6 +92,7 @@ class Azure(BaseCloud):
         region: Optional[str] = None,
         resource_group_params: Optional[util.AzureParams] = None,
         username: Optional[str] = None,
+        enable_boot_diagnostics: bool = False,
     ):
         """Initialize the connection to Azure.
 
@@ -110,6 +111,8 @@ class Azure(BaseCloud):
             tenant_id: user's tenant id key
             region: The region where the instance will be created
             resource_group_params: The resource group override parameters.
+            enable_boot_diagnostics: flag to configure if boot diagnostics
+                logs will be enabled and obtained for instances created.
         """
         super().__init__(
             tag,
@@ -166,6 +169,16 @@ class Azure(BaseCloud):
             resource_group_params
         )
         self.base_tag = tag
+        self._enable_boot_diagnostics = enable_boot_diagnostics
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """Log azure boot diagnostics and then cleanup."""
+        if exc_type:
+            for instance in self.created_instances:
+                if instance.status == VMInstanceStatus.FAILED_PROVISION:
+                    self._log.info("Boot diagnostics for %s:", instance.name)
+                    self._log.info("%s", instance.console_log())
+        super().__exit__(exc_type, exc_value, exc_traceback)
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
@@ -553,6 +566,9 @@ class Azure(BaseCloud):
                     "disable_password_authentication": True,
                 },
             },
+            "diagnostics_profile": {
+                "boot_diagnostics": {"enabled": self._enable_boot_diagnostics}
+            },
             "network_profile": {
                 "network_interfaces": nics,
             },
@@ -584,7 +600,14 @@ class Azure(BaseCloud):
         return vm_parameters
 
     def _create_virtual_machine(
-        self, image_id, instance_type, nic_ids, user_data, name, vm_params=None
+        self,
+        image_id,
+        instance_type,
+        nic_ids,
+        user_data,
+        name,
+        vm_params=None,
+        provisioning_timeout=None,
     ):
         """Create a virtual machine.
 
@@ -602,6 +625,8 @@ class Azure(BaseCloud):
             name: string, optional name to provide when creating the vm.
             vm_params: dict containing values as vm_params to send to
                     virtual_machines.begin_create_or_update.
+            provisioning_timeout: int, timeout in seconds for provisioning
+                    the VM, defaults to None i.e. use Azure's default.
 
         Returns:
             The virtual machine created by Azure
@@ -615,15 +640,26 @@ class Azure(BaseCloud):
         if vm_params:
             update_nested(params, vm_params)
         self._log.debug("Creating Azure virtual machine: %s", name)
-        vm_poller = (
-            self.compute_client.virtual_machines.begin_create_or_update(
-                self.resource_group.name,
-                name,
-                params,
+        try:
+            vm_poller = (
+                self.compute_client.virtual_machines.begin_create_or_update(
+                    self.resource_group.name,
+                    name,
+                    params,
+                )
             )
-        )
-
-        return vm_poller.result()
+            vm_poller.wait(provisioning_timeout)
+            if not vm_poller.done():
+                raise PycloudlibTimeoutError(
+                    "Virtual machine creation timed out."
+                )
+            return vm_poller.result()
+        except HttpResponseError as e:
+            err_code = e.error.code
+            err_msg = e.error.message
+            raise PycloudlibError(
+                f"Virtual machine creation error: {err_code}\n{err_msg}"
+            ) from e
 
     def delete_image(self, image_id, **kwargs):
         """Delete an image from Azure.
@@ -757,6 +793,7 @@ class Azure(BaseCloud):
             List[Optional[util.AzureCreateParams]]
         ] = None,
         security_type=security_types.AzureSecurityType.STANDARD,
+        provisioning_timeout: Optional[int] = None,
         **kwargs,
     ):
         """Launch virtual machine on Azure.
@@ -783,6 +820,8 @@ class Azure(BaseCloud):
                             and create ip_address.
             network_interfaces_params: list[AzureCreateParams],
                             options to override and create NICs.
+            provisioning_timeout: int, timeout in seconds for provisioning
+                    the VM, defaults to None i.e. use Azure's default.
             kwargs:
                 - vm_params: dict to override configuration for
                 virtual_machines.begin_create_or_update
@@ -793,6 +832,7 @@ class Azure(BaseCloud):
         Raises: ValueError on invalid image_id
         """
         # pylint: disable-msg=too-many-locals
+        # pylint: disable-msg=too-many-statements
         if not image_id:
             raise ValueError(
                 f"{self._type} launch requires image_id param."
@@ -904,14 +944,23 @@ class Azure(BaseCloud):
         )
         nic_ids = [nic.id for nic in created_nics]
 
-        vm = self._create_virtual_machine(
-            image_id=image_id,
-            instance_type=instance_type,
-            nic_ids=nic_ids,
-            user_data=user_data,
-            name=name,
-            vm_params=vm_params,
-        )
+        vm_state: VMInstanceStatus
+        try:
+            vm = self._create_virtual_machine(
+                image_id=image_id,
+                instance_type=instance_type,
+                nic_ids=nic_ids,
+                user_data=user_data,
+                name=name,
+                vm_params=vm_params,
+                provisioning_timeout=provisioning_timeout,
+            )
+            vm_state = VMInstanceStatus.ACTIVE
+        except PycloudlibTimeoutError:
+            self._log.error("Provisioning timeout for instance %s.", name)
+            virtual_machines = self.compute_client.virtual_machines
+            vm = virtual_machines.get(self.resource_group.name, name)
+            vm_state = VMInstanceStatus.FAILED_PROVISION
 
         instance_info = {
             "vm": vm,
@@ -925,6 +974,8 @@ class Azure(BaseCloud):
             instance=instance_info,
             network_client=self.network_client,
             username=username,
+            get_boot_diagnostics=self._enable_boot_diagnostics,
+            status=vm_state,
         )
 
         self.created_instances.append(instance)
