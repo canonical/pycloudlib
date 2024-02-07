@@ -2,6 +2,7 @@
 """Azure Util Functions."""
 import logging
 import re
+from typing import Any, Dict, NamedTuple, Optional
 
 from azure.identity import ClientSecretCredential
 
@@ -12,6 +13,32 @@ logger = logging.getLogger(__name__)
 RE_AZURE_IMAGE_ID = (
     r"(?P<publisher>[^:]+):(?P<offer>[^:]+):(?P<sku>[^:]+)(:(?P<version>.*))?"
 )
+
+
+class AzureParams(NamedTuple):
+    """Azure Parameters Class.
+
+    It models the data to use as parameters in the
+    `begin_create_or_update method` for the various azure objects
+    """
+
+    name: str
+    parameters: Optional[Dict[str, Any]]
+
+
+class AzureCreateParams(NamedTuple):
+    """Azure Create/Update Parameters Class.
+
+    It models the data to use as parameters in the
+    `begin_create_or_update method` for the various azure objects.
+
+    This applies to creating of all azure objects apart from
+    resource groups.
+    """
+
+    name: str
+    resource_group_name: str
+    parameters: Optional[Dict[str, Any]]
 
 
 def get_client(resource, config_dict: dict):
