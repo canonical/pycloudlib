@@ -3,6 +3,7 @@
 """Azure Cloud type."""
 import base64
 import contextlib
+import datetime
 import logging
 from typing import Dict, List, Optional
 
@@ -89,6 +90,7 @@ class Azure(BaseCloud):
         subscription_id: Optional[str] = None,
         tenant_id: Optional[str] = None,
         region: Optional[str] = None,
+        resource_group_params: Optional[util.AzureParams] = None,
         username: Optional[str] = None,
     ):
         """Initialize the connection to Azure.
@@ -107,6 +109,7 @@ class Azure(BaseCloud):
             subscription_id: user's subscription id key
             tenant_id: user's tenant id key
             region: The region where the instance will be created
+            resource_group_params: The resource group override parameters.
         """
         super().__init__(
             tag,
@@ -159,7 +162,9 @@ class Azure(BaseCloud):
             ComputeManagementClient, config_dict
         )
 
-        self.resource_group = self._create_resource_group()
+        self.resource_group = self._create_resource_group(
+            resource_group_params
+        )
         self.base_tag = tag
 
     def image_serial(self, image_id):
@@ -174,7 +179,11 @@ class Azure(BaseCloud):
         """
         raise NotImplementedError
 
-    def _create_network_security_group(self, inbound_ports):
+    def _create_network_security_group(
+        self,
+        inbound_ports,
+        network_security_group_params: Optional[util.AzureCreateParams] = None,
+    ):
         """Create a network security group.
 
         This method creates a network security groups that allows the user
@@ -183,6 +192,7 @@ class Azure(BaseCloud):
         Args:
             inbound_ports: List of strings, optional inbound ports
                            to enable in the instance.
+            network_security_group_params: Azure network security group details
 
         Returns:
             The network security object created by Azure
@@ -196,7 +206,16 @@ class Azure(BaseCloud):
         if "22" not in inbound_ports:
             inbound_ports = ["22"] + inbound_ports
 
-        security_group_name = "{}-sgn".format(self.tag)
+        security_group_name = (
+            network_security_group_params.name
+            if network_security_group_params
+            else "{}-sgn".format(self.tag)
+        )
+        resource_group_name = (
+            network_security_group_params.resource_group_name
+            if network_security_group_params
+            else self.resource_group.name
+        )
         nsg_group = self.network_client.network_security_groups
 
         self._log.debug("Creating Azure network security group")
@@ -223,18 +242,28 @@ class Azure(BaseCloud):
             )
             priority += 10
 
+        parameters = {
+            "location": self.location,
+            "security_rules": security_rules,
+        }
+
+        if (
+            network_security_group_params
+            and network_security_group_params.parameters
+        ):
+            update_nested(parameters, network_security_group_params.parameters)
+
         nsg_poller = nsg_group.begin_create_or_update(
-            resource_group_name=self.resource_group.name,
+            resource_group_name=resource_group_name,
             network_security_group_name=security_group_name,
-            parameters={
-                "location": self.location,
-                "security_rules": security_rules,
-            },
+            parameters=parameters,
         )
 
         return nsg_poller.result()
 
-    def _create_resource_group(self):
+    def _create_resource_group(
+        self, resource_group_params: Optional[util.AzureParams] = None
+    ):
         """Create a resource group.
 
         This method creates an Azure resource group. Every other component that
@@ -242,24 +271,40 @@ class Azure(BaseCloud):
         if we delete this resource group, we delete all resources associated
         with it.
 
+        Args:
+            resource_group_params: Azure resource group override parameters.
+
         Returns:
             The resource group created by Azure
 
         """
-        resource_name = "{}-rg".format(self.tag)
+        resource_name = (
+            resource_group_params.name
+            if resource_group_params
+            else "{}-rg".format(self.tag)
+        )
         self._log.debug("Creating Azure resource group")
 
         with contextlib.suppress(ResourceNotFoundError):
             return self.resource_client.resource_groups.get(resource_name)
 
+        parameters = {"location": self.location, "tags": {"name": self.tag}}
+
+        if resource_group_params and resource_group_params.parameters:
+            update_nested(parameters, resource_group_params.parameters)
+
         resource_group = self.resource_client.resource_groups.create_or_update(
             resource_name,
-            {"location": self.location, "tags": {"name": self.tag}},
+            parameters,
         )
         self.created_resource_groups.append(resource_group)
         return resource_group
 
-    def _create_virtual_network(self, address_prefixes=None):
+    def _create_virtual_network(
+        self,
+        address_prefixes=None,
+        virtual_network_params: Optional[util.AzureCreateParams] = None,
+    ):
         """Create a virtual network.
 
         This method creates an Azure virtual network to be used
@@ -268,6 +313,7 @@ class Azure(BaseCloud):
         Args:
             address_prefixes:  list of strings, A list of address prefixes
                                to be used in this virtual network.
+            virtual_network_params: Azure virtual network override details.
         Returns:
             The virtual network created by Azure
 
@@ -275,30 +321,49 @@ class Azure(BaseCloud):
         if address_prefixes is None:
             address_prefixes = ["10.0.0.0/16"]
 
-        virtual_network_name = "{}-vnet".format(self.tag)
+        virtual_network_name = (
+            virtual_network_params.name
+            if virtual_network_params
+            else "{}-vnet".format(self.tag)
+        )
+        resource_group_name = (
+            virtual_network_params.resource_group_name
+            if virtual_network_params
+            else self.resource_group.name
+        )
+        parameters = {
+            "location": self.location,
+            "address_space": {"address_prefixes": address_prefixes},
+            "tags": {"name": self.tag},
+        }
+        if virtual_network_params and virtual_network_params.parameters:
+            update_nested(parameters, virtual_network_params.parameters)
 
         self._log.debug("Creating Azure virtual network")
         network_poller = (
             self.network_client.virtual_networks.begin_create_or_update(
-                self.resource_group.name,
+                resource_group_name,
                 virtual_network_name,
-                {
-                    "location": self.location,
-                    "address_space": {"address_prefixes": address_prefixes},
-                    "tags": {"name": self.tag},
-                },
+                parameters,
             )
         )
 
         return network_poller.result()
 
-    def _create_subnet(self, vnet_name, address_prefix="10.0.0.0/24"):
+    def _create_subnet(
+        self,
+        vnet_name,
+        subnet_params: Optional[util.AzureCreateParams] = None,
+        address_prefix="10.0.0.0/24",
+    ):
         """Create a subnet.
 
         This method creates an Azure subnet to be used when
         provisioning a network interface.
 
         Args:
+            subnet_params: AzureCreateParams, subnet options/parameters
+                            to override/create subnet.
             address_prefix: string, An address prefix to be used for
                             this subnet.
 
@@ -306,49 +371,89 @@ class Azure(BaseCloud):
             The subnet created by Azure
 
         """
-        subnet_name = "{}-subnet".format(self.tag)
+        subnet_name = (
+            subnet_params.name
+            if subnet_params
+            else "{}-subnet".format(self.tag)
+        )
+        resource_group_name = (
+            subnet_params.resource_group_name
+            if subnet_params
+            else self.resource_group.name
+        )
+
+        parameters = {
+            "address_prefix": address_prefix,
+            "tags": {"name": self.tag},
+        }
+        if subnet_params and subnet_params.parameters:
+            update_nested(parameters, subnet_params.parameters)
 
         self._log.debug("Creating Azure subnet")
         subnet_poller = self.network_client.subnets.begin_create_or_update(
-            self.resource_group.name,
+            resource_group_name,
             vnet_name,
             subnet_name,
-            {"address_prefix": address_prefix, "tags": {"name": self.tag}},
+            parameters,
         )
 
         return subnet_poller.result()
 
-    def _create_ip_address(self):
+    def _create_ip_address(
+        self, ip_addr_params: Optional[util.AzureCreateParams] = None
+    ):
         """Create an ip address.
 
         This method creates an Azure ip address to be used when
         provisioning a network interface
 
+        Args:
+            ip_addr_params: AzureCreateParams, ip address params to
+                            override/create ip addr options.
+
         Returns:
             The ip address created by Azure
 
         """
-        ip_name = "{}-ip".format(self.tag)
+        us = datetime.datetime.now().strftime("%f")
+        ip_name = (
+            ip_addr_params.name
+            if ip_addr_params
+            else "{}-{}-ip".format(self.tag, us)
+        )
+        resource_group_name = (
+            ip_addr_params.resource_group_name
+            if ip_addr_params
+            else self.resource_group.name
+        )
+        parameters = {
+            "location": self.location,
+            "sku": {"name": "Standard"},
+            "public_ip_allocation_method": "Static",
+            "rpublic_ip_address_version": "IPV4",
+            "tags": {"name": self.tag},
+        }
+
+        if ip_addr_params and ip_addr_params.parameters:
+            update_nested(parameters, ip_addr_params.parameters)
 
         self._log.debug("Creating Azure ip address")
         ip_poller = (
             self.network_client.public_ip_addresses.begin_create_or_update(
-                self.resource_group.name,
+                resource_group_name,
                 ip_name,
-                {
-                    "location": self.location,
-                    "sku": {"name": "Standard"},
-                    "public_ip_allocation_method": "Static",
-                    "rpublic_ip_address_version": "IPV4",
-                    "tags": {"name": self.tag},
-                },
+                parameters,
             )
         )
 
         return ip_poller.result()
 
     def _create_network_interface_client(
-        self, ip_address_id, subnet_id, nsg_id, nic_params=None
+        self,
+        ip_address_id,
+        subnet_id,
+        nsg_id,
+        nic_params: Optional[util.AzureCreateParams] = None,
     ):
         """Create a network interface client.
 
@@ -359,14 +464,23 @@ class Azure(BaseCloud):
             ip_address_id: string, The ip address id
             subnet_id: string, the subnet id
             nsg_id: string, the network security group id
-            nic_params: dict, configuration overrides
+            nic_params: AzureCreateParams, NIC params to override/create
+                        NIC options.
 
         Returns:
             The ip address created by Azure
 
         """
-        nic_name = "{}-nic".format(self.tag)
-        ip_config_name = "{}-ip-config".format(self.tag)
+        nic_name = nic_params.name if nic_params else "{}-nic".format(self.tag)
+        us = datetime.datetime.now().strftime("%f")
+        ip_config_name = "{}-{}-ip-config".format(
+            nic_params.name if nic_params else self.tag, us
+        )
+        resource_group_name = (
+            nic_params.resource_group_name
+            if nic_params
+            else self.resource_group.name
+        )
 
         nic_config = {
             "location": self.location,
@@ -381,20 +495,20 @@ class Azure(BaseCloud):
             "tags": {"name": self.tag},
         }
 
-        if nic_params:
-            update_nested(nic_config, nic_params)
+        if nic_params and nic_params.parameters:
+            update_nested(nic_config, nic_params.parameters)
 
         self._log.debug("Creating Azure network interface")
         nic_poller = (
             self.network_client.network_interfaces.begin_create_or_update(
-                self.resource_group.name, nic_name, nic_config
+                resource_group_name, nic_name, nic_config
             )
         )
 
         return nic_poller.result()
 
     def _create_vm_parameters(
-        self, name, image_id, instance_type, nic_id, user_data
+        self, name, image_id, instance_type, nic_ids, user_data
     ):
         """Create the virtual machine parameters to be used for provision.
 
@@ -406,7 +520,7 @@ class Azure(BaseCloud):
             name: string, The name of the virtual machine.
             image_id: string, The identifier of an image.
             instance_type: string, Type of instance to create.
-            nic_id: string, The network interface id.
+            nic_ids: list[string], The network interface ids.
             user_data: string, The user data to be passed to the
                        virtual machine.
 
@@ -414,6 +528,10 @@ class Azure(BaseCloud):
             A dict containing the parameters to provision a virtual machine.
 
         """
+        nics = [
+            dict(id=nic_id, primary=(i == 0))
+            for (i, nic_id) in enumerate(nic_ids)
+        ]
         vm_parameters = {
             "location": self.location,
             "hardware_profile": {"vm_size": instance_type},
@@ -436,11 +554,7 @@ class Azure(BaseCloud):
                 },
             },
             "network_profile": {
-                "network_interfaces": [
-                    {
-                        "id": nic_id,
-                    }
-                ]
+                "network_interfaces": nics,
             },
             "tags": {"name": self.tag},
         }
@@ -467,11 +581,10 @@ class Azure(BaseCloud):
             vm_parameters["plan"] = util.get_plan_params(
                 image_id, registered_image
             )
-
         return vm_parameters
 
     def _create_virtual_machine(
-        self, image_id, instance_type, nic_id, user_data, name, vm_params=None
+        self, image_id, instance_type, nic_ids, user_data, name, vm_params=None
     ):
         """Create a virtual machine.
 
@@ -482,7 +595,7 @@ class Azure(BaseCloud):
             image_id: string, The image to be used when provisiong
                       a virtual machine.
             instance_type: string, Type of instance to create
-            nic_id: string, The network interface to used for this
+            nic_ids: string, The network interfaces to used for this
                     virtual machine.
             user_data: string, user data used by cloud-init when
                        booting the virtual machine.
@@ -497,7 +610,7 @@ class Azure(BaseCloud):
         if not name:
             name = "{}-vm".format(self.tag)
         params = self._create_vm_parameters(
-            name, image_id, instance_type, nic_id, user_data
+            name, image_id, instance_type, nic_ids, user_data
         )
         if vm_params:
             update_nested(params, vm_params)
@@ -633,6 +746,16 @@ class Azure(BaseCloud):
         name=None,
         inbound_ports=None,
         username: Optional[str] = None,
+        resource_group_params: Optional[util.AzureParams] = None,
+        network_security_group_params: Optional[util.AzureCreateParams] = None,
+        virtual_network_params: Optional[util.AzureCreateParams] = None,
+        subnet_params: Optional[util.AzureCreateParams] = None,
+        ip_addresses_params: Optional[
+            List[Optional[util.AzureCreateParams]]
+        ] = None,
+        network_interfaces_params: Optional[
+            List[Optional[util.AzureCreateParams]]
+        ] = None,
         security_type=security_types.AzureSecurityType.STANDARD,
         **kwargs,
     ):
@@ -648,11 +771,21 @@ class Azure(BaseCloud):
             security_type: AzureSecurityType, security on vm image.
                            Defaults to STANDARD
             username: username to use when connecting via SSH
+            resource_group_params: AzureParams, options containing the resource
+                           group details to use.
+            network_security_group_params: AzureParams, options containing the
+                           network security group to use.
+            virtual_network_params: AzureCreateParams, options to override
+                            and create vnet options.
+            subnet_params: AzureCreateParams, options to override and create
+                            subnet options.
+            ip_addresses_params: list[AzureCreateParams], options to override
+                            and create ip_address.
+            network_interfaces_params: list[AzureCreateParams],
+                            options to override and create NICs.
             kwargs:
                 - vm_params: dict to override configuration for
                 virtual_machines.begin_create_or_update
-                - nic_params: dict to override configuration for
-                network_client.network_interfaces.begin_create_or_update
                 - security_type_params: dict to configure security_types
 
         Returns:
@@ -665,6 +798,16 @@ class Azure(BaseCloud):
                 f"{self._type} launch requires image_id param."
                 f" Found: {image_id}"
             )
+        if not ip_addresses_params:
+            ip_addresses_params = [None]
+        if not network_interfaces_params:
+            network_interfaces_params = [None]
+
+        if len(ip_addresses_params) > len(network_interfaces_params):
+            raise PycloudlibError(
+                "The number of `ip_addresses_params` cannot be more than "
+                "the number of `network_interfaces_params`"
+            )
         self._log.debug("Launching Azure virtual machine: %s", image_id)
 
         # For every new launch, we need to update the tag, since
@@ -672,57 +815,82 @@ class Azure(BaseCloud):
         # resources we are creating.
         self.tag = get_timestamped_tag(self.base_tag)
 
-        if self.resource_group is None:
-            self.resource_group = self._create_resource_group()
+        if self.resource_group is None or resource_group_params:
+            self.resource_group = self._create_resource_group(
+                resource_group_params
+            )
 
         # We will not reuse existing network interfaces if we need to customize
         # it to enable more ports. The rationale for is that we want to reuse
         # those resources only if they are generic enough
         nic = None
+        created_nics = []
+        created_ip_addresses = []
         if not inbound_ports:
             # Check if we already have an existing network interface that is
             # not attached to a virtual machine. If we have, we will just
             # use it
-            nic = self._check_for_network_interfaces()
+            if not network_interfaces_params:
+                nic = self._check_for_network_interfaces()
+                created_nics.append(nic)
 
         if nic is None:
             self._log.debug(
                 "Could not find a network interface. Creating one now"
             )
-            virtual_network = self._create_virtual_network()
+            virtual_network = self._create_virtual_network(
+                virtual_network_params=virtual_network_params
+            )
             self._log.debug(
                 "Created virtual network with name: %s", virtual_network.name
             )
 
-            subnet = self._create_subnet(vnet_name=virtual_network.name)
+            subnet = self._create_subnet(
+                vnet_name=virtual_network.name, subnet_params=subnet_params
+            )
             self._log.debug("Created subnet with name: %s", subnet.name)
 
-            ip_address = self._create_ip_address()
-            ip_address_str = ip_address.ip_address
-            self._log.debug(
-                "Created ip address with name: %s", ip_address.name
+            ip_nics_diff = len(network_interfaces_params) - len(
+                ip_addresses_params
             )
+            ip_addresses = ip_addresses_params + [
+                None for _ in range(ip_nics_diff)
+            ]
+            for ip_address_ in ip_addresses:
+                ip_address = self._create_ip_address(ip_address_)
+                ip_address_str = ip_address.ip_address
+                self._log.debug(
+                    "Created ip address with name: %s", ip_address.name
+                )
+                created_ip_addresses.append(ip_address)
 
             network_security_group = self._create_network_security_group(
-                inbound_ports=inbound_ports
+                inbound_ports=inbound_ports,
+                network_security_group_params=network_security_group_params,
             )
             self._log.debug(
                 "Created network security group with name: %s",
                 network_security_group.name,
             )
 
-            nic = self._create_network_interface_client(
-                ip_address_id=ip_address.id,
-                subnet_id=subnet.id,
-                nsg_id=network_security_group.id,
-                nic_params=kwargs.get("nic_params", None),
-            )
+            for nic_obj, ip_addr in zip(
+                network_interfaces_params, created_ip_addresses
+            ):
+                nic = self._create_network_interface_client(
+                    ip_address_id=ip_addr.id,
+                    subnet_id=subnet.id,
+                    nsg_id=network_security_group.id,
+                    nic_params=nic_obj,
+                )
+                created_nics.append(nic)
 
-            self._log.debug(
-                "Created network interface with name: %s", nic.name
-            )
+                self._log.debug(
+                    "Created network interface with name: %s", nic.name
+                )
         else:
-            ip_address_str = self._retrieve_ip_from_network_interface(nic=nic)
+            ip_address_str = self._retrieve_ip_from_network_interface(
+                nic=created_nics[0]
+            )
             self._log.debug(
                 "Found network interface: %s. Reusing it", nic.name
             )
@@ -734,11 +902,12 @@ class Azure(BaseCloud):
         security_types.configure_security_types_vm_params(
             security_type, vm_params, os_disk_encryption
         )
+        nic_ids = [nic.id for nic in created_nics]
 
         vm = self._create_virtual_machine(
             image_id=image_id,
             instance_type=instance_type,
-            nic_id=nic.id,
+            nic_ids=nic_ids,
             user_data=user_data,
             name=name,
             vm_params=vm_params,
