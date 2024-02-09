@@ -923,6 +923,7 @@ class Azure(BaseCloud):
             key_pair=self.key_pair,
             client=self.compute_client,
             instance=instance_info,
+            network_client=self.network_client,
             username=username,
         )
 
@@ -1035,7 +1036,7 @@ class Azure(BaseCloud):
 
         raise PycloudlibError(
             f"""
-            Error locationg the ip address: {ip_address_id}.
+            Error locating the ip address: {ip_address_id}.
             This ip address was not found in this subscription.
             """
         )
@@ -1109,6 +1110,7 @@ class Azure(BaseCloud):
                         key_pair=self.key_pair,
                         client=self.compute_client,
                         instance=instance_info,
+                        network_client=self.network_client,
                         username=username,
                     )
 
