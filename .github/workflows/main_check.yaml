@@ -18,10 +18,11 @@ jobs:
         env:
           GCE_CREDENTIALS_JSON: ${{ secrets.GCE_CREDENTIALS_JSON }}
           PYCLOUDLIB_TOML: ${{ secrets.PYCLOUDLIB_TOML }}
+          GCE_CREDENTIALS_PATH: ~/.config/gce_credentials
         run: |
           ssh-keygen -P "" -q -f ~/.ssh/cloudinit_id_rsa
           mkdir -p ~/.config
-          echo "$GCE_CREDENTIALS_JSON" > ~/.config/gce_credentials
+          echo "$GCE_CREDENTIALS_JSON" > "$GCE_CREDENTIALS_PATH"
           echo "$PYCLOUDLIB_TOML" > ~/.config/pycloudlib.toml
       - name: Git checkout
         uses: actions/checkout@v3
