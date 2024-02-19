@@ -18,13 +18,12 @@ jobs:
         env:
           GCE_CREDENTIALS_JSON: ${{ secrets.GCE_CREDENTIALS_JSON }}
           PYCLOUDLIB_TOML: ${{ secrets.PYCLOUDLIB_TOML }}
-          GCE_CREDENTIALS_PATH: ~/.config/gce_credentials
         run: |
           ssh-keygen -P "" -q -f ~/.ssh/cloudinit_id_rsa
           mkdir -p ~/.config
-          echo "$GCE_CREDENTIALS_JSON" > "$GCE_CREDENTIALS_PATH"
+          echo "$GCE_CREDENTIALS_JSON" > ~/.config/gce_credentials
           echo "$PYCLOUDLIB_TOML" > ~/.config/pycloudlib.toml
       - name: Git checkout
         uses: actions/checkout@v3
       - name: Run CI integration tests
-        run: tox -e integration-tests-main-check
+        run: GOOGLE_APPLICATION_CREDENTIALS=~/.config/gce_credentials tox -e integration-tests-main-check
