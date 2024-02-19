@@ -1,9 +1,6 @@
 name: Pycloudlib Post Merge Check
 
-on:
-  push:
-    branches:
-      - main
+on: [pull_request]
 
 jobs:
   post-merge-tests:
