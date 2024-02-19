@@ -27,4 +27,4 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v3
       - name: Run CI integration tests
-        run: tox -e integration-tests-main-check
+        run: GOOGLE_APPLICATION_CREDENTIALS=~/.config/gce_credentials tox -e integration-tests-main-check
