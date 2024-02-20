@@ -17,7 +17,7 @@ Project's requirements.txt file can include pycloudlib as a dependency. Check ou
 Install from latest changes in `main` branch:
 
 ```shell
-https://github.com/canonical/pycloudlib.git
+git clone https://github.com/canonical/pycloudlib.git
 cd pycloudlib
 python3 setup.py install
 ```
