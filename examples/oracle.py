@@ -14,7 +14,7 @@ runcmd:
 """
 
 
-def demo(availability_domain, compartment_id):
+def demo(availability_domain: str, compartment_id: str):
     """Show example of using the OCI library.
 
     Connects to OCI and launches released image. Then runs
@@ -44,9 +44,33 @@ def demo(availability_domain, compartment_id):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    if len(sys.argv) != 3:
-        print("Usage: oci.py <availability_domain> <compartment_id>")
+    
+    # fill in the  variables here if you'd rather not
+    # pass availability domain and compartment id as arguments via cli
+    AVAILABILITY_DOMAIN = ""
+    COMPARTMENT_ID = ""
+
+    if len(sys.argv) != 3 and not (AVAILABILITY_DOMAIN and COMPARTMENT_ID):
+        # get the availability domain and compartment id from the user via input
+        print("No arguments passed. Please enter the availability domain and compartment id.")
+        ad = input("Enter the availability domain: ").strip()
+        cid = input("Enter the compartment id: ").strip()
+        demo(ad, cid)
+    
+    elif len(sys.argv) == 3 and AVAILABILITY_DOMAIN and COMPARTMENT_ID:
+        print(
+            "You've passed in availability domain and "
+            "compartment id as arguments and set them as variables. "
+            "Please choose one method."
+        )
         sys.exit(1)
-    passed_availability_domain = sys.argv[1]
-    passed_compartment_id = sys.argv[2]
-    demo(passed_availability_domain, passed_compartment_id)
+    
+    elif len(sys.argv) == 3:
+        demo(sys.argv[1], sys.argv[2])
+    
+    elif AVAILABILITY_DOMAIN and COMPARTMENT_ID:
+        demo(AVAILABILITY_DOMAIN, COMPARTMENT_ID)
+
+    else:
+        print("Nothing to do. Exiting.")
+        sys.exit(1)
