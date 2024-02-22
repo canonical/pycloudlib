@@ -26,7 +26,7 @@ def demo(availability_domain: str = None, compartment_id: str = None):
         compartment_id=compartment_id,
     ) as client:
         with client.launch(
-            image_id=client.released_image("focal"),
+            image_id=client.released_image("jammy"),
             user_data=b64encode(cloud_config.encode()).decode(),
         ) as instance:
             instance.wait()
