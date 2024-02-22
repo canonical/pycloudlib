@@ -45,8 +45,11 @@ def demo(availability_domain: str = None, compartment_id: str = None):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     if len(sys.argv) != 3:
-        print("No arguments passed via command line. Assuming values are set in pycloudlib configuration file.")
-        demo()      
+        print(
+            "No arguments passed via command line. "
+            "Assuming values are set in pycloudlib configuration file."
+        )
+        demo()
     else:
         passed_availability_domain = sys.argv[1]
         passed_compartment_id = sys.argv[2]
