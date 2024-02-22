@@ -14,7 +14,7 @@ runcmd:
 """
 
 
-def demo(availability_domain, compartment_id):
+def demo(availability_domain: str = None, compartment_id: str = None):
     """Show example of using the OCI library.
 
     Connects to OCI and launches released image. Then runs
@@ -45,8 +45,9 @@ def demo(availability_domain, compartment_id):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     if len(sys.argv) != 3:
-        print("Usage: oci.py <availability_domain> <compartment_id>")
-        sys.exit(1)
-    passed_availability_domain = sys.argv[1]
-    passed_compartment_id = sys.argv[2]
-    demo(passed_availability_domain, passed_compartment_id)
+        print("No arguments passed via command line. Assuming values are set in pycloudlib configuration file.")
+        demo()      
+    else:
+        passed_availability_domain = sys.argv[1]
+        passed_compartment_id = sys.argv[2]
+        demo(passed_availability_domain, passed_compartment_id)
