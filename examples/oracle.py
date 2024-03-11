@@ -14,7 +14,11 @@ runcmd:
 """
 
 
-def demo(availability_domain: str = None, compartment_id: str = None):
+def demo(
+    availability_domain: str = None,
+    compartment_id: str = None,
+    vcn_name: str = None,
+):
     """Show example of using the OCI library.
 
     Connects to OCI and launches released image. Then runs
@@ -24,6 +28,7 @@ def demo(availability_domain: str = None, compartment_id: str = None):
         "oracle-test",
         availability_domain=availability_domain,
         compartment_id=compartment_id,
+        vcn_name=vcn_name,
     ) as client:
         with client.launch(
             image_id=client.released_image("jammy"),
@@ -53,4 +58,5 @@ if __name__ == "__main__":
     else:
         passed_availability_domain = sys.argv[1]
         passed_compartment_id = sys.argv[2]
-        demo(passed_availability_domain, passed_compartment_id)
+        vcn_name = sys.argv[3] if len(sys.argv) == 4 else None
+        demo(passed_availability_domain, passed_compartment_id, vcn_name)
