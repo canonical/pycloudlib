@@ -25,6 +25,7 @@ class VMInstanceStatus(Enum):
     FAILED_PROVISION = auto()
     ACTIVE = auto()
     DELETED = auto()
+    STOPPED = auto()
 
 
 class AzureInstance(BaseInstance):
@@ -205,6 +206,7 @@ class AzureInstance(BaseInstance):
         if wait:
             start.wait()
             self.wait()
+        self._status = VMInstanceStatus.ACTIVE
 
     def _do_restart(self, **kwargs):
         """Restart the instance."""
@@ -232,6 +234,7 @@ class AzureInstance(BaseInstance):
                         )
                     ]
             self._status = VMInstanceStatus.DELETED
+            self._instance = None
         except Exception as e:
             return [e]
 
@@ -241,6 +244,10 @@ class AzureInstance(BaseInstance):
         """Add network interface to instance.
 
         Creates NIC and adds to the VM instance.
+
+        NOTE: It will deallocate the virtual machine, add the NIC,
+        then start the virtual machine.
+
         Returns the ip address of the new NIC.
         """
         us = datetime.datetime.now().strftime("%f")
@@ -287,10 +294,13 @@ class AzureInstance(BaseInstance):
 
     def _attach_nic_to_vm(self, nics: List[Dict[str, Any]]):
         """Attach nics to instance."""
-        if self.status != "stopped":
-            raise PycloudlibError(
-                "VM must be deallocated before attaching NIC"
-            )
+        do_start: bool = False
+        # NOTE: Azure needs the VM to be deallocated to add NICs
+        if self._status != VMInstanceStatus.STOPPED:
+            self._log.debug("Deallocating instance to attach NICs.")
+            self.deallocate()
+            do_start = True
+
         params = self._instance["vm"].as_dict()
         vm_attached_nics = params["network_profile"]["network_interfaces"]
         vm_attached_nics.extend(nics)
@@ -301,7 +311,9 @@ class AzureInstance(BaseInstance):
         poll = self._client.virtual_machines.begin_create_or_update(
             self._instance["rg_name"], self.name, params
         )
-        poll.result()
+        self._instance["vm"] = poll.result()
+        if do_start:
+            self.start()
 
     def _create_ip_address(self):
         us = datetime.datetime.now().strftime("%f")
@@ -329,4 +341,4 @@ class AzureInstance(BaseInstance):
         self._client.virtual_machines.begin_deallocate(
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         ).result()
-        self.status = "stopped"
+        self._status = VMInstanceStatus.STOPPED
