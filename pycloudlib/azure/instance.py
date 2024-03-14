@@ -3,11 +3,28 @@
 
 import datetime
 import time
+from collections import namedtuple
+from enum import Enum, auto
 from typing import Any, Dict, List, Optional
+
+import requests
+from azure.core.exceptions import ResourceExistsError
 
 from pycloudlib.errors import PycloudlibError, PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import update_nested
+
+BootDiagnostics = namedtuple("BootDiagnostics", ["console_log_url", "logs"])
+
+BOOT_DIAGNOSTICS_URI_DELAY = 60
+
+
+class VMInstanceStatus(Enum):
+    """Represents VM Instance state during its lifecycle."""
+
+    FAILED_PROVISION = auto()
+    ACTIVE = auto()
+    DELETED = auto()
 
 
 class AzureInstance(BaseInstance):
@@ -23,6 +40,8 @@ class AzureInstance(BaseInstance):
         network_client,
         *,
         username: Optional[str] = None,
+        get_boot_diagnostics: bool = False,
+        status: VMInstanceStatus = VMInstanceStatus.ACTIVE,
     ):
         """Set up instance.
 
@@ -38,7 +57,10 @@ class AzureInstance(BaseInstance):
         self._network_client = network_client
         self._instance = instance
         self.boot_timeout = 300
-        self.status = "active"
+        self._status = status
+        self._boot_diagnostics_log = (
+            self._get_boot_diagnostics() if get_boot_diagnostics else None
+        )
 
     def wait_for_delete(self):
         """Wait for instance to be deleted."""
@@ -115,6 +137,17 @@ class AzureInstance(BaseInstance):
         """Return instance location."""
         return self._instance["vm"].location
 
+    def console_log(self) -> Optional[str]:
+        """Return the instance console log."""
+        if not self._boot_diagnostics_log:
+            return None
+        return self._boot_diagnostics_log
+
+    @property
+    def status(self) -> VMInstanceStatus:
+        """Return VM instance status."""
+        return self._status
+
     def shutdown(self, wait=True, **kwargs):
         """Shutdown the instance.
 
@@ -133,6 +166,31 @@ class AzureInstance(BaseInstance):
         self._client.virtual_machines.generalize(
             resource_group_name=self._instance["rg_name"], vm_name=self.name
         )
+
+    def _get_boot_diagnostics(self) -> Optional[str]:
+        """Get VM boot diagnostics logs.
+
+        Returns the boot diagnostics logs.
+        """
+        response = None
+        self._log.info(
+            "Obtaining boot diagnostics logs for instance: %s",
+            self._instance["rg_name"],
+        )
+        try:
+            virtual_machines = self._client.virtual_machines
+            diagnostics = virtual_machines.retrieve_boot_diagnostics_data(
+                self._instance["rg_name"], self.name
+            )
+            # Azure has a 60 secs delay for the boot diagnostics to be active.
+            time.sleep(BOOT_DIAGNOSTICS_URI_DELAY)
+            response = requests.get(diagnostics.serial_console_log_blob_uri)
+        except ResourceExistsError:
+            self._log.warning(
+                "Boot diagnostics not enabled, so none is collected."
+            )
+            return None
+        return response.text
 
     def start(self, wait=True):
         """Start the instance.
@@ -157,7 +215,7 @@ class AzureInstance(BaseInstance):
     # pylint: disable=broad-except
     def delete(self, wait=True) -> List[Exception]:
         """Delete instance."""
-        if self.status == "deleted":
+        if self._status == VMInstanceStatus.DELETED:
             return []
         try:
             poller = self._client.virtual_machines.begin_delete(
@@ -173,7 +231,7 @@ class AzureInstance(BaseInstance):
                             "Resource not deleted after 300 seconds"
                         )
                     ]
-            self.status = "deleted"
+            self._status = VMInstanceStatus.DELETED
         except Exception as e:
             return [e]
 
