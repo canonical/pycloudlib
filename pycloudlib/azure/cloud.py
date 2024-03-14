@@ -1173,7 +1173,7 @@ class Azure(BaseCloud):
         if instance_id in self.registered_instances:
             instance = self.registered_instances[instance_id]
 
-            if instance.status == "deleted":
+            if instance.status == VMInstanceStatus.DELETED:
                 raise PycloudlibError(
                     f"The image {instance_id} was already deleted"
                 )
