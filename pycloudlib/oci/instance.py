@@ -181,7 +181,7 @@ class OciInstance(BaseInstance):
             func_kwargs=func_kwargs,
         )
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add network interface to running instance.
 
         Creates a nic and attaches it to the instance. This is effectively a

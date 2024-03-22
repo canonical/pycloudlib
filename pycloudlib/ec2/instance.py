@@ -71,7 +71,9 @@ class EC2Instance(BaseInstance):
         """Return id of instance."""
         return self._instance.image_id
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(
+        self, *, associate_ipv6: bool = False, **kwargs
+    ) -> str:
         """Add network interface to instance.
 
         Creates an ENI device and attaches it to the running instance. This
@@ -83,7 +85,7 @@ class EC2Instance(BaseInstance):
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
         """
         self._log.debug("adding network interface to %s", self.id)
-        interface_id = self._create_network_interface()
+        interface_id = self._create_network_interface(associate_ipv6)
         return self._attach_network_interface(interface_id)
 
     def add_volume(self, size=8, drive_type="gp2"):
@@ -299,7 +301,7 @@ class EC2Instance(BaseInstance):
 
         return volume
 
-    def _create_network_interface(self) -> str:
+    def _create_network_interface(self, associate_ipv6: bool) -> str:
         """Create ENI device.
 
         Returns:
@@ -312,6 +314,8 @@ class EC2Instance(BaseInstance):
             ],
             "SubnetId": self._instance.subnet_id,
         }
+        if associate_ipv6:
+            args["Ipv6AddressCount"] = 1
 
         response = self._client.create_network_interface(**args)
         interface_id = response["NetworkInterface"]["NetworkInterfaceId"]

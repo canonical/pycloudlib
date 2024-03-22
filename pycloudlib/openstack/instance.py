@@ -186,7 +186,7 @@ class OpenstackInstance(BaseInstance):
         """Wait for instance stop."""
         self.conn.compute.wait_for_server(self.server, status="SHUTOFF")
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add nic to running instance.
 
         Returns IP address in string form

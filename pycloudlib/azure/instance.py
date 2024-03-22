@@ -254,7 +254,7 @@ class AzureInstance(BaseInstance):
 
         return []
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add network interface to instance.
 
         Creates NIC and adds to the VM instance.
@@ -264,6 +264,7 @@ class AzureInstance(BaseInstance):
 
         Returns the private ip address of the new NIC.
         """
+        # pylint: disable=too-many-locals
         us = datetime.datetime.now().strftime("%f")
         # get ip address object
         ip_address_obj = self._create_ip_address()
