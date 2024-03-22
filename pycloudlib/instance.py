@@ -189,7 +189,7 @@ class BaseInstance(ABC):
         """Wait for instance stop."""
         raise NotImplementedError
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add nic to running instance."""
         raise NotImplementedError
 

@@ -250,7 +250,7 @@ class QemuInstance(BaseInstance):
                 )
             time.sleep(1)
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add nic to running instance."""
         raise NotImplementedError
 
