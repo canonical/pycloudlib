@@ -58,5 +58,7 @@ if __name__ == "__main__":
     else:
         passed_availability_domain = sys.argv[1]
         passed_compartment_id = sys.argv[2]
-        vcn_name = sys.argv[3] if len(sys.argv) == 4 else None
-        demo(passed_availability_domain, passed_compartment_id, vcn_name)
+        passed_vcn_name = sys.argv[3] if len(sys.argv) == 4 else None
+        demo(
+            passed_availability_domain, passed_compartment_id, passed_vcn_name
+        )
