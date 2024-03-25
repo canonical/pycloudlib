@@ -206,6 +206,25 @@ class IBM(BaseCloud):
             "IBM Cloud does not contain Ubuntu daily images"
         )
 
+    def get_image_id_from_name(self, name: str) -> str:
+        """
+        Get the id of the first image whose name contains the given name.
+
+        The name does not need to be an exact match, just a substring of
+        the image name.
+
+        Returns:
+            string, image ID
+        """
+        image = _get_first(
+            self._client.list_images,
+            resource_name="images",
+            filter_fn=lambda image: name in image["name"],
+        )
+        if image is None:
+            raise IBMException(f"Image not found: {name}")
+        return image["id"]
+
     def get_instance(
         self, instance_id: str, *, username: Optional[str] = None, **kwargs
     ) -> BaseInstance:
