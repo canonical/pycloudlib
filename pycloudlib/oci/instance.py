@@ -46,9 +46,11 @@ class OciInstance(BaseInstance):
         self._ip = None
 
         if oci_config is None:
-            oci_config = oci.config.from_file("~/.oci/config")  # type: ignore  # noqa: E501
-        self.compute_client = oci.core.ComputeClient(oci_config)  # type: ignore  # noqa: E501
-        self.network_client = oci.core.VirtualNetworkClient(oci_config)  # type: ignore  # noqa: E501
+            oci_config = oci.config.from_file("~/.oci/config")  # noqa: E501
+        self.compute_client = oci.core.ComputeClient(oci_config)  # noqa: E501
+        self.network_client = oci.core.VirtualNetworkClient(
+            oci_config
+        )  # noqa: E501
 
     def __repr__(self):
         """Create string representation of class."""
@@ -192,10 +194,10 @@ class OciInstance(BaseInstance):
         subnet_id = get_subnet_id(
             self.network_client, self.compartment_id, self.availability_domain
         )
-        create_vnic_details = oci.core.models.CreateVnicDetails(  # type: ignore # noqa: E501
+        create_vnic_details = oci.core.models.CreateVnicDetails(  # noqa: E501
             subnet_id=subnet_id,
         )
-        attach_vnic_details = oci.core.models.AttachVnicDetails(  # type: ignore # noqa: E501
+        attach_vnic_details = oci.core.models.AttachVnicDetails(  # noqa: E501
             create_vnic_details=create_vnic_details,
             instance_id=self.instance_id,
         )
@@ -219,11 +221,13 @@ class OciInstance(BaseInstance):
 
         Note: In OCI, detaching triggers deletion.
         """
-        vnic_attachments = oci.pagination.list_call_get_all_results_generator(  # type: ignore # noqa: E501
-            self.compute_client.list_vnic_attachments,
-            "record",
-            self.compartment_id,
-            instance_id=self.instance_id,
+        vnic_attachments = (
+            oci.pagination.list_call_get_all_results_generator(  # noqa: E501
+                self.compute_client.list_vnic_attachments,
+                "record",
+                self.compartment_id,
+                instance_id=self.instance_id,
+            )
         )
         for vnic_attachment in vnic_attachments:
             vnic_data = self.network_client.get_vnic(
@@ -232,7 +236,7 @@ class OciInstance(BaseInstance):
             if vnic_data.private_ip == ip_address:
                 try:
                     self.compute_client.detach_vnic(vnic_attachment.id)
-                except oci.exceptions.ServiceError:  # type: ignore
+                except oci.exceptions.ServiceError:
                     self._log.debug(
                         "Failed manually detaching and deleting network "
                         "interface. Interface should get destroyed on instance"
