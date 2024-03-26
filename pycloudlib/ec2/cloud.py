@@ -361,7 +361,7 @@ class EC2(BaseCloud):
             vpc: optional vpc object to create instance under
             disk_size_gb: size of instance disk in GB
             username: username to use when connecting via SSH
-            enable_ipv6: indicates if ipv6 support must be added to the
+            enable_ipv6: indicates if ipv6 IMDS support must be added to the
                 instance
             kwargs: other named arguments to add to instance JSON
 
