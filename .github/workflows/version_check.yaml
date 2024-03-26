@@ -6,21 +6,26 @@ jobs:
   version-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Git checkout
+      - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
-      - name: Check version
-        id: check-version
+          fetch-depth: 0  # Necessary to compare with the main branch
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # Use Python 3.x
+
+      - name: Check version bump
         run: |
-          if [[ $(git diff origin/main -- VERSION | wc -c) -eq 0 ]]
-          then
-            echo "VERSION file must be updated"
-            exit 1
-          fi
-          rx='^1!([0-9]+\.){0,2}(\*|[0-9]+)$'
-          version=$(cat VERSION)
-          if [[ ! $version =~ $rx ]]; then
-            echo "VERSION must be in 1!<major>.<minor>.<patch> format, not $version"
-            exit 1
-          fi
+          # Fetch VERSION file from the main branch
+          OLD_VERSION=$(git show origin/main:VERSION)
+          # Read VERSION file from the current branch
+          NEW_VERSION=$(cat VERSION)
+          
+          echo "Old version: $OLD_VERSION"
+          echo "New version: $NEW_VERSION"
+          
+          # Run the version comparison Python script
+          python .github/workflows/version_check.py "$OLD_VERSION" "$NEW_VERSION"
+
