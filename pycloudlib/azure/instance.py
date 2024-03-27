@@ -9,6 +9,9 @@ from typing import Any, Dict, List, Optional
 
 import requests
 from azure.core.exceptions import ResourceExistsError
+from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.network import NetworkManagementClient
+from azure.mgmt.network.models import NetworkInterface
 
 from pycloudlib.errors import PycloudlibError, PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
@@ -54,11 +57,11 @@ class AzureInstance(BaseInstance):
         """
         super().__init__(key_pair, username=username)
 
-        self._client = client
-        self._network_client = network_client
+        self._client: ComputeManagementClient = client
+        self._network_client: NetworkManagementClient = network_client
         self._instance = instance
         self.boot_timeout = 300
-        self._status = status
+        self._status: VMInstanceStatus = status
         self._boot_diagnostics_log = (
             self._get_boot_diagnostics() if get_boot_diagnostics else None
         )
@@ -208,6 +211,17 @@ class AzureInstance(BaseInstance):
             self.wait()
         self._status = VMInstanceStatus.ACTIVE
 
+    def _wait_for_instance_start(self, **kwargs):
+        for _ in range(120):
+            view = self._client.virtual_machines.instance_view(
+                self._instance["rg_name"], self.name
+            )
+            status = view.statuses[1].display_status
+            if status.lower() == "vm running":
+                return True
+            time.sleep(1)
+        raise PycloudlibTimeoutError("VM did not start.")
+
     def _do_restart(self, **kwargs):
         """Restart the instance."""
         self._client.virtual_machines.begin_restart(
@@ -248,7 +262,7 @@ class AzureInstance(BaseInstance):
         NOTE: It will deallocate the virtual machine, add the NIC,
         then start the virtual machine.
 
-        Returns the ip address of the new NIC.
+        Returns the private ip address of the new NIC.
         """
         us = datetime.datetime.now().strftime("%f")
         # get ip address object
@@ -258,7 +272,7 @@ class AzureInstance(BaseInstance):
         default_nic_id = (
             self._instance["vm"].network_profile.network_interfaces[0].id
         )
-        all_nics = self._network_client.network_interfaces.list_all()
+        all_nics = list(self._network_client.network_interfaces.list_all())
         default_nic = [nic for nic in all_nics if nic.id == default_nic_id]
         if len(default_nic) == 0:
             raise PycloudlibError("Could not get the first/default NIC")
@@ -286,11 +300,92 @@ class AzureInstance(BaseInstance):
         created_nic = nic_poller.result()
         nic_details = dict(id=created_nic.id, primary=False)
         self._attach_nic_to_vm([nic_details])
-        return ip_address_obj.ip_address
+        return created_nic.ip_configurations[0].private_ip_address
 
     def remove_network_interface(self, ip_address: str):
-        """Remove nic from running instance."""
-        raise NotImplementedError
+        """Remove nic from running instance.
+
+        Args:
+        ip_address: private ip address of the NIC
+        """
+        # Get details of the NICs attached to the VM.
+        vm_nics_ids = [
+            nic.id
+            for nic in self._instance["vm"].network_profile.network_interfaces
+        ]
+        all_nics: List[NetworkInterface] = list(
+            self._network_client.network_interfaces.list_all()
+        )
+        vm_nics = [nic for nic in all_nics if nic.id in vm_nics_ids]
+        primary_nic = [nic for nic in vm_nics if nic.primary][0]
+        nic_params = []
+        nic_to_remove: Optional[NetworkInterface] = None
+        for vm_nic in vm_nics:
+            nic_private_ip = vm_nic.ip_configurations[
+                0
+            ].private_ip_address  # type: ignore
+            if nic_private_ip == ip_address:
+                nic_to_remove = vm_nic
+            else:
+                nic_params.append({"id": vm_nic.id, "primary": vm_nic.primary})
+        if not nic_to_remove:
+            raise PycloudlibError(
+                f"Did not find NIC with private ip address: {ip_address}"
+            )
+        # if primary nic is removed, then make the next NIC as primary
+        if nic_to_remove.primary:
+            primary_nic = None
+            for nic_param in nic_params:
+                primary_nics = [
+                    nic for nic in vm_nics if nic.id == nic_param["id"]
+                ]
+                if len(primary_nics) > 0:
+                    primary_nic = primary_nics[0]
+                    nic_param["primary"] = True
+                    break
+            if not primary_nic:
+                raise PycloudlibError("Could not set Primary NIC.")
+
+        self._remove_nic_from_vm(nic_params, primary_nic)
+        # delete the removed NIC
+        self._network_client.network_interfaces.begin_delete(
+            self._instance["rg_name"], nic_to_remove.name
+        )
+
+    def _remove_nic_from_vm(
+        self,
+        new_nic_params: List[Dict[str, Any]],
+        primary_nic: NetworkInterface,
+    ):
+        do_start: bool = False
+        if self._status != VMInstanceStatus.STOPPED:
+            self._log.debug("Deallocating instance to remove NICs")
+            # Azure deallocates VM before removing NiCs
+            self.deallocate()
+            do_start = True
+
+        # Deleting will be async, no need to wait
+        all_ips = list(self._network_client.public_ip_addresses.list_all())
+        params = self._instance["vm"].as_dict()
+        net_params = {
+            "network_profile": {"network_interfaces": new_nic_params}
+        }
+        update_nested(params, net_params)
+        poll = self._client.virtual_machines.begin_create_or_update(
+            self._instance["rg_name"], self.name, params
+        )
+        # Update VM and Ip address
+        self._instance["vm"] = poll.result()
+        self._instance["ip_address"] = [
+            ip_addr.ip_address
+            for ip_addr in all_ips
+            if ip_addr.id
+            == primary_nic.ip_configurations[
+                0
+            ].public_ip_address.id  # type: ignore
+        ][0]
+        if do_start:
+            self.start()
 
     def _attach_nic_to_vm(self, nics: List[Dict[str, Any]]):
         """Attach nics to instance."""
