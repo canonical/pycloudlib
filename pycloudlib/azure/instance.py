@@ -264,10 +264,6 @@ class AzureInstance(BaseInstance):
 
         Returns the private ip address of the new NIC.
         """
-        us = datetime.datetime.now().strftime("%f")
-        # get ip address object
-        ip_address_obj = self._create_ip_address()
-        ip_config_name = f"{self.name}-{us}-ip-config"
         # get subnet id and network security group id of primary nic
         default_nic_id = (
             self._instance["vm"].network_profile.network_interfaces[0].id
@@ -279,6 +275,11 @@ class AzureInstance(BaseInstance):
         default_nic = default_nic[0]
         subnet_id = default_nic.ip_configurations[0].subnet.id  # type: ignore
         nsg_id = default_nic.network_security_group.id  # type: ignore
+
+        us = datetime.datetime.now().strftime("%f")
+        # get ip address object
+        ip_address_obj = self._create_ip_address()
+        ip_config_name = f"{self.name}-{us}-ip-config"
 
         ip_config = dict(
             name=ip_config_name,
