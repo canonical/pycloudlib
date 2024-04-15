@@ -20,6 +20,7 @@ from pycloudlib.errors import (
     InstanceNotFoundError,
     NetworkNotFoundError,
     PycloudlibError,
+    PycloudlibQuotaError,
     PycloudlibTimeoutError,
 )
 from pycloudlib.util import get_timestamped_tag, update_nested
@@ -657,6 +658,12 @@ class Azure(BaseCloud):
         except HttpResponseError as e:
             err_code = e.error.code
             err_msg = e.error.message
+
+            if err_code == "OperationNotAllowed":
+                raise PycloudlibQuotaError(
+                    f"Virtual machine creation error: {err_code}\n{err_msg}"
+                ) from e
+
             raise PycloudlibError(
                 f"Virtual machine creation error: {err_code}\n{err_msg}"
             ) from e

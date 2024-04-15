@@ -137,3 +137,7 @@ class CleanupError(PycloudlibException):
 
 class MissingPrerequisiteError(PycloudlibException):
     """Raised when a prerequisite is missing."""
+
+
+class PycloudlibQuotaError(PycloudlibException):
+    """Raised when there is not enough quota to create the resource."""
