@@ -1,4 +1,6 @@
+import re
 import sys
+from packaging import version
 
 def compare_versions(old_version, new_version):
     if old_version >= new_version:
