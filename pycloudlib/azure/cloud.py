@@ -33,7 +33,7 @@ UBUNTU_DAILY_IMAGES = {
     "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily:latest",  # noqa: E501
     "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily:latest",
     "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily:latest",  # noqa: E501
-    "noble": "Canonical:0001-com-ubuntu-server-noble-daily:24_04-daily-lts:latest",  # noqa: E501
+    "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",  # noqa: E501
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
