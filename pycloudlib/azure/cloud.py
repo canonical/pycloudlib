@@ -40,7 +40,7 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-minimal-focal-daily:minimal-20_04-daily-lts:latest",  # noqa: E501
     "jammy": "Canonical:0001-com-ubuntu-minimal-jammy-daily:minimal-22_04-daily-lts:latest",  # noqa: E501
     "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
-    "noble": "Canonical:0001-com-ubuntu-minimal-noble-daily:minimal-24_04-daily-lts:latest",  # noqa: E501
+    "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",  # noqa: E501
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
