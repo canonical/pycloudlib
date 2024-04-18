@@ -898,11 +898,11 @@ class Azure(BaseCloud):
             ]
             for ip_address_ in ip_addresses:
                 ip_address = self._create_ip_address(ip_address_)
-                ip_address_str = ip_address.ip_address
                 self._log.debug(
                     "Created ip address with name: %s", ip_address.name
                 )
                 created_ip_addresses.append(ip_address)
+            ip_address_str = created_ip_addresses[0].ip_address
 
             network_security_group = self._create_network_security_group(
                 inbound_ports=inbound_ports,
