@@ -452,6 +452,7 @@ class IBMInstance(BaseInstance):
         instance: dict,
         floating_ip: Optional[dict] = None,
         username: Optional[str] = None,
+        using_existing_floating_ip: bool = False,
     ):
         """Set up instance."""
         super().__init__(key_pair, username=username)
@@ -459,6 +460,7 @@ class IBMInstance(BaseInstance):
         self._client = client
         self._instance = instance
         self._floating_ip = floating_ip
+        self._using_existing_floating_ip = using_existing_floating_ip
 
         # mount methods that depend on `_IBMInstanceType`:
         self._ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
@@ -694,11 +696,13 @@ class IBMInstance(BaseInstance):
             except Exception as e:
                 exceptions.append(e)
 
-        try:
-            self._client.delete_floating_ip(self._floating_ip_id)
-        except ApiException as e:
-            if "not found" not in str(e):
-                exceptions.append(e)
+        # if using an existing floating ip, do not delete it
+        if not self._using_existing_floating_ip:
+            try:
+                self._client.delete_floating_ip(self._floating_ip_id)
+            except ApiException as e:
+                if "not found" not in str(e):
+                    exceptions.append(e)
         return exceptions
 
     def _refresh_instance(self) -> dict:
