@@ -29,6 +29,5 @@ module = [
   "knack.*",
   "oci.*",
   "paramiko.*",
-  "simplestreams",
 ]
 ignore_missing_imports = true
