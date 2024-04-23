@@ -254,7 +254,7 @@ class AzureInstance(BaseInstance):
 
         return []
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add network interface to instance.
 
         Creates NIC and adds to the VM instance.
@@ -264,6 +264,7 @@ class AzureInstance(BaseInstance):
 
         Returns the private ip address of the new NIC.
         """
+        # pylint: disable=too-many-locals
         # get subnet id and network security group id of primary nic
         default_nic_id = (
             self._instance["vm"].network_profile.network_interfaces[0].id

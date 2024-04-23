@@ -17,7 +17,8 @@ def hot_add(ec2, daily):
     """
     with ec2.launch(daily, instance_type="m4.xlarge") as instance:
         instance.wait()
-        instance.add_network_interface()
+        # Add NIC with 2 private ips
+        instance.add_network_interface(ipv4_address_count=2)
         instance.add_network_interface()
 
         instance.add_volume(size=9)
