@@ -26,7 +26,7 @@ jobs:
           echo "Old version: $OLD_VERSION"
           echo "New version: $NEW_VERSION"
           
-          pip install -r integration-requirements.txt
+          pip install -r ci-requirements.txt
 
           # Run the version comparison Python script
           python .github/workflows/version_check.py "$OLD_VERSION" "$NEW_VERSION"
