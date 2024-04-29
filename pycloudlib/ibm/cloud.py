@@ -364,10 +364,14 @@ class IBM(BaseCloud):
             key_id=self._get_or_create_key(),
             **kwargs,
         )
-        if use_existing_floating_ip_with_name:
+        floating_ip_substring = (
+            use_existing_floating_ip_with_name
+            or self.config.get("floating_ip_substring")
+        )
+        if floating_ip_substring:
             self._log.info("Existing floating ip name provided.")
             floating_ip = self._choose_from_existing_floating_ips(
-                use_existing_floating_ip_with_name
+                floating_ip_substring
             )
         else:
             self._log.info("Creating new floating ip.")
