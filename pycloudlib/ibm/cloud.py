@@ -278,7 +278,8 @@ class IBM(BaseCloud):
                 self._client.list_floating_ips,
                 resource_name="floating_ips",
                 # Select that match the desired name
-                filter_fn=lambda ip: name_includes in ip["name"],
+                filter_fn=lambda ip: name_includes in ip["name"]
+                and ip["zone"]["name"] == self.zone,
             )
         )
         if not floating_ips:
