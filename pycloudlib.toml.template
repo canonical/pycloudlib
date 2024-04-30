@@ -52,6 +52,7 @@ project = ""  # glcoud config get-value project
 # api_key = ""  # IBM Cloud API key
 # region = "eu-de"
 # zone = "eu-de-2"
+# floating_ip_substring = "eu-de-2"  # String to search for if using existing floating IP
 # public_key_path = "/root/id_rsa.pub"
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # Defaults to your username if not set
