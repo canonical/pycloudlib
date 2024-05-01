@@ -352,6 +352,20 @@ class IBM(BaseCloud):
         floating_ip_name = f"{name}-fi" if name else None
         name = name or f"{self.tag}-vm"
 
+        floating_ip_substring = (
+            use_existing_floating_ip_with_name
+            or self.config.get("floating_ip_substring")
+        )
+
+        if floating_ip_substring:
+            self._log.info("Existing floating ip name provided.")
+            floating_ip = self._choose_from_existing_floating_ips(
+                floating_ip_substring
+            )
+        else:
+            self._log.info("Creating new floating ip.")
+            floating_ip = self._create_floating_ip(name=floating_ip_name)
+
         raw_instance = IBMInstance.create_raw_instance(
             client=self._client,
             name=name,
@@ -364,26 +378,14 @@ class IBM(BaseCloud):
             key_id=self._get_or_create_key(),
             **kwargs,
         )
-        floating_ip_substring = (
-            use_existing_floating_ip_with_name
-            or self.config.get("floating_ip_substring")
-        )
-        if floating_ip_substring:
-            self._log.info("Existing floating ip name provided.")
-            floating_ip = self._choose_from_existing_floating_ips(
-                floating_ip_substring
-            )
-        else:
-            self._log.info("Creating new floating ip.")
-            floating_ip = self._create_floating_ip(name=floating_ip_name)
+
         instance = IBMInstance.with_floating_ip(
             self.key_pair,
             client=self._client,
             instance=raw_instance,
             floating_ip=floating_ip,
             username=username,
-            using_existing_floating_ip=use_existing_floating_ip_with_name
-            is not None,
+            using_existing_floating_ip=floating_ip_substring is not None,
         )
         self.created_instances.append(instance)
 
