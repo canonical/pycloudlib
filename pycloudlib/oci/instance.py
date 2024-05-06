@@ -43,6 +43,7 @@ class OciInstance(BaseInstance):
         self.instance_id = instance_id
         self.compartment_id = compartment_id
         self.availability_domain = availability_domain
+        self._fault_domain = None
         self._ip = None
 
         if oci_config is None:
@@ -88,6 +89,13 @@ class OciInstance(BaseInstance):
     def instance_data(self):
         """Return JSON formatted details from OCI about this instance."""
         return self.compute_client.get_instance(self.instance_id).data
+
+    @property
+    def fault_domain(self):
+        """Obtain the fault domain the instance resides in."""
+        if self._fault_domain is None:
+            self._fault_domain = self.instance_data.fault_domain
+        return self._fault_domain
 
     def console_log(self):
         """Not currently implemented."""

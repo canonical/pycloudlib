@@ -34,6 +34,7 @@ class OCI(BaseCloud):
         config_path: Optional[str] = None,
         config_dict: Optional[str] = None,
         vcn_name: Optional[str] = None,
+        fault_domain: Optional[str] = None,
     ):
         """
         Initialize the connection to OCI.
@@ -110,6 +111,7 @@ class OCI(BaseCloud):
             self.oci_config = oci.config.from_file(config_path)
 
         self.vcn_name = vcn_name
+        self.fault_domain = fault_domain
 
         self._log.debug("Logging into OCI")
         self.compute_client = oci.core.ComputeClient(
@@ -286,6 +288,7 @@ class OCI(BaseCloud):
             display_name=self.tag,
             availability_domain=self.availability_domain,
             compartment_id=self.compartment_id,
+            fault_domain=self.fault_domain,
             shape=instance_type,
             subnet_id=subnet_id,
             image_id=image_id,
