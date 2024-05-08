@@ -30,7 +30,8 @@ See the examples directory or the [online documentation](https://pycloudlib.read
 
 ## Bugs
 
-File bugs on Launchpad at the [pycloudlib project](https://bugs.launchpad.net/pycloudlib/+filebug).
+If you spot a problem, search if an issue already exists. If a related issue doesn't exist, open a
+[new issue](https://github.com/canonical/pycloudlib/issues/new/choose).
 
 ## Contact
 
