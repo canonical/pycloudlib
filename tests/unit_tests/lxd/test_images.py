@@ -1,4 +1,5 @@
 """Tests related to lxd._images."""
+
 import json
 from unittest import mock
 

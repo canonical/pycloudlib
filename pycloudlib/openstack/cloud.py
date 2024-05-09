@@ -1,4 +1,5 @@
 """Openstack cloud type."""
+
 import base64
 from typing import Optional
 

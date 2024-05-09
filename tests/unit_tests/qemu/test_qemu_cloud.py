@@ -3,6 +3,7 @@
 Since the integration tests are the primary tests, these are mostly testing
 error conditions and corner cases.
 """
+
 from collections import namedtuple
 from pathlib import Path
 from unittest import mock

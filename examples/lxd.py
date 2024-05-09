@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Basic examples of various lifecycle with a LXD instance."""
+
 import logging
 import textwrap
 

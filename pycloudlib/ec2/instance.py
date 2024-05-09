@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """EC2 instance."""
+
 import string
 import time
 from typing import Dict, List, Optional

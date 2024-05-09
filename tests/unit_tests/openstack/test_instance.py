@@ -1,4 +1,5 @@
 """Openstack instance tests."""
+
 from unittest import mock
 
 from pycloudlib.openstack.instance import OpenstackInstance

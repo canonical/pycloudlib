@@ -1,4 +1,5 @@
 """LXD/LXD images' related functionalities."""
+
 import functools
 import itertools
 import json

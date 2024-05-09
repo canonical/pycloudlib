@@ -1,4 +1,5 @@
 """Tests for pycloudlib.lxd.instance."""
+
 import re
 from copy import deepcopy
 from json import dumps

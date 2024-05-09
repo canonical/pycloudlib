@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """AWS EC2 Cloud type."""
+
 import re
 from typing import List, Optional
 

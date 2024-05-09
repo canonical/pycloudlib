@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 # pylint: disable=C0302
 """Azure Cloud type."""
+
 import base64
 import contextlib
 import datetime
@@ -582,9 +583,9 @@ class Azure(BaseCloud):
                 user_data.encode()
             ).decode()
 
-        vm_parameters["storage_profile"][
-            "image_reference"
-        ] = util.get_image_reference_params(image_id)
+        vm_parameters["storage_profile"]["image_reference"] = (
+            util.get_image_reference_params(image_id)
+        )
 
         # We can have pro images from two different sources; marketplaces
         # and snapshots. A snapshot image does not have the necessary metadata

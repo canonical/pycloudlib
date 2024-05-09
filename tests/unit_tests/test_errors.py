@@ -1,4 +1,5 @@
 """Test the errors.py module."""
+
 import pytest
 
 from pycloudlib.errors import ResourceNotFoundError, ResourceType
