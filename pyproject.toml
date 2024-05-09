@@ -6,10 +6,6 @@ build-backend = "setuptools.build_meta"
 line-length = 79
 target-version = ['py36']
 
-[tool.isort]
-profile = "black"
-line_length = 79
-
 [tool.mypy]
 follow_imports = "silent"
 warn_unused_ignores = "true"
@@ -32,9 +28,16 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+docstring-code-format = true
+
 [tool.ruff.lint]
 extend-select = [
   "D",   # pydocstyle
+  "I",   # isort
 ]
 
 [tool.ruff.lint.pydocstyle]
