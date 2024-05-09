@@ -31,3 +31,11 @@ module = [
   "paramiko.*",
 ]
 ignore_missing_imports = true
+
+[tool.ruff.lint]
+extend-select = [
+  "D",   # pydocstyle
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
