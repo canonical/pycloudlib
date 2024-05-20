@@ -1,4 +1,5 @@
 """Openstack instance type."""
+
 import time
 from itertools import chain
 from typing import List, Optional

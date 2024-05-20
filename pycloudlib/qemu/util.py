@@ -1,4 +1,5 @@
 """Utilities for use with QEMU."""
+
 import errno
 import socket
 

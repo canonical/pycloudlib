@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Cloud class for QEMU."""
+
 import os
 import re
 import shutil

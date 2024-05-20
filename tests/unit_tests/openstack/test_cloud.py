@@ -1,4 +1,5 @@
 """Openstack cloud tests."""
+
 from io import StringIO
 from unittest import mock
 

@@ -1,4 +1,5 @@
 """Tests related to pycloudlib.cloud module."""
+
 from io import StringIO
 from textwrap import dedent
 

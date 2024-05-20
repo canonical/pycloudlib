@@ -1,4 +1,5 @@
 """Test the config.py module."""
+
 import os
 from io import StringIO
 

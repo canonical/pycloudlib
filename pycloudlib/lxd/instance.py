@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD instance."""
+
 import json
 import re
 import time

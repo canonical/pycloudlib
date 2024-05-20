@@ -114,12 +114,8 @@ class OCI(BaseCloud):
         self.fault_domain = fault_domain
 
         self._log.debug("Logging into OCI")
-        self.compute_client = oci.core.ComputeClient(
-            self.oci_config
-        )  # noqa: E501
-        self.network_client = oci.core.VirtualNetworkClient(
-            self.oci_config
-        )  # noqa: E501
+        self.compute_client = oci.core.ComputeClient(self.oci_config)  # noqa: E501
+        self.network_client = oci.core.VirtualNetworkClient(self.oci_config)  # noqa: E501
 
     def delete_image(self, image_id, **kwargs):
         """Delete an image.

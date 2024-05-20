@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Azure Util Functions."""
+
 import logging
 import re
 from typing import Any, Dict, NamedTuple, Optional

@@ -49,9 +49,7 @@ class OciInstance(BaseInstance):
         if oci_config is None:
             oci_config = oci.config.from_file("~/.oci/config")  # noqa: E501
         self.compute_client = oci.core.ComputeClient(oci_config)  # noqa: E501
-        self.network_client = oci.core.VirtualNetworkClient(
-            oci_config
-        )  # noqa: E501
+        self.network_client = oci.core.VirtualNetworkClient(oci_config)  # noqa: E501
 
     def __repr__(self):
         """Create string representation of class."""
@@ -229,13 +227,11 @@ class OciInstance(BaseInstance):
 
         Note: In OCI, detaching triggers deletion.
         """
-        vnic_attachments = (
-            oci.pagination.list_call_get_all_results_generator(  # noqa: E501
-                self.compute_client.list_vnic_attachments,
-                "record",
-                self.compartment_id,
-                instance_id=self.instance_id,
-            )
+        vnic_attachments = oci.pagination.list_call_get_all_results_generator(  # noqa: E501
+            self.compute_client.list_vnic_attachments,
+            "record",
+            self.compartment_id,
+            instance_id=self.instance_id,
         )
         for vnic_attachment in vnic_attachments:
             vnic_data = self.network_client.get_vnic(

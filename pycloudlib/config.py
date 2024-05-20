@@ -1,4 +1,5 @@
 """Deal with configuration file."""
+
 import logging
 import os
 from io import StringIO

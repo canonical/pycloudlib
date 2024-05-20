@@ -1,4 +1,5 @@
 """Tests related to pycloudlib.azure.cloud module."""
+
 import datetime
 from io import StringIO
 

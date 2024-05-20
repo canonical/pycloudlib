@@ -323,9 +323,7 @@ class AzureInstance(BaseInstance):
         nic_params = []
         nic_to_remove: Optional[NetworkInterface] = None
         for vm_nic in vm_nics:
-            nic_private_ip = vm_nic.ip_configurations[
-                0
-            ].private_ip_address  # type: ignore
+            nic_private_ip = vm_nic.ip_configurations[0].private_ip_address  # type: ignore
             if nic_private_ip == ip_address:
                 nic_to_remove = vm_nic
             else:
@@ -382,9 +380,7 @@ class AzureInstance(BaseInstance):
             ip_addr.ip_address
             for ip_addr in all_ips
             if ip_addr.id
-            == primary_nic.ip_configurations[
-                0
-            ].public_ip_address.id  # type: ignore
+            == primary_nic.ip_configurations[0].public_ip_address.id  # type: ignore
         ][0]
         if do_start:
             self.start()
