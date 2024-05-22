@@ -34,14 +34,14 @@ UBUNTU_DAILY_IMAGES = {
     "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily:latest",  # noqa: E501
     "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily:latest",
     "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily:latest",  # noqa: E501
-    "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",  # noqa: E501
+    "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-minimal-focal-daily:minimal-20_04-daily-lts:latest",  # noqa: E501
     "jammy": "Canonical:0001-com-ubuntu-minimal-jammy-daily:minimal-22_04-daily-lts:latest",  # noqa: E501
     "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
-    "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",  # noqa: E501
+    "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
@@ -49,6 +49,7 @@ UBUNTU_DAILY_PRO_IMAGES = {
     "bionic": "Canonical:0001-com-ubuntu-pro-bionic:pro-18_04-lts:latest",
     "focal": "Canonical:0001-com-ubuntu-pro-focal:pro-20_04-lts:latest",
     "jammy": "Canonical:0001-com-ubuntu-pro-jammy:pro-22_04-lts:latest",
+    "noble": "Canonical:ubuntu-24_04-lts:ubuntu-pro:latest",
 }
 
 UBUNTU_DAILY_PRO_FIPS_IMAGES = {
@@ -63,11 +64,13 @@ UBUNTU_RELEASE_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2:latest",
     "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2:latest",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
+    "noble": "Canonical:ubuntu-24_04-lts:server:latest",
 }
 
 UBUNTU_CVM_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-confidential-vm-focal:20_04-lts-cvm:latest",  # noqa: E501
     "jammy": "Canonical:0001-com-ubuntu-confidential-vm-jammy:22_04-lts-cvm:latest",  # noqa: E501
+    "noble": "Canonical:ubuntu-24_04-lts:cvm:latest",
 }
 
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
