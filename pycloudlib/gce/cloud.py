@@ -23,7 +23,7 @@ from pycloudlib.errors import (
 )
 from pycloudlib.gce.instance import GceInstance
 from pycloudlib.gce.util import get_credentials, raise_on_error
-from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
+from pycloudlib.util import get_ubuntu_version_from_series, subp
 
 logging.getLogger("googleapiclient.discovery").setLevel(logging.WARNING)
 
@@ -146,17 +146,20 @@ class GCE(BaseCloud):
     def _get_name_filter(self, release: str, image_type: ImageType):
         if image_type == ImageType.GENERIC:
             return "daily-ubuntu-{}-{}-*".format(
-                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+                get_ubuntu_version_from_series(release).replace(".", ""),
+                release,
             )
 
         if image_type == ImageType.PRO:
             return "ubuntu-pro-{}-{}-*".format(
-                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+                get_ubuntu_version_from_series(release).replace(".", ""),
+                release,
             )
 
         if image_type == ImageType.PRO_FIPS:
             return "ubuntu-pro-fips-{}-{}-*".format(
-                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+                get_ubuntu_version_from_series(release).replace(".", ""),
+                release,
             )
 
         raise ValueError("Invalid image_type: {}".format(image_type.value))

@@ -17,7 +17,7 @@ from pycloudlib.ibm._util import wait_until as _wait_until
 from pycloudlib.ibm.errors import IBMCapacityException, IBMException
 from pycloudlib.ibm.instance import VPC, IBMInstance
 from pycloudlib.instance import BaseInstance
-from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP
+from pycloudlib.util import get_ubuntu_version_from_series
 
 DEFAULT_RESOURCE_GROUP: str = "Default"
 
@@ -160,7 +160,7 @@ class IBM(BaseCloud):
             "name": None,
             "visibility": ListImagesEnums.Visibility.PUBLIC.value,
         }
-        version = UBUNTU_RELEASE_VERSION_MAP[release].replace(".", "-")
+        version = get_ubuntu_version_from_series(release).replace(".", "-")
         os_name = f"ubuntu-{version}-{arch}"
 
         # Images are sorted by (created_at, id), thus we return the first

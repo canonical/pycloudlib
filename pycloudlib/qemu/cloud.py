@@ -21,7 +21,10 @@ from pycloudlib.errors import (
 )
 from pycloudlib.qemu.instance import QemuInstance
 from pycloudlib.qemu.util import get_free_port
-from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, add_key_to_cloud_config
+from pycloudlib.util import (
+    add_key_to_cloud_config,
+    get_ubuntu_version_from_series,
+)
 
 
 class Qemu(BaseCloud):
@@ -141,9 +144,10 @@ class Qemu(BaseCloud):
         Returns:
             A string with the kernel name for the specified release.
         """
-        if release in UBUNTU_RELEASE_VERSION_MAP:
+        try:
+            get_ubuntu_version_from_series(release)
             prefix = release
-        else:
+        except ValueError:
             prefix = f"ubuntu-{release}"
 
         return f"{prefix}-server-cloudimg-amd64-vmlinuz-generic"
@@ -201,7 +205,7 @@ class Qemu(BaseCloud):
         base_url = (
             f"https://cloud-images.ubuntu.com/releases/{release}/release"
         )
-        release_number = UBUNTU_RELEASE_VERSION_MAP[release]
+        release_number = get_ubuntu_version_from_series(release)
         return self._get_latest_image(
             base_url=base_url,
             release=release_number,

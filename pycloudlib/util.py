@@ -20,20 +20,38 @@ import yaml
 
 from pycloudlib.result import Result
 
-UBUNTU_RELEASE_VERSION_MAP = {
-    "noble": "24.04",
-    "mantic": "23.10",
-    "lunar": "23.04",
-    "kinetic": "22.10",
-    "jammy": "22.04",
-    "focal": "20.04",
-    "bionic": "18.04",
-    "xenial": "16.04",
-}
-
-LTS_RELEASES = ["xenial", "bionic", "focal", "jammy"]
+LTS_RELEASES = ["xenial", "bionic", "focal", "jammy", "noble"]
 
 log = logging.getLogger(__name__)
+
+
+def get_ubuntu_version_from_series(series: str) -> str:
+    """Run distro-info to get the release version for a series.
+
+    `distro-info` is a dependency of Pro and installed on all Ubuntu
+    images.
+
+    Args:
+        series: string of series to get release version for
+    Returns:
+        string of release version
+    Raises:
+        ValueError: if distro-info fails
+
+    >>> release_version_from_series("noble")
+    "24.04"
+    """
+    try:
+        return subprocess.run(
+            ["distro-info", "--release", f"--series={series}"],
+            check=True,
+            capture_output=True,
+            universal_newlines=True,
+        ).stdout.strip()
+    except subprocess.CalledProcessError as e:
+        raise ValueError(
+            f"Failed to get release version for series {series}: {e}"
+        ) from e
 
 
 def chmod(path, mode):

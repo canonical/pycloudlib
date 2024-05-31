@@ -16,7 +16,7 @@ from pycloudlib.errors import (
     ImageNotFoundError,
     PycloudlibError,
 )
-from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
+from pycloudlib.util import LTS_RELEASES, get_ubuntu_version_from_series
 
 
 class EC2(BaseCloud):
@@ -153,7 +153,7 @@ class EC2(BaseCloud):
                 base_location, release, "-daily" if daily else ""
             )
 
-        release_ver = UBUNTU_RELEASE_VERSION_MAP.get(release)
+        release_ver = get_ubuntu_version_from_series(release)
         if image_type == ImageType.PRO:
             return (
                 f"ubuntu-pro-server/images/{disk_type}/"

@@ -1,4 +1,5 @@
 import ipaddress
+import subprocess
 from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -8,7 +9,7 @@ import pytest
 import pycloudlib
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.instance import BaseInstance
-from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
+from pycloudlib.util import LTS_RELEASES
 
 cloud_config = """\
 #cloud-config
@@ -128,9 +129,12 @@ def test_public_api(cloud: BaseCloud):
 
     cloud.delete_image(snapshot_id)  # Remove me
 
-    latest_devel_release = sorted(
-        UBUNTU_RELEASE_VERSION_MAP.items(), key=lambda items: items[1]
-    )[-1][0]
+    latest_devel_release = subprocess.run(
+        ["distro-info", "--devel"],
+        check=True,
+        capture_output=True,
+        universal_newlines=True,
+    ).stdout.strip()
     print(f"Checking latest daily devel release image: {latest_devel_release}")
     daily_devel_image_id = cloud.daily_image(release=latest_devel_release)
     assert daily_devel_image_id, (

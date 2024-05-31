@@ -15,7 +15,7 @@ from pycloudlib.config import ConfigFile
 from pycloudlib.errors import CloudSetupError, InstanceNotFoundError
 from pycloudlib.oci.instance import OciInstance
 from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
-from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
+from pycloudlib.util import get_ubuntu_version_from_series, subp
 
 
 class OCI(BaseCloud):
@@ -170,7 +170,7 @@ class OCI(BaseCloud):
         if operating_system == "Canonical Ubuntu":
             if not re.match(r"^\d{2}\.\d{2}$", release):  # 18.04, 20.04, etc
                 try:
-                    release = UBUNTU_RELEASE_VERSION_MAP[release]
+                    release = get_ubuntu_version_from_series(release)
                 except KeyError as e:
                     raise ValueError("Invalid release") from e
 
