@@ -47,7 +47,7 @@ def get_ubuntu_version_from_series(series: str) -> str:
             check=True,
             capture_output=True,
             universal_newlines=True,
-        ).stdout.strip()
+        ).stdout.split()[0]
     except subprocess.CalledProcessError as e:
         raise ValueError(
             f"Failed to get release version for series {series}: {e}"
