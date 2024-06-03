@@ -21,6 +21,7 @@ import yaml
 from pycloudlib.result import Result
 
 UBUNTU_RELEASE_VERSION_MAP = {
+    "oracular": "24.10",
     "noble": "24.04",
     "mantic": "23.10",
     "lunar": "23.04",
@@ -31,7 +32,7 @@ UBUNTU_RELEASE_VERSION_MAP = {
     "xenial": "16.04",
 }
 
-LTS_RELEASES = ["xenial", "bionic", "focal", "jammy"]
+LTS_RELEASES = ["xenial", "bionic", "focal", "jammy", "noble"]
 
 log = logging.getLogger(__name__)
 
