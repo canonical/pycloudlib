@@ -18,6 +18,9 @@ from pycloudlib.errors import (
 )
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 
+# Images before mantic don't have gp3 disk type
+NO_GP3_RELEASES = ["xenial", "bionic", "focal", "jammy"]
+
 
 class EC2(BaseCloud):
     """EC2 Cloud Class."""
@@ -134,11 +137,7 @@ class EC2(BaseCloud):
     def _get_name_for_image_type(
         self, release: str, image_type: ImageType, daily: bool
     ):
-        if release in LTS_RELEASES + ["lunar"]:
-            # Images before mantic don't have gp3 disk type
-            disk_type = "hvm-ssd"
-        else:  # Mantic and later
-            disk_type = "hvm-ssd-gp3"
+        disk_type = "hvm-ssd" if release in NO_GP3_RELEASES else "hvm-ssd-gp3"
         if image_type == ImageType.GENERIC:
             base_location = "ubuntu/{image_type}/{disk_type}".format(
                 image_type="images-testing" if daily else "images",
