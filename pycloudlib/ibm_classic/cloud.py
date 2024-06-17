@@ -7,15 +7,15 @@ import SoftLayer  # type: ignore
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
-from pycloudlib.ibm_softlayer.errors import IBMSoftlayerException
-from pycloudlib.ibm_softlayer.instance import IBMSoftlayerInstance
+from pycloudlib.ibm_classic.errors import IBMClassicException
+from pycloudlib.ibm_classic.instance import IBMClassicInstance
 from pycloudlib.instance import BaseInstance
 
 
-class IBMSoftlayer(BaseCloud):
-    """IBM Softlayer Class."""
+class IBMClassic(BaseCloud):
+    """IBM Classic Class."""
 
-    _type = "ibmsoftlayer"
+    _type = "ibmclassic"
 
     def __init__(
         self,
@@ -83,7 +83,7 @@ class IBMSoftlayer(BaseCloud):
         )
         public_images = list(public_images_gen)
         if not public_images:
-            raise IBMSoftlayerException(
+            raise IBMClassicException(
                 f"No public images found for {release}"
             )
         # filter by disk size
@@ -123,8 +123,8 @@ class IBMSoftlayer(BaseCloud):
             string, serial of latest image
 
         """
-        raise IBMSoftlayerException(
-            "This is not a valid method for IBM Softlayer"
+        raise IBMClassicException(
+            "This is not a valid method for IBM Classic"
         )
 
     def get_image_id_from_name(self, name: str) -> str:
@@ -145,7 +145,7 @@ class IBMSoftlayer(BaseCloud):
         )
         private_images = list(private_images_gen)
         if not private_images:
-            raise IBMSoftlayerException(f"No private images found for {name}")
+            raise IBMClassicException(f"No private images found for {name}")
         return private_images[0]["globalIdentifier"]
 
     def get_instance(self, instance_id) -> BaseInstance:
@@ -161,13 +161,13 @@ class IBMSoftlayer(BaseCloud):
         instances = set(self._virtual_server_manager.list_instances())
         matches = [i for i in instances if i["id"] == instance_id]
         if not matches:
-            raise IBMSoftlayerException(
-                f"Error getting Softlayer instance by id. "
+            raise IBMClassicException(
+                f"Error getting IBM Classic instance by id. "
                 "Instance {instance_id} not found"
             )
         if len(matches) > 1:
-            raise IBMSoftlayerException(
-                f"Error getting Softlayer instance by id. "
+            raise IBMClassicException(
+                f"Error getting IBM Classic instance by id. "
                 "Multiple instances found for {instance_id}"
             )
         return matches[0]
@@ -179,7 +179,7 @@ class IBMSoftlayer(BaseCloud):
         for datacenter in datacenters:
             if datacenter["name"].startswith(region):
                 return datacenter["name"]
-        raise IBMSoftlayerException(f"Invalid datacenter region provided: {region}")
+        raise IBMClassicException(f"Invalid datacenter region provided: {region}")
 
     # pylint: disable=too-many-locals
     def launch(
@@ -206,7 +206,7 @@ class IBMSoftlayer(BaseCloud):
             combined with the disk_size to create the instance flavor. For
             example, B1_2X4 with disk_size of 25G would result in "B1_2X4X25".
             user_data: Will raise an exception if provided because IBM
-            Softlayer does not support user data.
+            Classic does not support user data.
             datacenter_region: region to launch the instance in.
             This will automatically select a datacenter in the region if
             "datacenter" is not provided.
@@ -221,13 +221,13 @@ class IBMSoftlayer(BaseCloud):
         """
         self._log.info("Preparing to launch instance")
         if disk_size not in ["25G", "100G"]:
-            raise IBMSoftlayerException(
+            raise IBMClassicException(
                 "Invalid disk_size given. "
                 "disk_size must be either '25G' or '100G'"
             )
         if user_data:
             self._log.error(
-                "IBM Softlayer does not support user data for instance "
+                "IBM Classic does not support user data for instance "
                 "launch. No user data will be used."
                 )
 
@@ -255,7 +255,7 @@ class IBMSoftlayer(BaseCloud):
         else:
             flavor = instance_type.replace("-", "_")
 
-        raw_instance = IBMSoftlayerInstance.create_raw_instance(
+        raw_instance = IBMClassicInstance.create_raw_instance(
             self._virtual_server_manager,
             target_image_global_identifier=image_gid,
             hostname=name or f"{self.tag}-vm",
@@ -268,7 +268,7 @@ class IBMSoftlayer(BaseCloud):
             **kwargs,
         )
 
-        instance = IBMSoftlayerInstance(
+        instance = IBMClassicInstance(
             key_pair=self.key_pair,
             softlayer_client=self._client,
             vs_manager=self._virtual_server_manager,
@@ -351,7 +351,7 @@ class IBMSoftlayer(BaseCloud):
                 target_key = key
                 break
         if target_key is None:
-            raise IBMSoftlayerException(f"Key with name {name} not found")
+            raise IBMClassicException(f"Key with name {name} not found")
         self._log.debug("Deleting SSH key: %s", name)
         self._ssh_key_manager.delete_key(target_key["id"])
 
@@ -482,7 +482,7 @@ class IBMSoftlayer(BaseCloud):
         existence. This includes all instances, snapshots, resources, etc.
         """
         self._log.info(
-            "Cleaning up IBM Softlayer and all associated resources"
+            "Cleaning up IBM Classic and all associated resources"
         )
         exceptions = super().clean()
         self._log.info("Cleaning up SSH keys")

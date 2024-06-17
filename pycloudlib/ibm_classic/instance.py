@@ -1,6 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 # pylint: disable=too-many-public-methods
-"""IBM Softlayer (Classic Infrastructure) instance and VPC classes."""
+"""IBM Classic instance class"""
 
 import logging
 from typing import List, Optional
@@ -8,16 +8,16 @@ from typing import List, Optional
 import SoftLayer  # type: ignore
 
 from pycloudlib.ibm._util import wait_until as _wait_until
-from pycloudlib.ibm_softlayer.errors import IBMSoftlayerException
+from pycloudlib.ibm_classic.errors import IBMClassicException
 from pycloudlib.instance import BaseInstance
 
 logger = logging.getLogger(__name__)
 
 
-class IBMSoftlayerInstance(BaseInstance):
-    """IBM Softlayer instance class."""
+class IBMClassicInstance(BaseInstance):
+    """IBM Classic instance class."""
 
-    _type = "ibm_softlayer"
+    _type = "ibm_classic"
 
     def __init__(
         self,
@@ -38,7 +38,7 @@ class IBMSoftlayerInstance(BaseInstance):
 
         if username:
             self._log.error(
-                "Specifiying username is not supported for IBM Softlayer "
+                "Specifiying username is not supported for IBM Classic "
                 "instances. The default 'ubuntu' user will be used."
             )
 
@@ -60,7 +60,7 @@ class IBMSoftlayerInstance(BaseInstance):
             self._instance = self._vs_manager.get_instance(self.id)
         # if IP address is still not available, raise exception
         if "primaryIpAddress" not in self._instance:
-            raise IBMSoftlayerException(
+            raise IBMClassicException(
                 f"Failed to get IP address for instance {self.id}"
             )
 
@@ -123,7 +123,7 @@ class IBMSoftlayerInstance(BaseInstance):
             )
         except SoftLayer.SoftLayerAPIError as e:
             logger.error("configuration for instance is invalid: %s", e)
-            raise IBMSoftlayerException(
+            raise IBMClassicException(
                 f"Failed to verify instance configuration: {e}"
             ) from e
         except Exception as e:
@@ -131,7 +131,7 @@ class IBMSoftlayerInstance(BaseInstance):
                 "Unexpected error while verifying instance configuration: %s",
                 e,
             )
-            raise IBMSoftlayerException(
+            raise IBMClassicException(
                 f"Unexpected error while verifying instance configuration: {e}"
             ) from e
         logger.info(

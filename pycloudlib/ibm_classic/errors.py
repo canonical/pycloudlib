@@ -3,5 +3,5 @@
 from pycloudlib.errors import PycloudlibException
 
 
-class IBMSoftlayerException(PycloudlibException):
+class IBMClassicException(PycloudlibException):
     """IBM exception root."""
