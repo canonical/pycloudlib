@@ -44,7 +44,7 @@ class BaseCloud(ABC):
         tag: str,
         timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
-        required_values: _RequiredValues = None,
+        required_values: Optional[_RequiredValues] = None,
     ):
         """Initialize base cloud class.
 
