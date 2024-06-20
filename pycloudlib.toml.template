@@ -57,6 +57,10 @@ project = ""  # glcoud config get-value project
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # Defaults to your username if not set
 
+[ibmclassic]
+sl_username = ""
+sl_api_key = ""
+
 [lxd]
 
 [oci]
