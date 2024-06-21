@@ -67,6 +67,8 @@ UBUNTU_RELEASE_IMAGES = {
     "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2:latest",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
     "noble": "Canonical:ubuntu-24_04-lts:server:latest",
+    # TODO(20241031: drop -daily once release is published)
+    "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
 }
 
 UBUNTU_CVM_IMAGES = {
