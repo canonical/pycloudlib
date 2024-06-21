@@ -35,6 +35,7 @@ UBUNTU_DAILY_IMAGES = {
     "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily:latest",
     "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
+    "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
@@ -42,6 +43,7 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "jammy": "Canonical:0001-com-ubuntu-minimal-jammy-daily:minimal-22_04-daily-lts:latest",  # noqa: E501
     "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",
+    "oracular": "Canonical:ubuntu-24_10-daily:minimal:latest",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
