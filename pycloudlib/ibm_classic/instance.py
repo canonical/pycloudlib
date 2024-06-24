@@ -1,6 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 # pylint: disable=too-many-public-methods
-"""IBM Classic instance class"""
+"""IBM Classic instance class."""
 
 import logging
 from typing import List, Optional

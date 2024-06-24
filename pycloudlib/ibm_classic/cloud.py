@@ -15,7 +15,7 @@ from pycloudlib.instance import BaseInstance
 class IBMClassic(BaseCloud):
     """IBM Classic Class."""
 
-    _type = "ibmclassic"
+    _type = "ibm_classic"
 
     def __init__(
         self,
@@ -23,8 +23,9 @@ class IBMClassic(BaseCloud):
         timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
         *,
-        sl_username: Optional[str] = None,
-        sl_api_key: Optional[str] = None,
+        username: Optional[str] = None,
+        api_key: Optional[str] = None,
+        domain_name: Optional[str] = None,
     ):
         """Initialize base cloud class.
 
@@ -32,26 +33,28 @@ class IBMClassic(BaseCloud):
             tag: string used to name and tag resources with
             timestamp_suffix: Append a timestamped suffix to the tag string.
             config_file: path to pycloudlib configuration file
-            sl_username: IBM Softlayer username
-            sl_api_key: IBM Softlayer API key
+            username: IBM Classic specific username for API
+            api_key: IBM Classic specific API key
+            domain_name: Domain name to use for creating instance FQDNs
         """
         super().__init__(
             tag,
             timestamp_suffix,
             config_file,
-            required_values=[sl_username, sl_api_key],
+            required_values=[username, api_key, domain_name],
         )
         self.created_keys: List[str] = []
         self.created_security_groups: list = []
 
-        self._sl_username = sl_username or self.config.get("sl_username")
-        self._sl_api_key = sl_api_key or self.config.get("sl_api_key")
+        self._username = username or self.config.get("username")
+        self._api_key = api_key or self.config.get("api_key")
+        self._domain_name = domain_name or self.config.get("domain_name")
 
         self._log.debug("logging into IBM")
 
         self._client = SoftLayer.create_client_from_env(
-            username=self._sl_username,
-            api_key=self._sl_api_key,
+            username=self._username,
+            api_key=self._api_key,
         )
         self._virtual_server_manager = SoftLayer.VSManager(client=self._client)
         self._image_manager = SoftLayer.ImageManager(client=self._client)
@@ -62,8 +65,7 @@ class IBMClassic(BaseCloud):
         """Delete an image.
 
         Args:
-            image_id: string, id of the image to delete
-            **kwargs: dictionary of other arguments to pass to delete_image
+            image_id: string, ID (not GID) of the image to delete.
         """
         self._image_manager.delete_image(int(image_id))
 
@@ -83,9 +85,7 @@ class IBMClassic(BaseCloud):
         )
         public_images = list(public_images_gen)
         if not public_images:
-            raise IBMClassicException(
-                f"No public images found for {release}"
-            )
+            raise IBMClassicException(f"No public images found for {release}")
         # filter by disk size
         public_images = [
             image
@@ -123,9 +123,7 @@ class IBMClassic(BaseCloud):
             string, serial of latest image
 
         """
-        raise IBMClassicException(
-            "This is not a valid method for IBM Classic"
-        )
+        raise IBMClassicException("This is not a valid method for IBM Classic")
 
     def get_image_id_from_name(self, name: str) -> str:
         """
@@ -148,7 +146,7 @@ class IBMClassic(BaseCloud):
             raise IBMClassicException(f"No private images found for {name}")
         return private_images[0]["globalIdentifier"]
 
-    def get_instance(self, instance_id) -> BaseInstance:
+    def get_instance(self, instance_id, **kwargs) -> BaseInstance:
         """Get an instance by id.
 
         Args:
@@ -159,16 +157,16 @@ class IBMClassic(BaseCloud):
 
         """
         instances = set(self._virtual_server_manager.list_instances())
-        matches = [i for i in instances if i["id"] == instance_id]
+        matches = [i for i in instances if str(i["id"]) == str(instance_id)]
         if not matches:
             raise IBMClassicException(
                 f"Error getting IBM Classic instance by id. "
-                "Instance {instance_id} not found"
+                f"Instance {instance_id} not found"
             )
         if len(matches) > 1:
             raise IBMClassicException(
                 f"Error getting IBM Classic instance by id. "
-                "Multiple instances found for {instance_id}"
+                f"Multiple instances found for {instance_id}"
             )
         return matches[0]
 
@@ -179,7 +177,9 @@ class IBMClassic(BaseCloud):
         for datacenter in datacenters:
             if datacenter["name"].startswith(region):
                 return datacenter["name"]
-        raise IBMClassicException(f"Invalid datacenter region provided: {region}")
+        raise IBMClassicException(
+            f"Invalid datacenter region provided: {region}"
+        )
 
     # pylint: disable=too-many-locals
     def launch(
@@ -188,7 +188,6 @@ class IBMClassic(BaseCloud):
         instance_type: str = "B1_2X4",
         user_data=None,
         *,
-        domain_name: str = "pycloudlib.cloud",
         name: Optional[str] = None,
         disk_size: Literal["25G", "100G"] = "25G",
         datacenter_region: str = "dal",
@@ -201,7 +200,6 @@ class IBMClassic(BaseCloud):
             name: name of the instance
             image_id: image ID to use for the instance. Can accept
             either an ID or a GID.
-            domain_name: domain name for creating the FQDN for the instance
             instance_type: type of instance to create. This value is
             combined with the disk_size to create the instance flavor. For
             example, B1_2X4 with disk_size of 25G would result in "B1_2X4X25".
@@ -229,7 +227,7 @@ class IBMClassic(BaseCloud):
             self._log.error(
                 "IBM Classic does not support user data for instance "
                 "launch. No user data will be used."
-                )
+            )
 
         # check if image_id is a GID by checking if it contains hyphens
         if "-" in image_id:
@@ -264,7 +262,7 @@ class IBMClassic(BaseCloud):
             public_security_group_ids=[public_security_group_id],
             private_security_group_ids=[private_security_group_id],
             ssh_key_ids=[self._get_or_create_key()],
-            domain_name=domain_name,
+            domain_name=self._domain_name or "pycloudlib.cloud",
             **kwargs,
         )
 
@@ -291,6 +289,7 @@ class IBMClassic(BaseCloud):
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            note: optional note to add to the snapshot
 
         Returns:
             An image id
@@ -302,7 +301,7 @@ class IBMClassic(BaseCloud):
         snapshot_result = self._virtual_server_manager.capture(
             instance_id=instance.id,
             name=f"{self.tag}-snapshot",
-            note=note,
+            notes=note,
         )
         self._log.info(
             "Successfully created snapshot '%s' with ID: %s",
@@ -480,10 +479,11 @@ class IBMClassic(BaseCloud):
 
         Cleanup any cloud artifacts created at any time during this class's
         existence. This includes all instances, snapshots, resources, etc.
+
+        Returns:
+            A list of exceptions that occurred during cleanup.
         """
-        self._log.info(
-            "Cleaning up IBM Classic and all associated resources"
-        )
+        self._log.info("Cleaning up IBM Classic and all associated resources")
         exceptions = super().clean()
         self._log.info("Cleaning up SSH keys")
         for key_id in self.created_keys:

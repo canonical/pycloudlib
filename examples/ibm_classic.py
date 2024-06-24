@@ -72,7 +72,7 @@ def launch_basic(
                 note="Example snapshot created by pycloudlib",
             )
             print(
-                f"Succesfully created snapshot {iSoftlayerbm_classic.tag}-snapshot with ID: {snapshot_id}"
+                f"Succesfully created snapshot {ibm_classic.tag}-snapshot with ID: {snapshot_id}"
             )
             print("Example Completed!")
 

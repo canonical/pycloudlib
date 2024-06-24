@@ -2,7 +2,7 @@
 
 The following page documents the IBM Classic cloud integration in pycloudlib.
 
-## IBM Classic / SoftLayer Naming 
+## IBM Classic / SoftLayer Naming
 
 IBM Classic, often referred to as IBM SoftLayer, originates from IBM's acquisition of SoftLayer Technologies in 2013. SoftLayer was a cloud infrastructure provider known for its robust and flexible cloud services. After the acquisition, IBM integrated SoftLayer's technology and services into its own cloud offerings. For several years, IBM marketed these services under the SoftLayer brand, which led to the name "IBM SoftLayer" becoming synonymous with the classic IBM cloud infrastructure.
 
@@ -13,13 +13,48 @@ long-standing services and infrastructure on the platform.
 
 ## Credentials
 
-To operate on IBM VPC an IBM Cloud API key is required. This should be set in pycloudlib.toml
-or passed to pycloudlib.IBM at initialization time.
+To operate on IBM Cloud's Classic infrastructure, an IBM Classic specific API key is required. 
+This should be set in pycloudlib.toml or passed to pycloudlib.IBMClassic at initialization time.
+
+### Getting Your Credentials
+
+Two things are required to authenticate with IBM Classic, a `username` and an `api_key`.
+
+#### Username:
+
+The username is specific to the IBM Classic and typically your account number and your email address
+used to log in to the IBM Cloud combined with an underscore.  
+
+The account number can be found in the IBM Cloud console in the top navigation bar 
+to the right of the Manage button.  
+
+And so, if your account number is `123456` and your email address is `firstname_lastname@company.com`,
+your username would be `123456_firstname_lastname@company.com`
+
+#### API Key:
+
+ 1. Click on the `Manage` dropdown button in the top navigation bar and select `Access (IAM)`. 
+ 2. Click on `API keys` in the left navigation bar. 
+ 3. Click on the Dropdown menu and select `Classic infrastructure API keys`.
+ 4. Either create a new key or use the existing key. 
+    - You can re-view an existing key by clicking on the `...` on the far right of the key row and selecting `Details`.
+
+### Using Your Credentials
+
+It would be best to store your credentials in the `pycloudlib.toml` file:
+  
+```toml
+[ibm_classic]
+username = "123456_firstname_lastname@company.com"
+api_key = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+```
+
+## Configuration
 
 ## SSH Keys
 
-IBM Classic requires an SSH key to be uploaded before using it. SSH Keys used on IBM VPC can also be used on IBM
-Classic.  
+IBM Classic requires an SSH key to be uploaded before using it. 
+SSH Keys used on IBM VPC can also be used on IBM Classic.  
 For more information on SSH Keys, see the SSH Key page.
 
 ## Image Lookup
@@ -44,7 +79,6 @@ Optionally, a user can specify:
 - instance type: type of instance to create. This value is
   combined with the disk_size to create the instance flavor. For
   example, B1_2X4 with disk_size of 25G would result in "B1_2X4X25".
-- domain name: domain name for creating the FQDN for the instance. default is `pycloudlib.cloud`
 - name: name to be given to the instance
 - disk size: either "25G" or "100G". Default is "25G"
 - datacenter: the datacenter to launch the instance in
@@ -95,7 +129,6 @@ inst_4 = ibm_classic.launch(
   instance_type='U1_1X2',
   disk_size="100G",
   datacenter='dal13',
-  domain_name='yourdomain.com',
 )
 ```
 ### Notes on waiting for instances
