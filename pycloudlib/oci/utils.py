@@ -21,7 +21,7 @@ def wait_till_ready(
     current_data,
     desired_state,
     sleep_seconds=1000,
-    func_kwargs: Dict[str, str] = None,
+    func_kwargs: Optional[Dict[str, str]] = None,
 ):
     """Wait until the results of function call reach a desired lifecycle state.
 

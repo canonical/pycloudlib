@@ -159,7 +159,7 @@ class OciInstance(BaseInstance):
             self.wait()
 
     def _wait_for_instance_start(
-        self, *, func_kwargs: Dict[str, str] = None, **kwargs
+        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
     ):
         """Wait for instance to be up."""
         wait_till_ready(
@@ -169,7 +169,9 @@ class OciInstance(BaseInstance):
             func_kwargs=func_kwargs,
         )
 
-    def wait_for_delete(self, *, func_kwargs: Dict[str, str] = None, **kwargs):
+    def wait_for_delete(
+        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
+    ):
         """Wait for instance to be deleted."""
         wait_till_ready(
             func=self.compute_client.get_instance,
@@ -178,7 +180,9 @@ class OciInstance(BaseInstance):
             func_kwargs=func_kwargs,
         )
 
-    def wait_for_stop(self, *, func_kwargs: Dict[str, str] = None, **kwargs):
+    def wait_for_stop(
+        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
+    ):
         """Wait for instance stop."""
         wait_till_ready(
             func=self.compute_client.get_instance,
