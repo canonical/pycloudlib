@@ -14,7 +14,7 @@ from pycloudlib.config import ConfigFile
 from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
-from pycloudlib.ibm.errors import IBMException
+from pycloudlib.ibm.errors import IBMCapacityException, IBMException
 from pycloudlib.ibm.instance import VPC, IBMInstance
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP
@@ -206,6 +206,25 @@ class IBM(BaseCloud):
             "IBM Cloud does not contain Ubuntu daily images"
         )
 
+    def get_image_id_from_name(self, name: str) -> str:
+        """
+        Get the id of the first image whose name contains the given name.
+
+        The name does not need to be an exact match, just a substring of
+        the image name.
+
+        Returns:
+            string, image ID
+        """
+        image = _get_first(
+            self._client.list_images,
+            resource_name="images",
+            filter_fn=lambda image: name in image["name"],
+        )
+        if image is None:
+            raise IBMException(f"Image not found: {name}")
+        return image["id"]
+
     def get_instance(
         self, instance_id: str, *, username: Optional[str] = None, **kwargs
     ) -> BaseInstance:
@@ -242,6 +261,45 @@ class IBM(BaseCloud):
             self.created_vpcs.append(vpc)
             return vpc
 
+    def _choose_from_existing_floating_ips(
+        self, name_includes="default-floating-ip"
+    ) -> dict:
+        """
+        Choose a floating IP from existing floating IPs via substring match.
+
+        Args:
+            name_includes: string, name to filter floating IPs by
+
+        Returns:
+            A floating IP object
+        """
+        floating_ips = list(
+            _iter_resources(
+                self._client.list_floating_ips,
+                resource_name="floating_ips",
+                # Select that match the desired name
+                filter_fn=lambda ip: name_includes in ip["name"]
+                and ip["zone"]["name"] == self.zone,
+            )
+        )
+        if not floating_ips:
+            raise IBMException(
+                f"No floating IPs found matching substring {name_includes}"
+            )
+        # filter out floating ips that are already associated with an instance
+        floating_ips = [ip for ip in floating_ips if "target" not in ip]
+        if not floating_ips:
+            raise IBMCapacityException(
+                f"All floating IPs matching substring {name_includes}",
+                "are already in use.",
+            )
+        self._log.info(
+            "Using existing floating ip '%s' with address %s",
+            floating_ips[0]["name"],
+            floating_ips[0]["address"],
+        )
+        return floating_ips[0]
+
     def _create_floating_ip(self, name: Optional[str] = None) -> dict:
         name = name or f"{self.tag}-fi"
         proto = {
@@ -262,6 +320,7 @@ class IBM(BaseCloud):
         name: Optional[str] = None,
         vpc: Optional[VPC] = None,
         username: Optional[str] = None,
+        use_existing_floating_ip_with_name: Optional[str] = None,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.
@@ -274,6 +333,9 @@ class IBM(BaseCloud):
             vpc: VPC to allocate the instance in. If not given, the instance
             username: username to use when connecting via SSH
             will be allocated in the zone's default VPC.
+            use_existing_floating_ip_with_name: use existing floating IP whose
+            name contains this substring. This floating IP will not be deleted
+            when the instance is deleted.
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:
@@ -290,6 +352,20 @@ class IBM(BaseCloud):
         floating_ip_name = f"{name}-fi" if name else None
         name = name or f"{self.tag}-vm"
 
+        floating_ip_substring = (
+            use_existing_floating_ip_with_name
+            or self.config.get("floating_ip_substring")
+        )
+
+        if floating_ip_substring:
+            self._log.info("Existing floating ip name provided.")
+            floating_ip = self._choose_from_existing_floating_ips(
+                floating_ip_substring
+            )
+        else:
+            self._log.info("Creating new floating ip.")
+            floating_ip = self._create_floating_ip(name=floating_ip_name)
+
         raw_instance = IBMInstance.create_raw_instance(
             client=self._client,
             name=name,
@@ -303,13 +379,13 @@ class IBM(BaseCloud):
             **kwargs,
         )
 
-        floating_ip = self._create_floating_ip(name=floating_ip_name)
         instance = IBMInstance.with_floating_ip(
             self.key_pair,
             client=self._client,
             instance=raw_instance,
             floating_ip=floating_ip,
             username=username,
+            using_existing_floating_ip=floating_ip_substring is not None,
         )
         self.created_instances.append(instance)
 

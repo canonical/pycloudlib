@@ -1,4 +1,5 @@
 """Tests related to pycloudlib.lxd.cloud module."""
+
 import contextlib
 import io
 from unittest import mock

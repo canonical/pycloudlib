@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """VMWare instance."""
+
 import subprocess
 from typing import List, Mapping, Optional
 
@@ -106,12 +107,12 @@ class VMWareInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for the cloud instance to be up."""
         assert self.ip  # Obtain IP operation is blocking
 
     def wait_for_delete(self, **kwargs):
         """Wait for instance to be deleted."""  # Delete operation is blocking
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance to stop."""  # Stop operation is blocking

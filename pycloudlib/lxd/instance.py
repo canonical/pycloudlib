@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD instance."""
+
 import json
 import re
 import time
@@ -80,6 +81,7 @@ class LXDInstance(BaseInstance):
 
         Returns None if no address found
         """
+        ipv6 = []
         network = query.get("state", {}).get("network")
         if network is None:
             network = {}
@@ -91,8 +93,13 @@ class LXDInstance(BaseInstance):
             for addr in nic_cfg["addresses"]:
                 if addr.get("scope") != "global":
                     continue
-                if addr.get("family") == "inet":
+                family = addr.get("family")
+                if family == "inet":
                     return addr.get("address")
+                if family == "inet6":
+                    ipv6.append(addr.get("address"))
+        if ipv6:
+            return ipv6[0]
         self._log.debug(
             "Unable to find valid IP. Found network: %s",
             network,

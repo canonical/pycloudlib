@@ -14,7 +14,11 @@ runcmd:
 """
 
 
-def demo(availability_domain, compartment_id):
+def demo(
+    availability_domain: str = None,
+    compartment_id: str = None,
+    vcn_name: str = None,
+):
     """Show example of using the OCI library.
 
     Connects to OCI and launches released image. Then runs
@@ -24,9 +28,10 @@ def demo(availability_domain, compartment_id):
         "oracle-test",
         availability_domain=availability_domain,
         compartment_id=compartment_id,
+        vcn_name=vcn_name,
     ) as client:
         with client.launch(
-            image_id=client.released_image("focal"),
+            image_id=client.released_image("jammy"),
             user_data=b64encode(cloud_config.encode()).decode(),
         ) as instance:
             instance.wait()
@@ -45,8 +50,15 @@ def demo(availability_domain, compartment_id):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     if len(sys.argv) != 3:
-        print("Usage: oci.py <availability_domain> <compartment_id>")
-        sys.exit(1)
-    passed_availability_domain = sys.argv[1]
-    passed_compartment_id = sys.argv[2]
-    demo(passed_availability_domain, passed_compartment_id)
+        print(
+            "No arguments passed via command line. "
+            "Assuming values are set in pycloudlib configuration file."
+        )
+        demo()
+    else:
+        passed_availability_domain = sys.argv[1]
+        passed_compartment_id = sys.argv[2]
+        passed_vcn_name = sys.argv[3] if len(sys.argv) == 4 else None
+        demo(
+            passed_availability_domain, passed_compartment_id, passed_vcn_name
+        )

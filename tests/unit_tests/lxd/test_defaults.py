@@ -1,4 +1,5 @@
 """Tests related to pycloudlib.lxd.defaults module."""
+
 import hashlib
 
 import pytest

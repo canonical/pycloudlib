@@ -16,7 +16,7 @@ from ibm_vpc.vpc_v1 import InstanceAction as _InstanceAction
 from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
-from pycloudlib.ibm.errors import IBMException
+from pycloudlib.ibm.errors import IBMCapacityException, IBMException
 from pycloudlib.instance import BaseInstance
 
 if TYPE_CHECKING:
@@ -399,7 +399,9 @@ class _IBMInstanceType(Enum):
             return client.create_instance_action(id, action.value, force=force)
         if self == self.BARE_METAL_SERVER:
             if action == _Action.STOP:
-                return client.stop_bare_metal_server(id)
+                return client.stop_bare_metal_server(
+                    id, type="hard" if force else "soft"
+                )
             if action == _Action.START:
                 return client.start_bare_metal_server(id)
             if action == _Action.REBOOT:
@@ -452,6 +454,7 @@ class IBMInstance(BaseInstance):
         instance: dict,
         floating_ip: Optional[dict] = None,
         username: Optional[str] = None,
+        using_existing_floating_ip: bool = False,
     ):
         """Set up instance."""
         super().__init__(key_pair, username=username)
@@ -459,6 +462,7 @@ class IBMInstance(BaseInstance):
         self._client = client
         self._instance = instance
         self._floating_ip = floating_ip
+        self._using_existing_floating_ip = using_existing_floating_ip
 
         # mount methods that depend on `_IBMInstanceType`:
         self._ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
@@ -694,23 +698,35 @@ class IBMInstance(BaseInstance):
             except Exception as e:
                 exceptions.append(e)
 
-        try:
-            self._client.delete_floating_ip(self._floating_ip_id)
-        except ApiException as e:
-            if "not found" not in str(e):
-                exceptions.append(e)
+        # if using an existing floating ip, do not delete it
+        if not self._using_existing_floating_ip:
+            try:
+                self._client.delete_floating_ip(self._floating_ip_id)
+            except ApiException as e:
+                if "not found" not in str(e):
+                    exceptions.append(e)
         return exceptions
 
     def _refresh_instance(self) -> dict:
         self._instance = self._get_instance(self.id).get_result()
         return self._instance
 
-    def _wait_for_status(self, status: _Status, sleep_seconds: int = 300):
+    def _wait_for_status(
+        self,
+        status: _Status,
+        sleep_seconds: int = 300,
+        side_effect_fn=None,
+    ):
+        def check_status_and_do_side_effect():
+            if side_effect_fn:
+                side_effect_fn()
+            return self._refresh_instance()["status"] == status.value
+
         _wait_until(
-            lambda: self._refresh_instance()["status"] == status.value,
+            check_status_and_do_side_effect,
             timeout_seconds=sleep_seconds,
             timeout_msg_fn=lambda: (
-                "Expected {status.value} state, but found"
+                f"Expected {status.value} state, but found"
                 f" {self._instance['status']} "
                 f"after waiting {sleep_seconds} seconds. "
                 "Check IBM VPC console for more details."
@@ -742,9 +758,38 @@ class IBMInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _check_instance_failed_status(self) -> None:
+        """
+        Check if the instance failed to start and raise an exception if so.
+
+        Raises:
+            IBMCapacityException: If the instance failed to start due to
+                capacity issues.
+            IBMException: If the instance failed to start due to other reasons.
+        """
+        if self._instance["status"] == _Status.FAILED.value:
+            if any(
+                "capacity" in reason["code"]
+                for reason in self._instance["status_reasons"]
+            ):
+                raise IBMCapacityException(
+                    f"Out of capacity! Instance {self.id} failed to start: "
+                    f"{self._instance['status_reasons'][0]['message']}"
+                )
+            # Raise generic IBM exception if not capacity related
+            raise IBMException(
+                f"Instance {self.id} failed to start: "
+                f"{self._instance['status_reasons'][0]['message']}"
+            )
+
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for the cloud instance to be up."""
-        self._wait_for_status(_Status.RUNNING)
+        # if self.b
+        self._wait_for_status(
+            _Status.RUNNING,
+            sleep_seconds=900,
+            side_effect_fn=self._check_instance_failed_status,
+        )
 
     def wait_for_delete(self, sleep_seconds=30, raise_on_fail=False):
         """Wait for instance to be deleted."""
@@ -772,6 +817,6 @@ class IBMInstance(BaseInstance):
         if not terminated:
             self._log.warning(msg)
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         self._wait_for_status(_Status.STOPPED)

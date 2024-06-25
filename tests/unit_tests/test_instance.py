@@ -1,4 +1,5 @@
 """Tests related to pycloudlib.instance module."""
+
 from itertools import repeat
 from unittest import mock
 

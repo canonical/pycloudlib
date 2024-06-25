@@ -1,4 +1,5 @@
 """Azure Security Types Classes."""
+
 from enum import Enum
 from typing import Any, Dict, Optional
 

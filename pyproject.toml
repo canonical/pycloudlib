@@ -2,18 +2,11 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
-line-length = 79
-target-version = ['py36']
-
-[tool.isort]
-profile = "black"
-line_length = 79
-
 [tool.mypy]
+check_untyped_defs = true
 follow_imports = "silent"
-warn_unused_ignores = "true"
 warn_redundant_casts = "true"
+warn_unused_ignores = "true"
 exclude=[]
 
 [[tool.mypy.overrides]]
@@ -29,6 +22,33 @@ module = [
   "knack.*",
   "oci.*",
   "paramiko.*",
-  "simplestreams",
 ]
 ignore_missing_imports = true
+no_implicit_optional = true
+
+# TODO: fix these modules
+[[tool.mypy.overrides]]
+module = [
+  "pycloudlib.util",
+  "pycloudlib.ibm.instance",
+  "pycloudlib.gce.util",
+  "pycloudlib.azure.instance",
+  "pycloudlib.gce.cloud",
+  "pycloudlib.azure.cloud",
+]
+check_untyped_defs = false
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+extend-select = [
+  "D",   # pydocstyle
+  "I",   # isort
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"

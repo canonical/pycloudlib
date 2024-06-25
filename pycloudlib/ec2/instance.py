@@ -1,8 +1,9 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """EC2 instance."""
+
 import string
 import time
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import botocore
 
@@ -57,6 +58,22 @@ class EC2Instance(BaseInstance):
         return self._instance.public_ip_address
 
     @property
+    def public_ips(self) -> List[str]:
+        """Return public IP addresses of instance."""
+        self._instance.reload()
+        public_ips = []
+        nic_ids = [nic.id for nic in self._instance.network_interfaces]
+        nics_resp = self._client.describe_network_interfaces(
+            NetworkInterfaceIds=nic_ids
+        )
+        _check_response(nics_resp)
+        for association in self._find_nic_associations(nics_resp):
+            public_ip = association.get("PublicIp")
+            if public_ip:
+                public_ips.append(public_ip)
+        return public_ips
+
+    @property
     def id(self):
         """Return id of instance."""
         return self._instance.instance_id
@@ -71,7 +88,14 @@ class EC2Instance(BaseInstance):
         """Return id of instance."""
         return self._instance.image_id
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(
+        self,
+        *,
+        ipv4_address_count: int = 1,
+        ipv6_address_count: int = 0,
+        ipv4_public_ip_count: int = 0,
+        **kwargs,
+    ) -> str:
         """Add network interface to instance.
 
         Creates an ENI device and attaches it to the running instance. This
@@ -81,9 +105,54 @@ class EC2Instance(BaseInstance):
         See the AWS documentation for more info:
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.create_network_interface
         https://boto3.readthedocs.io/en/latest/reference/services/ec2.html?#EC2.Client.attach_network_interface
+
+        Args:
+            ipv4_address_count: number of private ipv4s
+            ipv6_address_count: number of private ipv6s
+            ipv4_public_ip_count: number of public ips associated to private
+                ips
+        Returns: private primary ip
         """
         self._log.debug("adding network interface to %s", self.id)
-        interface_id = self._create_network_interface()
+        interface_id = self._create_network_interface(ipv6_address_count)
+        if ipv4_address_count < ipv4_public_ip_count:
+            raise PycloudlibError(
+                f"Invalid configuration:"
+                f" `ipv4_public_ip_count={ipv4_public_ip_count}` cannot be"
+                f" greater than `ipv4_address_count={ipv4_address_count}`"
+            )
+
+        if ipv4_address_count > 1:
+            assignment_resp = self._client.assign_private_ip_addresses(
+                NetworkInterfaceId=interface_id,
+                # Minus one to account for the private_ipv4 that comes by
+                # default with the NIC
+                SecondaryPrivateIpAddressCount=ipv4_address_count - 1,
+            )
+            _check_response(assignment_resp)
+        if ipv4_public_ip_count > 0:
+            nics_resp = self._client.describe_network_interfaces(
+                NetworkInterfaceIds=[interface_id]
+            )
+            _check_response(nics_resp)
+            priv_ips = [nics_resp["NetworkInterfaces"][0]["PrivateIpAddress"]]
+            if ipv4_address_count > 1:
+                priv_ips.extend(
+                    (
+                        x["PrivateIpAddress"]
+                        for x in assignment_resp["AssignedPrivateIpAddresses"]
+                    )
+                )
+            for i in range(ipv4_public_ip_count):
+                allocation = self._client.allocate_address(Domain="vpc")
+                _check_response(allocation)
+                association = self._client.associate_address(
+                    AllocationId=allocation["AllocationId"],
+                    NetworkInterfaceId=interface_id,
+                    PrivateIpAddress=priv_ips[i],
+                )
+                _check_response(association)
+
         return self._attach_network_interface(interface_id)
 
     def add_volume(self, size=8, drive_type="gp2"):
@@ -129,7 +198,7 @@ class EC2Instance(BaseInstance):
         """Delete instance."""
         exceptions = []
         # Even with DeleteOnTermination set True, nics can outlive instances
-        for ip in self.created_interfaces:
+        for ip in self.created_interfaces[:]:
             try:
                 self.remove_network_interface(ip)
             except Exception as e:
@@ -176,19 +245,19 @@ class EC2Instance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for instance to be up."""
         self._log.debug("wait for instance running %s", self._instance.id)
         self._instance.wait_until_running()
         self._log.debug("reloading instance state %s", self._instance.id)
         self._instance.reload()
 
-    def wait_for_delete(self):
+    def wait_for_delete(self, **kwargs):
         """Wait for instance to be deleted."""
         self._instance.wait_until_terminated()
         self._instance.reload()
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         self._instance.wait_until_stopped()
         self._instance.reload()
@@ -299,7 +368,10 @@ class EC2Instance(BaseInstance):
 
         return volume
 
-    def _create_network_interface(self) -> str:
+    def _create_network_interface(
+        self,
+        ipv6_address_count: Optional[int] = None,
+    ) -> str:
         """Create ENI device.
 
         Returns:
@@ -312,6 +384,8 @@ class EC2Instance(BaseInstance):
             ],
             "SubnetId": self._instance.subnet_id,
         }
+        if ipv6_address_count:
+            args["Ipv6AddressCount"] = ipv6_address_count
 
         response = self._client.create_network_interface(**args)
         interface_id = response["NetworkInterface"]["NetworkInterfaceId"]
@@ -379,12 +453,69 @@ class EC2Instance(BaseInstance):
             None,
         )
 
+    def _find_nic_associations(self, nics_resp: Dict) -> List[Dict]:
+        associations: List[Dict] = []
+        if not nics_resp["NetworkInterfaces"]:
+            return associations
+        for nic_md in nics_resp["NetworkInterfaces"]:
+            # Global associations
+            association = nic_md.get("Association")
+            if association:
+                associations.append(association)
+            # Per-ip associations
+            for priv_address in nic_md.get("PrivateIpAddresses", []):
+                if priv_address.get("Primary", False):
+                    continue
+                association = priv_address.get("Association")
+                if association:
+                    associations.append(association)
+        return associations
+
+    def _release_address(self, private_ip: str):
+        nics_resp = self._client.describe_network_interfaces(
+            Filters=[
+                {
+                    "Name": "private-ip-address",
+                    "Values": [private_ip],
+                },
+            ]
+        )
+        for association in self._find_nic_associations(nics_resp):
+            try:
+                self._client.disassociate_address(
+                    AssociationId=association["AssociationId"]
+                )
+            except botocore.exceptions.ClientError as ex:
+                self._log.debug(
+                    "Error disassociating Public IP from NIC with IP"
+                    " %s: %s",
+                    private_ip,
+                    str(ex),
+                )
+            try:
+                self._client.release_address(
+                    AllocationId=association["AllocationId"]
+                )
+            except botocore.exceptions.ClientError as ex:
+                self._log.debug(
+                    "Error deleting Public IP from NIC with IP" " %s: %s",
+                    private_ip,
+                    str(ex),
+                )
+                return
+            self._log.debug(
+                "Public IP released %s from NIC with IP %s.",
+                association["PublicIp"],
+                private_ip,
+            )
+
     def remove_network_interface(self, ip_address):
         """Remove network interface based on IP address.
 
         Find the NIC from the IP, detach from the instance, then delete the
         NIC.
         """
+        self._release_address(ip_address)
         # Get the NIC from the IP
         nic = self._get_nic_matching_ip(ip_address)
         if not nic:
@@ -411,8 +542,14 @@ class EC2Instance(BaseInstance):
         try:
             self._client.delete_network_interface(NetworkInterfaceId=nic.id)
             self._log.debug("NIC with IP %s deleted.", ip_address)
+            self.created_interfaces.remove(ip_address)
         except botocore.exceptions.ClientError:
             self._log.debug(
                 "Failed manually deleting network interface. "
                 "Interface should get destroyed on instance cleanup."
             )
+
+
+def _check_response(resp):
+    if resp.get("ResponseMetadata", {}).get("HTTPStatusCode", 200) != 200:
+        raise PycloudlibError(f"Internal error in client response: {resp}")

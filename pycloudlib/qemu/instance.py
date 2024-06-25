@@ -208,14 +208,14 @@ class QemuInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for instance to be up."""
         self.wait_till_status("running")
 
     def wait_for_delete(self, **kwargs):
         """Not implemented as "quit" is executed synchronously."""
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         self.wait_till_status("shutdown")
 
@@ -250,7 +250,7 @@ class QemuInstance(BaseInstance):
                 )
             time.sleep(1)
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add nic to running instance."""
         raise NotImplementedError
 

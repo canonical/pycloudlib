@@ -14,10 +14,10 @@ pip3 install pycloudlib
 
 Project's requirements.txt file can include pycloudlib as a dependency. Check out the [pip documentation](https://pip.readthedocs.io/en/1.1/requirements.html) for instructions on how to include a particular version or git hash.
 
-Install from latest master:
+Install from latest changes in `main` branch:
 
 ```shell
-git clone https://git.launchpad.net/pycloudlib
+git clone https://github.com/canonical/pycloudlib.git
 cd pycloudlib
 python3 setup.py install
 ```
@@ -30,7 +30,8 @@ See the examples directory or the [online documentation](https://pycloudlib.read
 
 ## Bugs
 
-File bugs on Launchpad at the [pycloudlib project](https://bugs.launchpad.net/pycloudlib/+filebug).
+If you spot a problem, search if an issue already exists. If a related issue doesn't exist, open a
+[new issue](https://github.com/canonical/pycloudlib/issues/new/choose).
 
 ## Contact
 

@@ -1,4 +1,5 @@
 """Tests related to pycloudlib.azure.security_types module."""
+
 from copy import deepcopy
 
 import pytest

@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """AWS EC2 Cloud type."""
+
 import re
 from typing import List, Optional
 
@@ -16,6 +17,9 @@ from pycloudlib.errors import (
     PycloudlibError,
 )
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
+
+# Images before mantic don't have gp3 disk type
+NO_GP3_RELEASES = ["xenial", "bionic", "focal", "jammy"]
 
 
 class EC2(BaseCloud):
@@ -133,11 +137,7 @@ class EC2(BaseCloud):
     def _get_name_for_image_type(
         self, release: str, image_type: ImageType, daily: bool
     ):
-        if release in LTS_RELEASES + ["lunar"]:
-            # Images before mantic don't have gp3 disk type
-            disk_type = "hvm-ssd"
-        else:  # Mantic and later
-            disk_type = "hvm-ssd-gp3"
+        disk_type = "hvm-ssd" if release in NO_GP3_RELEASES else "hvm-ssd-gp3"
         if image_type == ImageType.GENERIC:
             base_location = "ubuntu/{image_type}/{disk_type}".format(
                 image_type="images-testing" if daily else "images",
@@ -349,6 +349,7 @@ class EC2(BaseCloud):
         *,
         disk_size_gb: int = 15,
         username: Optional[str] = None,
+        enable_ipv6: bool = False,
         **kwargs,
     ):
         """Launch instance on EC2.
@@ -360,12 +361,15 @@ class EC2(BaseCloud):
             vpc: optional vpc object to create instance under
             disk_size_gb: size of instance disk in GB
             username: username to use when connecting via SSH
+            enable_ipv6: indicates if ipv6 IMDS support must be added to the
+                instance
             kwargs: other named arguments to add to instance JSON
 
         Returns:
             EC2 Instance object
         Raises: ValueError on invalid image_id
         """
+        # pylint: disable=too-many-locals
         if not image_id:
             raise ValueError(
                 f"{self._type} launch requires image_id param."
@@ -400,6 +404,15 @@ class EC2(BaseCloud):
 
         for key, value in kwargs.items():
             args[key] = value
+
+        if enable_ipv6:
+            # Enable IPv6 metadata at http://[fd00:ec2::254]
+            if "Ipv6AddressCount" not in args:
+                args["Ipv6AddressCount"] = 1
+            if "MetadataOptions" not in args:
+                args["MetadataOptions"] = {}
+            if "HttpProtocolIpv6" not in args["MetadataOptions"]:
+                args["MetadataOptions"] = {"HttpProtocolIpv6": "enabled"}
 
         if vpc:
             try:

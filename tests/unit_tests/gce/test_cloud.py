@@ -1,4 +1,5 @@
 """Tests related to pycloudlib.gce.cloud module."""
+
 import mock
 import pytest
 

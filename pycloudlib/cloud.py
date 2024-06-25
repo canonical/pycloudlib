@@ -29,6 +29,7 @@ class ImageType(enum.Enum):
     """Allowed image types when launching cloud images."""
 
     GENERIC = "generic"
+    MINIMAL = "minimal"
     PRO = "Pro"
     PRO_FIPS = "Pro FIPS"
 
@@ -43,7 +44,7 @@ class BaseCloud(ABC):
         tag: str,
         timestamp_suffix: bool = True,
         config_file: Optional[ConfigFile] = None,
-        required_values: _RequiredValues = None,
+        required_values: Optional[_RequiredValues] = None,
     ):
         """Initialize base cloud class.
 
@@ -134,6 +135,21 @@ class BaseCloud(ABC):
         Returns:
             string, serial of latest image
 
+        """
+        raise NotImplementedError
+
+    def get_image_id_from_name(self, name: str) -> str:
+        """
+        Get the id of the first image whose name contains the given name.
+
+        The name does not need to be an exact match, just a substring of
+        the image name.
+
+        Args:
+            name: string, name of the image to search for
+
+        Returns:
+            string, image ID
         """
         raise NotImplementedError
 

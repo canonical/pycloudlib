@@ -3,7 +3,7 @@
 """OCI instance."""
 
 from time import sleep
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import oci
 
@@ -43,12 +43,13 @@ class OciInstance(BaseInstance):
         self.instance_id = instance_id
         self.compartment_id = compartment_id
         self.availability_domain = availability_domain
+        self._fault_domain = None
         self._ip = None
 
         if oci_config is None:
-            oci_config = oci.config.from_file("~/.oci/config")  # type: ignore  # noqa: E501
-        self.compute_client = oci.core.ComputeClient(oci_config)  # type: ignore  # noqa: E501
-        self.network_client = oci.core.VirtualNetworkClient(oci_config)  # type: ignore  # noqa: E501
+            oci_config = oci.config.from_file("~/.oci/config")  # noqa: E501
+        self.compute_client = oci.core.ComputeClient(oci_config)  # noqa: E501
+        self.network_client = oci.core.VirtualNetworkClient(oci_config)  # noqa: E501
 
     def __repr__(self):
         """Create string representation of class."""
@@ -86,6 +87,13 @@ class OciInstance(BaseInstance):
     def instance_data(self):
         """Return JSON formatted details from OCI about this instance."""
         return self.compute_client.get_instance(self.instance_id).data
+
+    @property
+    def fault_domain(self):
+        """Obtain the fault domain the instance resides in."""
+        if self._fault_domain is None:
+            self._fault_domain = self.instance_data.fault_domain
+        return self._fault_domain
 
     def console_log(self):
         """Not currently implemented."""
@@ -150,31 +158,40 @@ class OciInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(
+        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
+    ):
         """Wait for instance to be up."""
         wait_till_ready(
             func=self.compute_client.get_instance,
             current_data=self.instance_data,
             desired_state="RUNNING",
+            func_kwargs=func_kwargs,
         )
 
-    def wait_for_delete(self):
+    def wait_for_delete(
+        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
+    ):
         """Wait for instance to be deleted."""
         wait_till_ready(
             func=self.compute_client.get_instance,
             current_data=self.instance_data,
             desired_state="TERMINATED",
+            func_kwargs=func_kwargs,
         )
 
-    def wait_for_stop(self):
+    def wait_for_stop(
+        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
+    ):
         """Wait for instance stop."""
         wait_till_ready(
             func=self.compute_client.get_instance,
             current_data=self.instance_data,
             desired_state="STOPPED",
+            func_kwargs=func_kwargs,
         )
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add network interface to running instance.
 
         Creates a nic and attaches it to the instance. This is effectively a
@@ -187,10 +204,10 @@ class OciInstance(BaseInstance):
         subnet_id = get_subnet_id(
             self.network_client, self.compartment_id, self.availability_domain
         )
-        create_vnic_details = oci.core.models.CreateVnicDetails(  # type: ignore # noqa: E501
+        create_vnic_details = oci.core.models.CreateVnicDetails(  # noqa: E501
             subnet_id=subnet_id,
         )
-        attach_vnic_details = oci.core.models.AttachVnicDetails(  # type: ignore # noqa: E501
+        attach_vnic_details = oci.core.models.AttachVnicDetails(  # noqa: E501
             create_vnic_details=create_vnic_details,
             instance_id=self.instance_id,
         )
@@ -214,7 +231,7 @@ class OciInstance(BaseInstance):
 
         Note: In OCI, detaching triggers deletion.
         """
-        vnic_attachments = oci.pagination.list_call_get_all_results_generator(  # type: ignore # noqa: E501
+        vnic_attachments = oci.pagination.list_call_get_all_results_generator(  # noqa: E501
             self.compute_client.list_vnic_attachments,
             "record",
             self.compartment_id,
@@ -227,7 +244,7 @@ class OciInstance(BaseInstance):
             if vnic_data.private_ip == ip_address:
                 try:
                     self.compute_client.detach_vnic(vnic_attachment.id)
-                except oci.exceptions.ServiceError:  # type: ignore
+                except oci.exceptions.ServiceError:
                     self._log.debug(
                         "Failed manually detaching and deleting network "
                         "interface. Interface should get destroyed on instance"

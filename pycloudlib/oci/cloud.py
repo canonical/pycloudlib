@@ -34,6 +34,7 @@ class OCI(BaseCloud):
         config_path: Optional[str] = None,
         config_dict: Optional[str] = None,
         vcn_name: Optional[str] = None,
+        fault_domain: Optional[str] = None,
     ):
         """
         Initialize the connection to OCI.
@@ -88,9 +89,9 @@ class OCI(BaseCloud):
 
         if config_dict:
             try:
-                oci.config.validate_config(config_dict)  # type: ignore
+                oci.config.validate_config(config_dict)
                 self.oci_config = config_dict
-            except oci.exceptions.InvalidConfig as e:  # type: ignore
+            except oci.exceptions.InvalidConfig as e:
                 raise ValueError(
                     "Config dict is invalid. Pass a valid config dict. "
                     "{}".format(e)
@@ -107,13 +108,14 @@ class OCI(BaseCloud):
                     "{} is not a valid config file. Pass a valid config "
                     "file.".format(config_path)
                 )
-            self.oci_config = oci.config.from_file(config_path)  # type: ignore
+            self.oci_config = oci.config.from_file(config_path)
 
         self.vcn_name = vcn_name
+        self.fault_domain = fault_domain
 
         self._log.debug("Logging into OCI")
-        self.compute_client = oci.core.ComputeClient(self.oci_config)  # type: ignore # noqa: E501
-        self.network_client = oci.core.VirtualNetworkClient(self.oci_config)  # type: ignore # noqa: E501
+        self.compute_client = oci.core.ComputeClient(self.oci_config)  # noqa: E501
+        self.network_client = oci.core.VirtualNetworkClient(self.oci_config)  # noqa: E501
 
     def delete_image(self, image_id, **kwargs):
         """Delete an image.
@@ -217,7 +219,7 @@ class OCI(BaseCloud):
         # verifies that instance id exists in oracle
         try:
             self.compute_client.get_instance(instance_id, **kwargs)
-        except oci.exceptions.ServiceError as e:  # type: ignore
+        except oci.exceptions.ServiceError as e:
             raise InstanceNotFoundError(resource_id=instance_id) from e
 
         return OciInstance(
@@ -278,10 +280,11 @@ class OCI(BaseCloud):
                 user_data.encode("utf8")
             ).decode("ascii")
 
-        instance_details = oci.core.models.LaunchInstanceDetails(  # type: ignore[attr-defined] # noqa: E501
+        instance_details = oci.core.models.LaunchInstanceDetails(  # noqa: E501
             display_name=self.tag,
             availability_domain=self.availability_domain,
             compartment_id=self.compartment_id,
+            fault_domain=self.fault_domain,
             shape=instance_type,
             subnet_id=subnet_id,
             image_id=image_id,

@@ -1,4 +1,5 @@
 """Tests for pycloudlib.lxd.instance."""
+
 import re
 from copy import deepcopy
 from json import dumps
@@ -286,6 +287,359 @@ LXD_QUERY_BOND_BRIDGE = {
     }
 }
 
+LXD_QUERY_IPV6_ONLY = {
+    "state": {
+        "network": {
+            "bond0": {
+                "addresses": [],
+                "counters": {
+                    "bytes_received": 2820,
+                    "bytes_sent": 4698,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 22,
+                    "packets_sent": 52,
+                },
+                "host_name": "tap027f33c0",
+                "hwaddr": "02:00:00:c6:51:4f",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "enp5s0": {
+                "addresses": [],
+                "counters": {
+                    "bytes_received": 2820,
+                    "bytes_sent": 4698,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 22,
+                    "packets_sent": 52,
+                },
+                "host_name": "tap027f33c0",
+                "hwaddr": "02:00:00:c6:51:4f",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "lo": {
+                "addresses": [
+                    {
+                        "address": "127.0.0.1",
+                        "family": "inet",
+                        "netmask": "8",
+                        "scope": "local",
+                    },
+                    {
+                        "address": "::1",
+                        "family": "inet6",
+                        "netmask": "128",
+                        "scope": "local",
+                    },
+                ],
+                "counters": {
+                    "bytes_received": 7256,
+                    "bytes_sent": 7256,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 92,
+                    "packets_sent": 92,
+                },
+                "host_name": "",
+                "hwaddr": "",
+                "mtu": 65536,
+                "state": "up",
+                "type": "loopback",
+            },
+            "ovs-br": {
+                "addresses": [
+                    {
+                        "address": "fd42:5f0a:40d6:c5b9:609a:bbff:fe75:7c43",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "global",
+                    },
+                    {
+                        "address": "fe80::ff:fec6:514f",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "link",
+                    },
+                ],
+                "counters": {
+                    "bytes_received": 3936,
+                    "bytes_sent": 2968,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 44,
+                    "packets_sent": 31,
+                },
+                "host_name": "",
+                "hwaddr": "62:9a:bb:75:7c:43",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "ovs-br.100": {
+                "addresses": [
+                    {
+                        "address": "fe80::609a:bbff:fe75:7c43",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "link",
+                    }
+                ],
+                "counters": {
+                    "bytes_received": 0,
+                    "bytes_sent": 866,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 0,
+                    "packets_sent": 11,
+                },
+                "host_name": "",
+                "hwaddr": "62:9a:bb:75:7c:43",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "ovs-br.200": {
+                "addresses": [
+                    {
+                        "address": "fe80::609a:bbff:fe75:7c43",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "link",
+                    }
+                ],
+                "counters": {
+                    "bytes_received": 0,
+                    "bytes_sent": 866,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 0,
+                    "packets_sent": 11,
+                },
+                "host_name": "",
+                "hwaddr": "62:9a:bb:75:7c:43",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "ovs-system": {
+                "addresses": [],
+                "counters": {
+                    "bytes_received": 0,
+                    "bytes_sent": 0,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 0,
+                    "packets_sent": 0,
+                },
+                "host_name": "",
+                "hwaddr": "72:05:bf:60:22:ec",
+                "mtu": 1500,
+                "state": "down",
+                "type": "broadcast",
+            },
+        }
+    }
+}
+
+LXD_QUERY_IPV4_VS_IPV6 = {
+    "state": {
+        "network": {
+            "bond0": {
+                "addresses": [],
+                "counters": {
+                    "bytes_received": 2820,
+                    "bytes_sent": 4698,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 22,
+                    "packets_sent": 52,
+                },
+                "host_name": "tap027f33c0",
+                "hwaddr": "02:00:00:c6:51:4f",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "lo": {
+                "addresses": [
+                    {
+                        "address": "127.0.0.1",
+                        "family": "inet",
+                        "netmask": "8",
+                        "scope": "local",
+                    },
+                    {
+                        "address": "::1",
+                        "family": "inet6",
+                        "netmask": "128",
+                        "scope": "local",
+                    },
+                ],
+                "counters": {
+                    "bytes_received": 7256,
+                    "bytes_sent": 7256,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 92,
+                    "packets_sent": 92,
+                },
+                "host_name": "",
+                "hwaddr": "",
+                "mtu": 65536,
+                "state": "up",
+                "type": "loopback",
+            },
+            "ovs-br": {
+                "addresses": [
+                    {
+                        "address": "fd42:5f0a:40d6:c5b9:609a:bbff:fe75:7c43",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "global",
+                    },
+                    {
+                        "address": "fe80::ff:fec6:514f",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "link",
+                    },
+                ],
+                "counters": {
+                    "bytes_received": 3936,
+                    "bytes_sent": 2968,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 44,
+                    "packets_sent": 31,
+                },
+                "host_name": "",
+                "hwaddr": "62:9a:bb:75:7c:43",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "enp5s0": {
+                "addresses": [
+                    {
+                        "address": "172.16.254.1",
+                        "family": "inet",
+                        "netmask": "64",
+                        "scope": "global",
+                    },
+                ],
+                "counters": {
+                    "bytes_received": 2820,
+                    "bytes_sent": 4698,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 22,
+                    "packets_sent": 52,
+                },
+                "host_name": "tap027f33c0",
+                "hwaddr": "02:00:00:c6:51:4f",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "ovs-br.100": {
+                "addresses": [
+                    {
+                        "address": "fe80::609a:bbff:fe75:7c43",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "link",
+                    }
+                ],
+                "counters": {
+                    "bytes_received": 0,
+                    "bytes_sent": 866,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 0,
+                    "packets_sent": 11,
+                },
+                "host_name": "",
+                "hwaddr": "62:9a:bb:75:7c:43",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "ovs-br.200": {
+                "addresses": [
+                    {
+                        "address": "fe80::609a:bbff:fe75:7c43",
+                        "family": "inet6",
+                        "netmask": "64",
+                        "scope": "link",
+                    }
+                ],
+                "counters": {
+                    "bytes_received": 0,
+                    "bytes_sent": 866,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 0,
+                    "packets_sent": 11,
+                },
+                "host_name": "",
+                "hwaddr": "62:9a:bb:75:7c:43",
+                "mtu": 1500,
+                "state": "up",
+                "type": "broadcast",
+            },
+            "ovs-system": {
+                "addresses": [],
+                "counters": {
+                    "bytes_received": 0,
+                    "bytes_sent": 0,
+                    "errors_received": 0,
+                    "errors_sent": 0,
+                    "packets_dropped_inbound": 0,
+                    "packets_dropped_outbound": 0,
+                    "packets_received": 0,
+                    "packets_sent": 0,
+                },
+                "host_name": "",
+                "hwaddr": "72:05:bf:60:22:ec",
+                "mtu": 1500,
+                "state": "down",
+                "type": "broadcast",
+            },
+        }
+    }
+}
+
 
 class TestRestart:
     """Tests covering pycloudlib.lxd.instance.Instance.restart."""
@@ -464,6 +818,18 @@ class TestIP:
         """Verify ipv4 parser with a cfg with bonds and bridging."""
         assert "10.96.250.88" == LXDInstance(name="my_vm").parse_ip(
             LXD_QUERY_BOND_BRIDGE
+        )
+
+    def test_parse_ip_ipv6_only(self):
+        """Verify ip parser works with a cfg with a globlal ipv6 address."""
+        assert "fd42:5f0a:40d6:c5b9:609a:bbff:fe75:7c43" == LXDInstance(
+            name="my_vm"
+        ).parse_ip(LXD_QUERY_IPV6_ONLY)
+
+    def test_parse_ip_prefer_ipv4(self):
+        """Verify ip parser prefers ipv4 addresses over ipv6 ones."""
+        assert "172.16.254.1" == LXDInstance(name="my_vm").parse_ip(
+            LXD_QUERY_IPV4_VS_IPV6
         )
 
 

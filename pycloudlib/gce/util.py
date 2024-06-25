@@ -1,4 +1,5 @@
 """Common GCE utils."""
+
 import os
 from urllib.error import HTTPError
 
@@ -20,8 +21,9 @@ def raise_on_error(response):
         )
     if "error" in response:
         raise GceException(
-            "Received error(s)!\n"
-            "Errors: {}".format(response["error"]["errors"])
+            "Received error(s)!\n" "Errors: {}".format(
+                response["error"]["errors"]
+            )
         )
 
 

@@ -1,4 +1,5 @@
 """Openstack instance type."""
+
 import time
 from itertools import chain
 from typing import List, Optional
@@ -170,7 +171,7 @@ class OpenstackInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self, **kwargs):
         """Wait for instance to be up."""
         self.conn.compute.wait_for_server(self.server, status="ACTIVE")
 
@@ -182,11 +183,11 @@ class OpenstackInstance(BaseInstance):
             # We can 404 here is instance is already deleted
             pass
 
-    def wait_for_stop(self):
+    def wait_for_stop(self, **kwargs):
         """Wait for instance stop."""
         self.conn.compute.wait_for_server(self.server, status="SHUTOFF")
 
-    def add_network_interface(self) -> str:
+    def add_network_interface(self, **kwargs) -> str:
         """Add nic to running instance.
 
         Returns IP address in string form

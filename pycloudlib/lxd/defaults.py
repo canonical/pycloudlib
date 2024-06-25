@@ -1,5 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """LXD default values to be used by cloud and instance modules."""
+
 import textwrap
 
 LXC_PROFILE_VERSION = "v3"
