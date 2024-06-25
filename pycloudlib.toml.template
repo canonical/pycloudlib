@@ -58,7 +58,7 @@ project = ""  # glcoud config get-value project
 # key_name = ""  # Defaults to your username if not set
 
 [ibm_classic]
-sl_username = ""
+username = ""
 sl_api_key = ""
 domain_name = ""
 # public_key_path = "~/.ssh/id_rsa.pub"
