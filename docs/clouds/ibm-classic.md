@@ -39,17 +39,23 @@ your username would be `123456_firstname_lastname@company.com`
  4. Either create a new key or use the existing key. 
     - You can re-view an existing key by clicking on the `...` on the far right of the key row and selecting `Details`.
 
-### Using Your Credentials
+## Configuration
 
-It would be best to store your credentials in the `pycloudlib.toml` file:
-  
+The IBM Classic cloud provider can be configured in the `pycloudlib.toml` file:
+
 ```toml
 [ibm_classic]
-username = "123456_firstname_lastname@company.com"
-api_key = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+username = "123456@email.com"
+api_key = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+domain_name = "yourdomain.com"
 ```
 
-## Configuration
+Enter your IBM Classic username and API key from earlier into the `username` and `api_key` fields.
+
+The `domain_name` field is needed for launching an instance, because IBM Classic creates a FQDN
+for the instance. This is the domain name that will be used for the FQDN. It is okay if you do
+not actually own the domain name (it simply just will not provide any functionality), 
+but it must be a valid domain name. Pycloudlib defaults to using "pycloudlib.cloud" if no domain name is provided.
 
 ## SSH Keys
 
