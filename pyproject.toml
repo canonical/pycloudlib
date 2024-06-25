@@ -3,9 +3,10 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]
+check_untyped_defs = true
 follow_imports = "silent"
-warn_unused_ignores = "true"
 warn_redundant_casts = "true"
+warn_unused_ignores = "true"
 exclude=[]
 
 [[tool.mypy.overrides]]
@@ -23,6 +24,18 @@ module = [
   "paramiko.*",
 ]
 ignore_missing_imports = true
+
+# TODO: fix these modules
+[[tool.mypy.overrides]]
+module = [
+  "pycloudlib.util",
+  "pycloudlib.ibm.instance",
+  "pycloudlib.gce.util",
+  "pycloudlib.azure.instance",
+  "pycloudlib.gce.cloud",
+  "pycloudlib.azure.cloud",
+]
+check_untyped_defs = false
 
 [tool.ruff]
 line-length = 79
