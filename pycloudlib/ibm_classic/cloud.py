@@ -74,12 +74,15 @@ class IBMClassic(BaseCloud):
         """
         try:
             self._image_manager.delete_image(int(image_id))
-        # if image_id is not an integer, it will raise a ValueError
-        except ValueError:
+        except ValueError as e:
             raise IBMClassicException(
                 "Invalid image ID provided. Image ID must be an integer. "
                 "Please provide the image ID, not the global identifier."
-            )
+            ) from e
+        except SoftLayer.SoftLayerAPIError as e:
+            raise IBMClassicException(
+                f"Error deleting image {image_id}"
+            ) from e
 
     def released_image(self, release, *, disk_size: str = "25G", **kwargs):
         """ID (globalIdentifier) of the latest released image for a particular release.

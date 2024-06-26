@@ -74,7 +74,7 @@ def launch_basic(
             print(
                 f"Succesfully created snapshot {ibm_classic.tag}-snapshot with ID: {snapshot_id}"
             )
-        
+
             print("Example Completed!")
 
         except Exception as e:
