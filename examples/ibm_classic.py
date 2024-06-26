@@ -54,18 +54,18 @@ def launch_basic(
         try:
             print("Waiting for instance to be ready!")
             instance.wait()
-            print(instance.execute("lsb_release -a"))
-            print("Shutting down instance!")
-            instance.shutdown()
-            print("Starting instance!")
-            instance.start()
-            print("Restarting instance!")
-            instance.restart()
-            # Various Attributes
-            print(f"Instance IP Address: {instance.ip}")
-            print(f"Instance ID: {instance.id}")
-            # Create a file that will exist after snapshot
-            instance.execute("echo 'Hello World!' > /tmp/hello.txt")
+            # print(instance.execute("lsb_release -a"))
+            # print("Shutting down instance!")
+            # instance.shutdown()
+            # print("Starting instance!")
+            # instance.start()
+            # print("Restarting instance!")
+            # instance.restart()
+            # # Various Attributes
+            # print(f"Instance IP Address: {instance.ip}")
+            # print(f"Instance ID: {instance.id}")
+            # # Create a file that will exist after snapshot
+            # instance.execute("echo 'Hello World!' > /tmp/hello.txt")
             # Create a snapshot
             snapshot_id = ibm_classic.snapshot(
                 instance,
@@ -74,6 +74,9 @@ def launch_basic(
             print(
                 f"Succesfully created snapshot {ibm_classic.tag}-snapshot with ID: {snapshot_id}"
             )
+            # Delete the snapshot
+            ibm_classic.delete_image(snapshot_id)
+            print(f"Deleted snapshot {ibm_classic.tag}-snapshot")
             print("Example Completed!")
 
         except Exception as e:

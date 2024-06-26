@@ -154,13 +154,20 @@ class IBMClassicInstance(BaseInstance):
         console log for this instance.
         """
         raise NotImplementedError("Console log not supported for IBM Classic")
-
+    
     def delete(self, wait=True) -> List[Exception]:
         """Delete the instance.
 
         Args:
             wait: wait for instance to be deleted
         """
+
+        def has_no_active_transaction():
+            """Check if instance has no active transaction."""
+            instance = self._vs_manager.get_instance(self.id)
+            return "activeTransaction" not in instance
+
+
         if self._deleted:
             logger.debug("Instance %s already deleted", self.name)
             self._deleted = True
@@ -171,12 +178,32 @@ class IBMClassicInstance(BaseInstance):
                     "Deleting instance %s and waiting for it to delete.",
                     self.name,
                 )
+                instance = self._vs_manager.get_instance(self.id)
+                if "activeTransaction" in instance:
+                    at = instance["activeTransaction"]
+                    logger.info(
+                        "Instance %s has an active transaction. "
+                        "Must wait for it to complete "
+                        "or else instance cancellation will fail. ",
+                        self.name,
+                    )
+                    t = at["transactionStatus"]["friendlyName"]
+                    msg = f"Instance {self.name} stuck in active transaction:" \
+                            f" {t}."
+                    _wait_until(
+                        has_no_active_transaction,
+                        timeout_seconds=60*60,
+                        timeout_msg_fn=lambda: msg,
+                        check_interval=5,
+                    )
+                    self._wait_for_execute()
                 self._vs_manager.cancel_instance(self.id)
                 self.wait_for_delete()
             else:
                 logger.info("Deleting instance %s without waiting.")
                 self._vs_manager.cancel_instance(self.id)
         except Exception as e:  # pylint: disable=broad-except
+            # if error is because of currently
             return [e]
 
         self._deleted = True

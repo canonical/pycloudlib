@@ -52,6 +52,11 @@ class IBMClassic(BaseCloud):
 
         self._log.debug("logging into IBM")
 
+        if not self._username or not self._api_key:
+            raise IBMClassicException(
+                "IBM Classic requires a username and API key"
+            )
+
         self._client = SoftLayer.create_client_from_env(
             username=self._username,
             api_key=self._api_key,
@@ -67,7 +72,14 @@ class IBMClassic(BaseCloud):
         Args:
             image_id: string, ID (not GID) of the image to delete.
         """
-        self._image_manager.delete_image(int(image_id))
+        try:
+            self._image_manager.delete_image(int(image_id))
+        # if image_id is not an integer, it will raise a ValueError
+        except ValueError:
+            raise IBMClassicException(
+                "Invalid image ID provided. Image ID must be an integer. "
+                "Please provide the image ID, not the global identifier."
+            )
 
     def released_image(self, release, *, disk_size: str = "25G", **kwargs):
         """ID (globalIdentifier) of the latest released image for a particular release.
