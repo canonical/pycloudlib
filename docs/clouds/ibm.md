@@ -92,7 +92,7 @@ The snapshot function returns a string of the created Custom Image ID.
 To delete the image when the snapshot is no longer required:
 
 ```python
-ibm.image_delete(snapshot)
+ibm.delete_image(snapshot)
 ```
 
 ## Unique Operations

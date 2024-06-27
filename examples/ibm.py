@@ -56,7 +56,7 @@ def launch_basic(ibm: IBM, daily, instance_type):
         print(instance.id)
 
 
-def manage_ssh_key(ibm: IBM, key_name):
+def manage_ssh_key(ibm: pycloudlib.IBM, key_name):
     """Manage ssh keys for ibm instances."""
     if key_name in ibm.list_keys():
         ibm.delete_key(key_name)

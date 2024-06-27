@@ -66,12 +66,13 @@ def wait_until(
     timeout_seconds: int,
     timeout_msg_fn: Callable[..., str],
     raise_on_fail: bool = True,
+    check_interval: int = 1,
 ) -> bool:
     """Wait `timeout_seconds` until `check_fn` evaluates to true."""
     for _ in range(timeout_seconds):
         if check_fn(*args) is True:
             return True
-        sleep(1)
+        sleep(check_interval)
     if raise_on_fail:
         raise PycloudlibTimeoutError(timeout_msg_fn())
     return False

@@ -485,11 +485,17 @@ class BaseInstance(ABC):
         self._tmp_count += 1
         return path
 
-    def _wait_for_execute(self, old_boot_id=None):
-        """Wait until we can execute a command in the instance.
+    def _wait_for_execute(self, old_boot_id=None, timeout: int = 40):
+        """
+        Wait until we can execute a command in the instance.
 
-        If old_boot_id is specified, we use its value to wait until we
-        find a new boot id
+        Args:
+            old_boot_id: boot id before restart. If provided, we will wait
+            until we find a new boot id
+            timeout: time to wait for instance to be reachable in minutes
+
+        Raises:
+            PycloudlibTimeoutError: if instance can't be reached after timeout
         """
         self._log.info("_wait_for_execute to complete")
 
@@ -497,7 +503,7 @@ class BaseInstance(ABC):
         # over 20 minutes to start or restart, so we shouldn't lower
         # this timeout
         start = time.time()
-        end = start + 40 * 60
+        end = start + timeout * 60
         while time.time() < end:
             with suppress(SSHException, OSError):
                 boot_id = self.get_boot_id()
@@ -506,7 +512,7 @@ class BaseInstance(ABC):
             time.sleep(1)
 
         raise PycloudlibTimeoutError(
-            "Instance can't be reached after 40 minutes. "
+            f"Instance can't be reached after {timeout} minutes. "
             "Failed to obtain new boot id",
         )
 
