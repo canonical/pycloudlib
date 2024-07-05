@@ -64,9 +64,7 @@ class OCI(BaseCloud):
             required_values=[availability_domain, compartment_id],
         )
 
-        self.availability_domain = (
-            availability_domain or self.config["availability_domain"]
-        )
+        self.availability_domain = availability_domain or self.config["availability_domain"]
 
         compartment_id = compartment_id or self.config.get("compartment_id")
         if not compartment_id:
@@ -80,9 +78,7 @@ class OCI(BaseCloud):
             except FileNotFoundError as e:
                 raise CloudSetupError(exception_text) from e
             if not result.ok:
-                exception_text += "\nstdout: {}\nstderr: {}".format(
-                    result.stdout, result.stderr
-                )
+                exception_text += "\nstdout: {}\nstderr: {}".format(result.stdout, result.stderr)
                 raise CloudSetupError(exception_text)
             compartment_id = cast(str, json.loads(result.stdout)["data"]["id"])
         self.compartment_id = compartment_id
@@ -93,20 +89,16 @@ class OCI(BaseCloud):
                 self.oci_config = config_dict
             except oci.exceptions.InvalidConfig as e:
                 raise ValueError(
-                    "Config dict is invalid. Pass a valid config dict. "
-                    "{}".format(e)
+                    "Config dict is invalid. Pass a valid config dict. " "{}".format(e)
                 ) from e
 
         else:
-            config_path = (
-                config_path
-                or self.config.get("config_path")
-                or "~/.oci/config"
-            )
+            config_path = config_path or self.config.get("config_path") or "~/.oci/config"
             if not os.path.isfile(os.path.expanduser(config_path)):
                 raise ValueError(
-                    "{} is not a valid config file. Pass a valid config "
-                    "file.".format(config_path)
+                    "{} is not a valid config file. Pass a valid config " "file.".format(
+                        config_path
+                    )
                 )
             self.oci_config = oci.config.from_file(config_path)
 
@@ -204,9 +196,7 @@ class OCI(BaseCloud):
         """
         raise NotImplementedError
 
-    def get_instance(
-        self, instance_id, *, username: Optional[str] = None, **kwargs
-    ) -> OciInstance:
+    def get_instance(self, instance_id, *, username: Optional[str] = None, **kwargs) -> OciInstance:
         """Get an instance by id.
 
         Args:
@@ -262,10 +252,7 @@ class OCI(BaseCloud):
         Raises: ValueError on invalid image_id
         """
         if not image_id:
-            raise ValueError(
-                f"{self._type} launch requires image_id param."
-                f" Found: {image_id}"
-            )
+            raise ValueError(f"{self._type} launch requires image_id param." f" Found: {image_id}")
         subnet_id = get_subnet_id(
             self.network_client,
             self.compartment_id,
@@ -276,9 +263,7 @@ class OCI(BaseCloud):
             "ssh_authorized_keys": self.key_pair.public_key_content,
         }
         if user_data:
-            metadata["user_data"] = base64.b64encode(
-                user_data.encode("utf8")
-            ).decode("ascii")
+            metadata["user_data"] = base64.b64encode(user_data.encode("utf8")).decode("ascii")
 
         instance_details = oci.core.models.LaunchInstanceDetails(  # noqa: E501
             display_name=self.tag,

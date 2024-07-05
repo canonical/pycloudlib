@@ -38,9 +38,7 @@ def manage_ssh_key(classic: pycloudlib.IBMClassic):
     )
 
 
-def launch_basic(
-    ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: str = None
-):
+def launch_basic(ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: str = None):
     """Launch a basic instance and demo basic functionality."""
     image_gid = ibm_classic.released_image("22.04", disk_size=disk_size)
 
@@ -71,9 +69,7 @@ def launch_basic(
                 instance,
                 note="Example snapshot created by pycloudlib",
             )
-            print(
-                f"Succesfully created snapshot {ibm_classic.tag}-snapshot with ID: {snapshot_id}"
-            )
+            print(f"Succesfully created snapshot {ibm_classic.tag}-snapshot with ID: {snapshot_id}")
 
             print("Example Completed!")
 

@@ -45,9 +45,7 @@ class VMWareInstance(BaseInstance):
             ["govc", "vm.ip", "-wait", "5m", self.vm_id], env=self.env
         )
         if not ips_output:
-            raise PycloudlibTimeoutError(
-                "Could not retrieve IP address after 5 minutes"
-            )
+            raise PycloudlibTimeoutError("Could not retrieve IP address after 5 minutes")
 
         ips = ips_output.decode().strip().split(",")
         if len(ips) > 1:
@@ -60,9 +58,7 @@ class VMWareInstance(BaseInstance):
         exceptions: List[Exception] = []
         try:
             self.shutdown()
-            subprocess.run(
-                ["govc", "vm.destroy", self.vm_id], env=self.env, check=True
-            )
+            subprocess.run(["govc", "vm.destroy", self.vm_id], env=self.env, check=True)
         except subprocess.CalledProcessError as e:
             if "not found" not in str(e):
                 exceptions.append(e)

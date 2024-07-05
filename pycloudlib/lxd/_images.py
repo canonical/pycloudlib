@@ -125,9 +125,7 @@ def _normalize_remote(remote: Optional[str] = None) -> str:
     return remote
 
 
-def _find_images(
-    remote: str, filters: Optional[Sequence[Tuple[str, str]]] = None
-) -> List[dict]:
+def _find_images(remote: str, filters: Optional[Sequence[Tuple[str, str]]] = None) -> List[dict]:
     """Find the images filtered by filters criteria.
 
     Args:

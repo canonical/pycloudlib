@@ -37,10 +37,7 @@ NETWORK_IPS = [
 ]
 
 
-@mock.patch(
-    "pycloudlib.openstack.instance.OpenstackInstance."
-    "_create_and_attach_floating_ip"
-)
+@mock.patch("pycloudlib.openstack.instance.OpenstackInstance." "_create_and_attach_floating_ip")
 class TestAttachFloatingIp:
     """Ensure we create/use floating IPs accordingly."""
 

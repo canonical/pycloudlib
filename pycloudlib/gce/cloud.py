@@ -72,9 +72,7 @@ class GCE(BaseCloud):
         if credentials_path:
             self.credentials_path = credentials_path
         elif "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
-            self.credentials_path = os.environ[
-                "GOOGLE_APPLICATION_CREDENTIALS"
-            ]
+            self.credentials_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
         elif "credentials_path" in self.config:
             self.credentials_path = os.path.expandvars(
                 os.path.expanduser(self.config["credentials_path"])
@@ -122,9 +120,7 @@ class GCE(BaseCloud):
             "service_account_email"
         )
 
-    def released_image(
-        self, release, *, image_type: ImageType = ImageType.GENERIC, **kwargs
-    ):
+    def released_image(self, release, *, image_type: ImageType = ImageType.GENERIC, **kwargs):
         """ID of the latest released image for a particular release.
 
         Args:
@@ -137,11 +133,7 @@ class GCE(BaseCloud):
         return self.daily_image(release=release, image_type=image_type)
 
     def _get_project(self, image_type: ImageType):
-        return (
-            "ubuntu-os-cloud-devel"
-            if image_type == ImageType.GENERIC
-            else "ubuntu-os-pro-cloud"
-        )
+        return "ubuntu-os-cloud-devel" if image_type == ImageType.GENERIC else "ubuntu-os-pro-cloud"
 
     def _get_name_filter(self, release: str, image_type: ImageType):
         if image_type == ImageType.GENERIC:
@@ -161,9 +153,7 @@ class GCE(BaseCloud):
 
         raise ValueError("Invalid image_type: {}".format(image_type.value))
 
-    def _query_image_list(
-        self, release: str, project: str, name_filter: str, arch: str
-    ):
+    def _query_image_list(self, release: str, project: str, name_filter: str, arch: str):
         """Query full list of images.
 
         image list API docs:
@@ -187,9 +177,7 @@ class GCE(BaseCloud):
         Returns:
             list of images matching the given filters
         """
-        filter_string = "(name={}) AND (architecture={})".format(
-            name_filter, arch.upper()
-        )
+        filter_string = "(name={}) AND (architecture={})".format(name_filter, arch.upper())
 
         # SPECIAL CASE
         # Google didn't start including architecture in image descriptions
@@ -222,10 +210,7 @@ class GCE(BaseCloud):
             page_token = image_list_result.get("nextPageToken", None)
 
         self._log.debug(
-            (
-                'Fetched entire image list (%i results) matching "%s" in %i'
-                " requests"
-            ),
+            ('Fetched entire image list (%i results) matching "%s" in %i' " requests"),
             len(image_list),
             filter_string,
             reqs,
@@ -256,26 +241,18 @@ class GCE(BaseCloud):
             release,
         )
         project = self._get_project(image_type=image_type)
-        name_filter = self._get_name_filter(
-            release=release, image_type=image_type
-        )
+        name_filter = self._get_name_filter(release=release, image_type=image_type)
 
-        image_list = self._query_image_list(
-            release, project, name_filter, arch
-        )
+        image_list = self._query_image_list(release, project, name_filter, arch)
 
         if not image_list:
-            msg = (
-                "Could not find {} image for arch: {} and release: {}".format(
-                    image_type.value,
-                    arch,
-                    release,
-                )
+            msg = "Could not find {} image for arch: {} and release: {}".format(
+                image_type.value,
+                arch,
+                release,
             )
             self._log.warning(msg)
-            raise ImageNotFoundError(
-                image_type=image_type.value, arch=arch, release=release
-            )
+            raise ImageNotFoundError(image_type=image_type.value, arch=arch, release=release)
 
         image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
         self._log.debug(
@@ -372,15 +349,11 @@ class GCE(BaseCloud):
         Raises: ValueError on invalid image_id
         """
         if not image_id:
-            raise ValueError(
-                f"{self._type} launch requires image_id param."
-                f" Found: {image_id}"
-            )
+            raise ValueError(f"{self._type} launch requires image_id param." f" Found: {image_id}")
         instance_name = "i{}-{}".format(next(self.instance_counter), self.tag)
         config: MutableMapping[str, Any] = {
             "name": instance_name,
-            "machineType": "zones/%s/machineTypes/%s"
-            % (self.zone, instance_type),
+            "machineType": "zones/%s/machineTypes/%s" % (self.zone, instance_type),
             "disks": [
                 {
                     "boot": True,
@@ -393,17 +366,14 @@ class GCE(BaseCloud):
             "networkInterfaces": [
                 {
                     "network": "global/networks/default",
-                    "accessConfigs": [
-                        {"type": "ONE_TO_ONE_NAT", "name": "External NAT"}
-                    ],
+                    "accessConfigs": [{"type": "ONE_TO_ONE_NAT", "name": "External NAT"}],
                 }
             ],
             "metadata": {
                 "items": [
                     {
                         "key": "ssh-keys",
-                        "value": "ubuntu:%s"
-                        % self.key_pair.public_key_content,
+                        "value": "ubuntu:%s" % self.key_pair.public_key_content,
                     }
                 ]
             },
@@ -434,9 +404,7 @@ class GCE(BaseCloud):
         )
         raise_on_error(result)
 
-        instance = self.get_instance(
-            result["id"], name=result["name"], username=username
-        )
+        instance = self.get_instance(result["id"], name=result["name"], username=username)
         self.created_instances.append(instance)
         return instance
 
@@ -450,20 +418,12 @@ class GCE(BaseCloud):
         Returns:
             An image id
         """
-        response = (
-            self.compute.disks()
-            .list(project=self.project, zone=self.zone)
-            .execute()
-        )
+        response = self.compute.disks().list(project=self.project, zone=self.zone).execute()
 
-        instance_disks = [
-            disk for disk in response["items"] if disk["name"] == instance.name
-        ]
+        instance_disks = [disk for disk in response["items"] if disk["name"] == instance.name]
 
         if len(instance_disks) > 1:
-            raise PycloudlibError(
-                "Snapshotting an image with multiple disks not supported"
-            )
+            raise PycloudlibError("Snapshotting an image with multiple disks not supported")
 
         instance.shutdown()
 
@@ -482,15 +442,11 @@ class GCE(BaseCloud):
         raise_on_error(operation)
         self._wait_for_operation(operation)
 
-        image_id = "projects/{}/global/images/{}".format(
-            self.project, snapshot_name
-        )
+        image_id = "projects/{}/global/images/{}".format(self.project, snapshot_name)
         self.created_images.append(image_id)
         return image_id
 
-    def _wait_for_operation(
-        self, operation, operation_type="global", sleep_seconds=300
-    ):
+    def _wait_for_operation(self, operation, operation_type="global", sleep_seconds=300):
         response = None
         kwargs = {"project": self.project, "operation": operation["name"]}
         if operation_type == "zone":

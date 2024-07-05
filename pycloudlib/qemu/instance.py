@@ -36,9 +36,7 @@ class QmpConnection:
             asyncio.wait_for(self.qmp.connect(str(qmp_socket)), timeout=10)
         )
 
-    def execute(
-        self, command: str, arguments: Optional[Dict[str, Any]] = None
-    ) -> Any:
+    def execute(self, command: str, arguments: Optional[Dict[str, Any]] = None) -> Any:
         """Write data to QMP socket.
 
         Args:
@@ -47,9 +45,7 @@ class QmpConnection:
 
         Returns the response from QMP.
         """
-        return self.loop.run_until_complete(
-            self.qmp.execute(command, arguments)
-        )
+        return self.loop.run_until_complete(self.qmp.execute(command, arguments))
 
     def disconnect(self):
         """Disconnect from QMP socket."""
@@ -79,9 +75,7 @@ class QemuInstance(BaseInstance):
             username: username to use for ssh
         """
         super().__init__(key_pair=key_pair, username=username)
-        self.instance_path, self.port, self.telnet_port = instance_id.rsplit(
-            "::", 2
-        )
+        self.instance_path, self.port, self.telnet_port = instance_id.rsplit("::", 2)
         self.instance_id = instance_id
         self.handle = handle
         self.instance_dir: Path = Path(self.instance_id).parent
@@ -105,19 +99,14 @@ class QemuInstance(BaseInstance):
         else:
             # Since our VM may still have started, we don't want to
             # force a cleanup here since it may still be useful for debugging
-            self._log.error(
-                "Failed to find QMP socket. Instance likely in an "
-                "unusable state"
-            )
+            self._log.error("Failed to find QMP socket. Instance likely in an " "unusable state")
 
         qmp = None
         if qmp_socket:
             try:
                 qmp = QmpConnection(qmp_socket=qmp_socket, log=self._log)
             except AssertionError as e:
-                self._log.error(
-                    "QMP socket not working as expected: %s", str(e)
-                )
+                self._log.error("QMP socket not working as expected: %s", str(e))
         return qmp
 
     @property
@@ -137,9 +126,7 @@ class QemuInstance(BaseInstance):
 
     def console_log(self):
         """Return the instance console log."""
-        return Path(self.instance_dir, "console.log").read_text(
-            encoding="utf-8"
-        )
+        return Path(self.instance_dir, "console.log").read_text(encoding="utf-8")
 
     def delete(self, wait=True) -> List[Exception]:
         """Delete the instance.
@@ -161,8 +148,7 @@ class QemuInstance(BaseInstance):
                 self.handle.kill()
             else:
                 raise CleanupError(
-                    "No QMP connection or process handle. "
-                    "Manual cleanup required"
+                    "No QMP connection or process handle. " "Manual cleanup required"
                 )
         except Exception as e:  # pylint: disable=broad-except
             errors.append(e)
@@ -245,8 +231,7 @@ class QemuInstance(BaseInstance):
                 self.qmp.execute("cont")
             if time.time() - start_time > timeout:
                 raise PycloudlibTimeoutError(
-                    f"Timed out waiting for instance to reach status "
-                    f"{expected_status}"
+                    f"Timed out waiting for instance to reach status " f"{expected_status}"
                 )
             time.sleep(1)
 

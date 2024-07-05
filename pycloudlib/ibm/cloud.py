@@ -56,9 +56,7 @@ class IBM(BaseCloud):
         self.created_keys: List[str] = []
 
         self._resource_group = (
-            resource_group
-            or self.config.get("resource_group")
-            or DEFAULT_RESOURCE_GROUP
+            resource_group or self.config.get("resource_group") or DEFAULT_RESOURCE_GROUP
         )
         self._resource_group_id: Optional[str] = None
         self.region = str(region or self.config.get("region")).lower()
@@ -74,25 +72,17 @@ class IBM(BaseCloud):
         authenticator = IAMAuthenticator(api_key)
 
         self._client = VpcV1(authenticator=authenticator)
-        self._client.set_service_url(
-            f"https://{self.region}.iaas.cloud.ibm.com/v1"
-        )
+        self._client.set_service_url(f"https://{self.region}.iaas.cloud.ibm.com/v1")
 
-        self._resource_manager_service = ResourceManagerV2(
-            authenticator=authenticator
-        )
+        self._resource_manager_service = ResourceManagerV2(authenticator=authenticator)
 
     @property
     def resource_group_id(self) -> str:
         """Resource Group ID used to create new things under."""
         if self._resource_group_id is None:
-            self._resource_group_id = self._get_resource_group_id(
-                self._resource_group
-            )
+            self._resource_group_id = self._get_resource_group_id(self._resource_group)
         if self._resource_group_id is None:
-            raise IBMException(
-                f"Resource Group not found: {self._resource_group}"
-            )
+            raise IBMException(f"Resource Group not found: {self._resource_group}")
         return self._resource_group_id
 
     @property
@@ -108,22 +98,16 @@ class IBM(BaseCloud):
             "zone": self.zone,
         }
         if self._vpc_name is not None:
-            self._vpc = VPC.from_existing(
-                self.key_pair, name=self._vpc_name, **kwargs
-            )
+            self._vpc = VPC.from_existing(self.key_pair, name=self._vpc_name, **kwargs)
         else:
             self._vpc = VPC.from_default(self.key_pair, **kwargs)
 
         return self._vpc
 
-    def _get_resource_group_id(
-        self, name: Optional[str] = None
-    ) -> Optional[str]:
+    def _get_resource_group_id(self, name: Optional[str] = None) -> Optional[str]:
         name = name or f"{self.tag}-rg"
 
-        result = self._resource_manager_service.list_resource_groups(
-            name=name
-        ).get_result()
+        result = self._resource_manager_service.list_resource_groups(name=name).get_result()
         if result.get("resources"):
             return result["resources"][0]["id"]
 
@@ -186,10 +170,7 @@ class IBM(BaseCloud):
             specified release.
 
         """
-        self._log.info(
-            "There are no daily images in IBM Cloud."
-            " Using released image instead"
-        )
+        self._log.info("There are no daily images in IBM Cloud." " Using released image instead")
         return self.released_image(release, **kwargs)
 
     def image_serial(self, image_id):
@@ -202,9 +183,7 @@ class IBM(BaseCloud):
             string, serial of latest image
 
         """
-        raise NotImplementedError(
-            "IBM Cloud does not contain Ubuntu daily images"
-        )
+        raise NotImplementedError("IBM Cloud does not contain Ubuntu daily images")
 
     def get_image_id_from_name(self, name: str) -> str:
         """
@@ -261,9 +240,7 @@ class IBM(BaseCloud):
             self.created_vpcs.append(vpc)
             return vpc
 
-    def _choose_from_existing_floating_ips(
-        self, name_includes="default-floating-ip"
-    ) -> dict:
+    def _choose_from_existing_floating_ips(self, name_includes="default-floating-ip") -> dict:
         """
         Choose a floating IP from existing floating IPs via substring match.
 
@@ -283,9 +260,7 @@ class IBM(BaseCloud):
             )
         )
         if not floating_ips:
-            raise IBMException(
-                f"No floating IPs found matching substring {name_includes}"
-            )
+            raise IBMException(f"No floating IPs found matching substring {name_includes}")
         # filter out floating ips that are already associated with an instance
         floating_ips = [ip for ip in floating_ips if "target" not in ip]
         if not floating_ips:
@@ -343,25 +318,19 @@ class IBM(BaseCloud):
 
         """
         if not image_id:
-            raise ValueError(
-                f"{self._type} launch requires image_id param."
-                f" Found: {image_id}"
-            )
+            raise ValueError(f"{self._type} launch requires image_id param." f" Found: {image_id}")
 
         vpc = vpc or self.vpc
         floating_ip_name = f"{name}-fi" if name else None
         name = name or f"{self.tag}-vm"
 
-        floating_ip_substring = (
-            use_existing_floating_ip_with_name
-            or self.config.get("floating_ip_substring")
+        floating_ip_substring = use_existing_floating_ip_with_name or self.config.get(
+            "floating_ip_substring"
         )
 
         if floating_ip_substring:
             self._log.info("Existing floating ip name provided.")
-            floating_ip = self._choose_from_existing_floating_ips(
-                floating_ip_substring
-            )
+            floating_ip = self._choose_from_existing_floating_ips(floating_ip_substring)
         else:
             self._log.info("Creating new floating ip.")
             floating_ip = self._create_floating_ip(name=floating_ip_name)
@@ -391,9 +360,7 @@ class IBM(BaseCloud):
 
         return instance
 
-    def snapshot(
-        self, instance: IBMInstance, clean: bool = True, **kwargs
-    ) -> str:
+    def snapshot(self, instance: IBMInstance, clean: bool = True, **kwargs) -> str:
         """Snapshot an instance and generate an image from it.
 
         Args:
@@ -417,9 +384,7 @@ class IBM(BaseCloud):
             "source_volume": {"id": instance.boot_volume_id},
         }
 
-        snapshot_id = self._client.create_image(image_prototype).get_result()[
-            "id"
-        ]
+        snapshot_id = self._client.create_image(image_prototype).get_result()["id"]
 
         timeout_seconds = 300
         _wait_until(
@@ -427,8 +392,7 @@ class IBM(BaseCloud):
             == Image.StatusEnum.AVAILABLE.value,
             timeout_seconds=timeout_seconds,
             timeout_msg_fn=lambda: (
-                f"Snapshot not available after {timeout_seconds} seconds. "
-                "Check IBM VPC console."
+                f"Snapshot not available after {timeout_seconds} seconds. " "Check IBM VPC console."
             ),
         )
         self.created_images.append(snapshot_id)

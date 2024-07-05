@@ -40,8 +40,9 @@ class GceInstance(BaseInstance):
         """
         if project is None or zone is None:
             raise ValueError(
-                "kwargs 'project' and 'zone' are required. "
-                "Project: {}, Zone: {}".format(project, zone)
+                "kwargs 'project' and 'zone' are required. " "Project: {}, Zone: {}".format(
+                    project, zone
+                )
             )
         super().__init__(key_pair, username=username)
         self.instance_id = instance_id
@@ -169,10 +170,7 @@ class GceInstance(BaseInstance):
                     break
                 raise e
         else:
-            msg = (
-                f"Instance not terminated after {sleep_seconds} seconds. "
-                "Check GCE console."
-            )
+            msg = f"Instance not terminated after {sleep_seconds} seconds. " "Check GCE console."
             if raise_on_fail:
                 raise PycloudlibTimeoutError(msg)
             self._log.warning(msg)

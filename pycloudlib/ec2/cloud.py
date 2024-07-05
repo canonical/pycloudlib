@@ -69,9 +69,7 @@ class EC2(BaseCloud):
             self.resource = session.resource("ec2")
             self.region = session.region_name
         except botocore.exceptions.NoRegionError as e:
-            raise CloudSetupError(
-                "Please configure default region in $HOME/.aws/config"
-            ) from e
+            raise CloudSetupError("Please configure default region in $HOME/.aws/config") from e
         except botocore.exceptions.NoCredentialsError as e:
             raise CloudSetupError(
                 "Please configure ec2 credentials in $HOME/.aws/credentials"
@@ -95,9 +93,7 @@ class EC2(BaseCloud):
 
         """
         # Check to see if current VPC exists
-        vpcs = self.client.describe_vpcs(
-            Filters=[{"Name": "tag:Name", "Values": [name]}]
-        )["Vpcs"]
+        vpcs = self.client.describe_vpcs(Filters=[{"Name": "tag:Name", "Values": [name]}])["Vpcs"]
         if vpcs:
             return VPC.from_existing(self.resource, vpc_id=vpcs[0]["VpcId"])
         new_vpc = VPC.create(self.resource, name=name, ipv4_cidr=ipv4_cidr)
@@ -134,9 +130,7 @@ class EC2(BaseCloud):
         )
         return image["ImageId"]
 
-    def _get_name_for_image_type(
-        self, release: str, image_type: ImageType, daily: bool
-    ):
+    def _get_name_for_image_type(self, release: str, image_type: ImageType, daily: bool):
         disk_type = "hvm-ssd" if release in NO_GP3_RELEASES else "hvm-ssd-gp3"
         if image_type == ImageType.GENERIC:
             base_location = "ubuntu/{image_type}/{disk_type}".format(
@@ -148,22 +142,14 @@ class EC2(BaseCloud):
                     base_location, release, "-daily" if daily else ""
                 )
 
-            return "{}/ubuntu-{}{}-*".format(
-                base_location, release, "-daily" if daily else ""
-            )
+            return "{}/ubuntu-{}{}-*".format(base_location, release, "-daily" if daily else "")
 
         release_ver = UBUNTU_RELEASE_VERSION_MAP.get(release)
         if image_type == ImageType.PRO:
-            return (
-                f"ubuntu-pro-server/images/{disk_type}/"
-                f"ubuntu-{release}-{release_ver}-*"
-            )
+            return f"ubuntu-pro-server/images/{disk_type}/" f"ubuntu-{release}-{release_ver}-*"
 
         if image_type == ImageType.PRO_FIPS:
-            return (
-                f"ubuntu-pro-fips*/images/{disk_type}/"
-                f"ubuntu-{release}-{release_ver}-*"
-            )
+            return f"ubuntu-pro-fips*/images/{disk_type}/" f"ubuntu-{release}-{release_ver}-*"
 
         raise ValueError("Invalid image_type")
 
@@ -174,15 +160,11 @@ class EC2(BaseCloud):
             else "aws-marketplace"
         )
 
-    def _get_search_filters(
-        self, release: str, arch: str, image_type: ImageType, daily: bool
-    ):
+    def _get_search_filters(self, release: str, arch: str, image_type: ImageType, daily: bool):
         return [
             {
                 "Name": "name",
-                "Values": [
-                    self._get_name_for_image_type(release, image_type, daily)
-                ],
+                "Values": [self._get_name_for_image_type(release, image_type, daily)],
             },
             {
                 "Name": "architecture",
@@ -211,9 +193,7 @@ class EC2(BaseCloud):
 
         if not images.get("Images"):
             raise ValueError(
-                "Could not find {} image for {} release".format(
-                    image_type.value, release
-                )
+                "Could not find {} image for {} release".format(image_type.value, release)
             )
 
         return sorted(images["Images"], key=lambda x: x["CreationDate"])[-1]
@@ -247,9 +227,7 @@ class EC2(BaseCloud):
         )
         return image["ImageId"]
 
-    def _find_image_serial(
-        self, image_id, image_type: ImageType = ImageType.GENERIC
-    ):
+    def _find_image_serial(self, image_id, image_type: ImageType = ImageType.GENERIC):
         owner = self._get_owner(image_type=image_type)
         filters = [
             {
@@ -275,9 +253,7 @@ class EC2(BaseCloud):
 
         return serial_match.groupdict().get("serial")
 
-    def image_serial(
-        self, image_id, image_type: ImageType = ImageType.GENERIC
-    ):
+    def image_serial(self, image_id, image_type: ImageType = ImageType.GENERIC):
         """Find the image serial of a given EC2 image ID.
 
         Args:
@@ -287,9 +263,7 @@ class EC2(BaseCloud):
             string, serial of latest image
 
         """
-        self._log.debug(
-            "finding image serial for EC2 Ubuntu image %s", image_id
-        )
+        self._log.debug("finding image serial for EC2 Ubuntu image %s", image_id)
         return self._find_image_serial(image_id, image_type)
 
     def delete_image(self, image_id, **kwargs):
@@ -319,9 +293,7 @@ class EC2(BaseCloud):
         self._log.debug("deleting SSH key %s", name)
         self.client.delete_key_pair(KeyName=name)
 
-    def get_instance(
-        self, instance_id, *, username: Optional[str] = None, **kwargs
-    ):
+    def get_instance(self, instance_id, *, username: Optional[str] = None, **kwargs):
         """Get an instance by id.
 
         Args:
@@ -336,9 +308,7 @@ class EC2(BaseCloud):
 
         """
         instance = self.resource.Instance(instance_id)
-        return EC2Instance(
-            self.key_pair, self.client, instance, username=username
-        )
+        return EC2Instance(self.key_pair, self.client, instance, username=username)
 
     def launch(
         self,
@@ -371,10 +341,7 @@ class EC2(BaseCloud):
         """
         # pylint: disable=too-many-locals
         if not image_id:
-            raise ValueError(
-                f"{self._type} launch requires image_id param."
-                f" Found: {image_id}"
-            )
+            raise ValueError(f"{self._type} launch requires image_id param." f" Found: {image_id}")
         args = {
             "ImageId": image_id,
             "InstanceType": instance_type,
@@ -423,15 +390,11 @@ class EC2(BaseCloud):
                     " launching into VPCs with multiple subnets".format(vpc.id)
                 ) from e
             args["SubnetId"] = subnet_id
-            args["SecurityGroupIds"] = [
-                sg.id for sg in vpc.vpc.security_groups.all()
-            ]
+            args["SecurityGroupIds"] = [sg.id for sg in vpc.vpc.security_groups.all()]
 
         self._log.debug("launching instance")
         instances = self.resource.create_instances(**args)
-        instance = EC2Instance(
-            self.key_pair, self.client, instances[0], username=username
-        )
+        instance = EC2Instance(self.key_pair, self.client, instances[0], username=username)
         self.created_instances.append(instance)
 
         return instance

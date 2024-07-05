@@ -46,9 +46,7 @@ VM_PROFILE_TMPL = textwrap.dedent(
 )
 
 
-def _make_vm_profile(
-    series: str, *, install_agent: bool, config_cloudinit: bool
-) -> str:
+def _make_vm_profile(series: str, *, install_agent: bool, config_cloudinit: bool) -> str:
     config_device = ""
     vendordata = "config: {}"
     if config_cloudinit:
@@ -57,19 +55,11 @@ def _make_vm_profile(
         config_device = "config: {source: cloud-init:config, type: disk}"
     if install_agent:
         vendordata = LXC_SETUP_VENDORDATA
-    return VM_PROFILE_TMPL.format(
-        config_device=config_device, series=series, vendordata=vendordata
-    )
+    return VM_PROFILE_TMPL.format(config_device=config_device, series=series, vendordata=vendordata)
 
 
 base_vm_profiles = {
-    "xenial": _make_vm_profile(
-        "xenial", install_agent=False, config_cloudinit=True
-    ),
-    "bionic": _make_vm_profile(
-        "bionic", install_agent=True, config_cloudinit=True
-    ),
-    "default": _make_vm_profile(
-        "default", install_agent=False, config_cloudinit=False
-    ),
+    "xenial": _make_vm_profile("xenial", install_agent=False, config_cloudinit=True),
+    "bionic": _make_vm_profile("bionic", install_agent=True, config_cloudinit=True),
+    "default": _make_vm_profile("default", install_agent=False, config_cloudinit=False),
 }

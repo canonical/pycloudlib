@@ -160,9 +160,7 @@ def shell_safe(cmd):
     return out.decode()[4:-1]
 
 
-def subp(
-    args, data=None, env=None, shell=False, rcs=(0,), shortcircuit_stdin=True
-):
+def subp(args, data=None, env=None, shell=False, rcs=(0,), shortcircuit_stdin=True):
     """Subprocess wrapper.
 
     Args:
@@ -289,9 +287,7 @@ def _convert_args(args):
     elif isinstance(args, str):
         bytes_args = args.encode("utf-8")
     else:
-        bytes_args = [
-            x if isinstance(x, bytes) else x.encode("utf-8") for x in args
-        ]
+        bytes_args = [x if isinstance(x, bytes) else x.encode("utf-8") for x in args]
 
     return bytes_args
 

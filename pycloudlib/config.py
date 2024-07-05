@@ -27,8 +27,7 @@ class Config(dict):
             return super().__getitem__(key)
         except KeyError:
             raise KeyError(
-                "{} must be defined in pycloudlib.toml to make this "
-                "call".format(key)
+                "{} must be defined in pycloudlib.toml to make this " "call".format(key)
             ) from None
 
 
@@ -51,8 +50,7 @@ def parse_config(
             continue
         except toml.TomlDecodeError as e:
             raise ValueError(
-                "Could not parse configuration file pointed to by "
-                "{}".format(path)
+                "Could not parse configuration file pointed to by " "{}".format(path)
             ) from e
     raise ValueError(
         "No configuration file found! Copy pycloudlib.toml.template to "

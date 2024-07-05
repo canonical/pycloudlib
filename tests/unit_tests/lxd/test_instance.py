@@ -691,9 +691,7 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_exec_with_run_command_on_xenial_machine(self, m_subp, caplog):
         """Test exec does not work with xenial vm."""
-        instance = LXDVirtualMachineInstance(
-            None, execute_via_ssh=False, series="xenial"
-        )
+        instance = LXDVirtualMachineInstance(None, execute_via_ssh=False, series="xenial")
 
         instance._run_command(["test"], None)
         assert self._missing_agent_msg in caplog.text
@@ -702,9 +700,7 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_file_pull_with_agent_on_xenial_machine(self, m_subp, caplog):
         """Test file pull does not work with xenial vm."""
-        instance = LXDVirtualMachineInstance(
-            None, execute_via_ssh=False, series="xenial"
-        )
+        instance = LXDVirtualMachineInstance(None, execute_via_ssh=False, series="xenial")
 
         instance.pull_file("/some/file", "/some/local/file")
         assert self._missing_agent_msg in caplog.text
@@ -713,9 +709,7 @@ class TestVirtualMachineXenialAgentOperations:  # pylint: disable=W0212
     @mock.patch("pycloudlib.lxd.instance.subp")
     def test_file_push_with_agent_on_xenial_machine(self, m_subp, caplog):
         """Test file push does not work with xenial vm."""
-        instance = LXDVirtualMachineInstance(
-            None, execute_via_ssh=False, series="xenial"
-        )
+        instance = LXDVirtualMachineInstance(None, execute_via_ssh=False, series="xenial")
 
         instance.push_file("/some/file", "/some/local/file")
         assert self._missing_agent_msg in caplog.text
@@ -752,8 +746,7 @@ class TestIP:
                 1,
                 150,
                 PycloudlibTimeoutError(
-                    "Unable to determine IP address after 150 retries."
-                    " exit:1 stdout:"
+                    "Unable to determine IP address after 150 retries." " exit:1 stdout:"
                 ),
             ),
             (  # empty values will retry indefinitely
@@ -762,8 +755,7 @@ class TestIP:
                 0,
                 150,
                 PycloudlibTimeoutError(
-                    "Unable to determine IP address after 150 retries."
-                    " exit:0 stdout:  stderr: "
+                    "Unable to determine IP address after 150 retries." " exit:0 stdout:  stderr: "
                 ),
             ),
             (  # only retry until success
@@ -787,17 +779,12 @@ class TestIP:
         """
         if len(stdouts) > 1:
             m_subp.side_effect = [
-                Result(stdout=out, stderr=stderr, return_code=return_code)
-                for out in stdouts
+                Result(stdout=out, stderr=stderr, return_code=return_code) for out in stdouts
             ]
         else:
-            m_subp.return_value = Result(
-                stdout=stdouts[0], stderr=stderr, return_code=return_code
-            )
+            m_subp.return_value = Result(stdout=stdouts[0], stderr=stderr, return_code=return_code)
         instance = LXDInstance(name="my_vm")
-        lxc_mock = mock.call(
-            ["lxc", "query", "/1.0/instances/my_vm?recursion=1"]
-        )
+        lxc_mock = mock.call(["lxc", "query", "/1.0/instances/my_vm?recursion=1"])
         if isinstance(expected, Exception):
             with pytest.raises(type(expected), match=re.escape(str(expected))):
                 instance.ip  # pylint: disable=pointless-statement
@@ -816,30 +803,24 @@ class TestIP:
 
     def test_parse_ip_bond_bridge(self):
         """Verify ipv4 parser with a cfg with bonds and bridging."""
-        assert "10.96.250.88" == LXDInstance(name="my_vm").parse_ip(
-            LXD_QUERY_BOND_BRIDGE
-        )
+        assert "10.96.250.88" == LXDInstance(name="my_vm").parse_ip(LXD_QUERY_BOND_BRIDGE)
 
     def test_parse_ip_ipv6_only(self):
         """Verify ip parser works with a cfg with a globlal ipv6 address."""
-        assert "fd42:5f0a:40d6:c5b9:609a:bbff:fe75:7c43" == LXDInstance(
-            name="my_vm"
-        ).parse_ip(LXD_QUERY_IPV6_ONLY)
+        assert "fd42:5f0a:40d6:c5b9:609a:bbff:fe75:7c43" == LXDInstance(name="my_vm").parse_ip(
+            LXD_QUERY_IPV6_ONLY
+        )
 
     def test_parse_ip_prefer_ipv4(self):
         """Verify ip parser prefers ipv4 addresses over ipv6 ones."""
-        assert "172.16.254.1" == LXDInstance(name="my_vm").parse_ip(
-            LXD_QUERY_IPV4_VS_IPV6
-        )
+        assert "172.16.254.1" == LXDInstance(name="my_vm").parse_ip(LXD_QUERY_IPV4_VS_IPV6)
 
 
 class TestWaitForStop:
     """Tests covering pycloudlib.lxd.instance.Instance.wait_for_stop."""
 
     @pytest.mark.parametrize("is_ephemeral", ((True), (False)))
-    def test_wait_for_stop_does_not_wait_for_ephemeral_instances(
-        self, is_ephemeral
-    ):
+    def test_wait_for_stop_does_not_wait_for_ephemeral_instances(self, is_ephemeral):
         """LXDInstance.wait_for_stop does not wait on ephemeral instances."""
         instance = LXDInstance(name="test")
         with mock.patch.object(instance, "wait_for_state") as wait_for_state:
@@ -862,9 +843,7 @@ class TestShutdown:
         ),
     )
     @mock.patch("pycloudlib.lxd.instance.subp")
-    def test_shutdown_calls_wait_for_stopped_state_when_wait_true(
-        self, m_subp, wait, force, cmd
-    ):
+    def test_shutdown_calls_wait_for_stopped_state_when_wait_true(self, m_subp, wait, force, cmd):
         """LXDInstance.wait_for_stopped called when wait is True."""
         instance = LXDInstance(name="test")
         with mock.patch.object(instance, "wait_for_stop") as wait_for_stop:
@@ -882,9 +861,7 @@ class TestDelete:
     @pytest.mark.parametrize("is_ephemeral", ((True), (False)))
     @mock.patch("pycloudlib.lxd.instance.LXDInstance.shutdown")
     @mock.patch("pycloudlib.lxd.instance.subp")
-    def test_delete_on_ephemeral_instance_calls_shutdown(
-        self, m_subp, m_shutdown, is_ephemeral
-    ):
+    def test_delete_on_ephemeral_instance_calls_shutdown(self, m_subp, m_shutdown, is_ephemeral):
         """Check if ephemeral instance delete stops it instead of deleting it.
 
         Also verify is delete is actually called if instance is not ephemeral.
@@ -896,6 +873,4 @@ class TestDelete:
 
         assert 0 == m_shutdown.call_count
         assert 1 == m_subp.call_count
-        assert [
-            mock.call(["lxc", "delete", "test", "--force"])
-        ] == m_subp.call_args_list
+        assert [mock.call(["lxc", "delete", "test", "--force"])] == m_subp.call_args_list

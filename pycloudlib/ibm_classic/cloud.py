@@ -53,9 +53,7 @@ class IBMClassic(BaseCloud):
         self._log.debug("logging into IBM")
 
         if not self._username or not self._api_key:
-            raise IBMClassicException(
-                "IBM Classic requires a username and API key"
-            )
+            raise IBMClassicException("IBM Classic requires a username and API key")
 
         self._client = SoftLayer.create_client_from_env(
             username=self._username,
@@ -80,9 +78,7 @@ class IBMClassic(BaseCloud):
                 "Please provide the image ID, not the global identifier."
             ) from e
         except SoftLayer.SoftLayerAPIError as e:
-            raise IBMClassicException(
-                f"Error deleting image {image_id}"
-            ) from e
+            raise IBMClassicException(f"Error deleting image {image_id}") from e
 
     def released_image(self, release, *, disk_size: str = "25G", **kwargs):
         """ID (globalIdentifier) of the latest released image for a particular release.
@@ -95,17 +91,13 @@ class IBMClassic(BaseCloud):
             specified release.
 
         """
-        public_images_gen = self._image_manager.list_public_images(
-            name=f"*{release}*"
-        )
+        public_images_gen = self._image_manager.list_public_images(name=f"*{release}*")
         public_images = list(public_images_gen)
         if not public_images:
             raise IBMClassicException(f"No public images found for {release}")
         # filter by disk size
         public_images = [
-            image
-            for image in public_images
-            if str(image["name"]).startswith(disk_size)
+            image for image in public_images if str(image["name"]).startswith(disk_size)
         ]
         # sort by "createDate" so newest image is first
         public_images.sort(key=lambda x: x["createDate"], reverse=True)
@@ -122,10 +114,7 @@ class IBMClassic(BaseCloud):
             specified release.
 
         """
-        self._log.info(
-            "There are no daily images in IBM Cloud."
-            " Using released image instead."
-        )
+        self._log.info("There are no daily images in IBM Cloud." " Using released image instead.")
         return self.released_image(release, **kwargs)
 
     def image_serial(self, image_id):
@@ -153,9 +142,7 @@ class IBMClassic(BaseCloud):
         Returns:
             string, image ID
         """
-        private_images_gen = self._image_manager.list_private_images(
-            name=f"*{name}*"
-        )
+        private_images_gen = self._image_manager.list_private_images(name=f"*{name}*")
         private_images = list(private_images_gen)
         if not private_images:
             raise IBMClassicException(f"No private images found for {name}")
@@ -175,8 +162,7 @@ class IBMClassic(BaseCloud):
         matches = [i for i in instances if str(i["id"]) == str(instance_id)]
         if not matches:
             raise IBMClassicException(
-                f"Error getting IBM Classic instance by id. "
-                f"Instance {instance_id} not found"
+                f"Error getting IBM Classic instance by id. " f"Instance {instance_id} not found"
             )
         if len(matches) > 1:
             raise IBMClassicException(
@@ -192,9 +178,7 @@ class IBMClassic(BaseCloud):
         for datacenter in datacenters:
             if datacenter["name"].startswith(region):
                 return datacenter["name"]
-        raise IBMClassicException(
-            f"Invalid datacenter region provided: {region}"
-        )
+        raise IBMClassicException(f"Invalid datacenter region provided: {region}")
 
     # pylint: disable=too-many-locals
     def launch(
@@ -235,8 +219,7 @@ class IBMClassic(BaseCloud):
         self._log.info("Preparing to launch instance")
         if disk_size not in ["25G", "100G"]:
             raise IBMClassicException(
-                "Invalid disk_size given. "
-                "disk_size must be either '25G' or '100G'"
+                "Invalid disk_size given. " "disk_size must be either '25G' or '100G'"
             )
         if user_data:
             self._log.error(
@@ -248,23 +231,15 @@ class IBMClassic(BaseCloud):
         if "-" in image_id:
             image_gid = image_id
         else:
-            image_gid = self._image_manager.get_image(image_id)[
-                "globalIdentifier"
-            ]
+            image_gid = self._image_manager.get_image(image_id)["globalIdentifier"]
 
         (
             public_security_group_id,
             private_security_group_id,
         ) = self.create_default_security_groups()
 
-        if not (
-            instance_type.endswith("X25") or instance_type.endswith("X100")
-        ):
-            flavor = (
-                instance_type.replace("-", "_")
-                + "X"
-                + disk_size.replace("G", "")
-            ).upper()
+        if not (instance_type.endswith("X25") or instance_type.endswith("X100")):
+            flavor = (instance_type.replace("-", "_") + "X" + disk_size.replace("G", "")).upper()
         else:
             flavor = instance_type.replace("-", "_")
 
@@ -432,13 +407,9 @@ class IBMClassic(BaseCloud):
         Returns:
             int: The ID of the created security group.
         """
-        new_group = self._network_manager.create_securitygroup(
-            name, description
-        )
+        new_group = self._network_manager.create_securitygroup(name, description)
         self.created_security_groups.append(new_group["id"])
-        self._log.debug(
-            "Created new security group %s: %s", name, new_group["id"]
-        )
+        self._log.debug("Created new security group %s: %s", name, new_group["id"])
         return new_group["id"]
 
     def _add_rules_to_security_group(
@@ -467,8 +438,7 @@ class IBMClassic(BaseCloud):
         for direction in directions:
             if direction not in ["ingress", "egress"]:
                 raise ValueError(
-                    f"Invalid direction: {direction}. "
-                    "Must be 'ingress' or 'egress'."
+                    f"Invalid direction: {direction}. " "Must be 'ingress' or 'egress'."
                 )
             for ethertype in ethertypes:
                 self._network_manager.add_securitygroup_rule(
@@ -480,8 +450,7 @@ class IBMClassic(BaseCloud):
                     port_max=port,
                 )
                 self._log.debug(
-                    "Added rule allowing %s %s traffic on port %s"
-                    "to security group %s",
+                    "Added rule allowing %s %s traffic on port %s" "to security group %s",
                     ethertype,
                     direction,
                     port,

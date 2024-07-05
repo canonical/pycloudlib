@@ -60,9 +60,7 @@ class IBMClassicInstance(BaseInstance):
             self._instance = self._vs_manager.get_instance(self.id)
         # if IP address is still not available, raise exception
         if "primaryIpAddress" not in self._instance:
-            raise IBMClassicException(
-                f"Failed to get IP address for instance {self.id}"
-            )
+            raise IBMClassicException(f"Failed to get IP address for instance {self.id}")
 
         return self._instance["primaryIpAddress"]
 
@@ -113,9 +111,7 @@ class IBMClassicInstance(BaseInstance):
         }
         # check if instance configuration is valid
         try:
-            logger.info(
-                "Verifying configuration for instance before creating it."
-            )
+            logger.info("Verifying configuration for instance before creating it.")
             vs_manager.verify_create_instance(
                 **constant_args,
                 **instance_specific_args,
@@ -123,9 +119,7 @@ class IBMClassicInstance(BaseInstance):
             )
         except SoftLayer.SoftLayerAPIError as e:
             logger.error("configuration for instance is invalid: %s", e)
-            raise IBMClassicException(
-                f"Failed to verify instance configuration: {e}"
-            ) from e
+            raise IBMClassicException(f"Failed to verify instance configuration: {e}") from e
         except Exception as e:
             logger.error(
                 "Unexpected error while verifying instance configuration: %s",
@@ -134,9 +128,7 @@ class IBMClassicInstance(BaseInstance):
             raise IBMClassicException(
                 f"Unexpected error while verifying instance configuration: {e}"
             ) from e
-        logger.info(
-            "Configuration for instance is valid. Creating instance now."
-        )
+        logger.info("Configuration for instance is valid. Creating instance now.")
         raw_instance = vs_manager.create_instance(
             **constant_args,
             **instance_specific_args,
@@ -187,10 +179,7 @@ class IBMClassicInstance(BaseInstance):
                         self.name,
                     )
                     t = at["transactionStatus"]["friendlyName"]
-                    msg = (
-                        f"Instance {self.name} stuck in active transaction:"
-                        f" {t}."
-                    )
+                    msg = f"Instance {self.name} stuck in active transaction:" f" {t}."
                     _wait_until(
                         has_no_active_transaction,
                         timeout_seconds=60 * 60,
@@ -223,18 +212,14 @@ class IBMClassicInstance(BaseInstance):
                 "Shutting down instance %s and waiting for it to stop.",
                 self.name,
             )
-            self._softlayer_client.call(
-                "Virtual_Guest", "powerOff", id=self.id
-            )
+            self._softlayer_client.call("Virtual_Guest", "powerOff", id=self.id)
             self.wait_for_stop()
         else:
             logger.info(
                 "Shutting down instance %s without waiting.",
                 self.name,
             )
-            self._softlayer_client.call(
-                "Virtual_Guest", "powerOff", id=self.id
-            )
+            self._softlayer_client.call("Virtual_Guest", "powerOff", id=self.id)
 
     def start(self, wait=True):
         """Start the instance.
@@ -263,9 +248,7 @@ class IBMClassicInstance(BaseInstance):
             instance = self._vs_manager.get_instance(self.id)
             power_state = instance.get("powerState", {}).get("keyName")
             last_transaction = (
-                instance.get("lastTransaction", {})
-                .get("transactionStatus", {})
-                .get("name")
+                instance.get("lastTransaction", {}).get("transactionStatus", {}).get("name")
             )
             is_active_transaction = "activeTransaction" in instance
             logger.debug(
@@ -325,9 +308,7 @@ class IBMClassicInstance(BaseInstance):
         # we need to wait until the instance is deleted
         def is_deleted():
             existing_instances = self._vs_manager.list_instances()
-            return self.id not in [
-                instance["id"] for instance in existing_instances
-            ]
+            return self.id not in [instance["id"] for instance in existing_instances]
 
         # wait for 10 minutes for the instance to delete
         timeout = 60 * 10
@@ -348,9 +329,7 @@ class IBMClassicInstance(BaseInstance):
             instance = self._vs_manager.get_instance(self.id)
             power_state = instance.get("powerState", {}).get("keyName")
             last_transaction = (
-                instance.get("lastTransaction", {})
-                .get("transactionStatus", {})
-                .get("name")
+                instance.get("lastTransaction", {}).get("transactionStatus", {}).get("name")
             )
             is_active_transaction = "activeTransaction" in instance
             logger.debug(

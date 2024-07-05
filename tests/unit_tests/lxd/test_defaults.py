@@ -47,14 +47,10 @@ class TestLXDProfilesWereNotModified:
         """
         profiles_md5sum = self.version_to_md5sum[LXC_PROFILE_VERSION]
 
-        current_profile_md5sum = hashlib.md5(
-            base_vm_profiles[series].encode("utf-8")
-        ).hexdigest()
+        current_profile_md5sum = hashlib.md5(base_vm_profiles[series].encode("utf-8")).hexdigest()
         if series not in profiles_md5sum:
             pytest.fail(
-                "Series {} md5sum not yet present: {}".format(
-                    series, current_profile_md5sum
-                )
+                "Series {} md5sum not yet present: {}".format(series, current_profile_md5sum)
             )
         profile_md5sum = profiles_md5sum[series]
 

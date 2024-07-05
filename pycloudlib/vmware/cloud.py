@@ -68,9 +68,7 @@ class VMWare(BaseCloud):
         datacenter = datacenter or self.config.get("datacenter")
         datastore = datastore or self.config.get("datastore")
         folder = folder or self.config.get("folder")
-        insecure_transport = insecure_transport or self.config.get(
-            "insecure_transport"
-        )
+        insecure_transport = insecure_transport or self.config.get("insecure_transport")
 
         self.govc = shutil.which("govc")
         if not self.govc:
@@ -96,13 +94,9 @@ class VMWare(BaseCloud):
             image_id: string, id of the image to delete
         """
         if image_id in SERIES_TO_TEMPLATE.values():
-            raise ValueError(
-                f"{image_id} is a core template and cannot be deleted."
-            )
+            raise ValueError(f"{image_id} is a core template and cannot be deleted.")
         try:
-            subprocess.run(
-                ["govc", "vm.destroy", image_id], env=self.env, check=True
-            )
+            subprocess.run(["govc", "vm.destroy", image_id], env=self.env, check=True)
         except subprocess.CalledProcessError as e:
             if "not found" not in str(e):
                 raise
@@ -128,9 +122,7 @@ class VMWare(BaseCloud):
         try:
             return SERIES_TO_TEMPLATE[release]
         except KeyError as e:
-            raise ValueError(
-                f"Could not find image for '{release}' release"
-            ) from e
+            raise ValueError(f"Could not find image for '{release}' release") from e
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a release.
@@ -154,9 +146,7 @@ class VMWare(BaseCloud):
             An instance object to use to manipulate the instance further.
 
         """
-        return VMWareInstance(
-            key_pair=self.key_pair, vm_id=instance_id, env=self.env
-        )
+        return VMWareInstance(key_pair=self.key_pair, vm_id=instance_id, env=self.env)
 
     def launch(
         self,
@@ -187,9 +177,7 @@ class VMWare(BaseCloud):
         # detect the ovf datasource rather than the VMWare datasource.
         # If we want to use the VMWare datasource, there is no other
         # way to provide a public key other than through the userdata.
-        user_data = add_key_to_cloud_config(
-            self.key_pair.public_key_content, user_data
-        )
+        user_data = add_key_to_cloud_config(self.key_pair.public_key_content, user_data)
 
         b64_metadata = base64.b64encode(METADATA.encode()).decode()
         b64_userdata = base64.b64encode(user_data.encode()).decode()

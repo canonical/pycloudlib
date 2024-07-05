@@ -41,10 +41,7 @@ class TestResourceNotFoundError:
                     resource_id="id",
                     custom_key="custom_key",
                 ),
-                (
-                    "Could not locate the resource type `image`: "
-                    "id=id, custom_key=custom_key"
-                ),
+                ("Could not locate the resource type `image`: " "id=id, custom_key=custom_key"),
             ),
             (
                 ResourceNotFoundError(

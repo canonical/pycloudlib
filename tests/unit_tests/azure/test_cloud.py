@@ -37,9 +37,7 @@ class TestCreateNetworkInterfaceClient:
         ),
     )
     @mock.patch("pycloudlib.azure.util.get_client")
-    def test_create_network_interface_with_inbound_ports(
-        self, m_get_client, inbound_ports
-    ):
+    def test_create_network_interface_with_inbound_ports(self, m_get_client, inbound_ports):
         """Test method handling of inbound_ports."""
         resource_client_mock = mock.MagicMock()
         resource_group_mock = mock.MagicMock()
@@ -54,9 +52,7 @@ class TestCreateNetworkInterfaceClient:
             compute_client_mock,
         ]
 
-        type(resource_mock).name = mock.PropertyMock(
-            return_value="resource_group"
-        )
+        type(resource_mock).name = mock.PropertyMock(return_value="resource_group")
         type(resource_client_mock).resource_groups = mock.PropertyMock(
             return_value=resource_group_mock
         )
@@ -127,10 +123,7 @@ class TestCreateNetworkInterfaceClient:
             ),
         ]
 
-        assert (
-            expected_calls
-            == network_group_mock.begin_create_or_update.call_args_list
-        )
+        assert expected_calls == network_group_mock.begin_create_or_update.call_args_list
 
 
 @mock.patch(
@@ -143,9 +136,7 @@ class TestCreateNetworkInterfaceClient:
 )
 class TestNonComputeParamsOverrides:
     def test_rg_params_override(self, _m_get_client):
-        type(resource_mock).name = mock.PropertyMock(
-            return_value="resource_group"
-        )
+        type(resource_mock).name = mock.PropertyMock(return_value="resource_group")
         type(resource_client_mock).resource_groups = mock.PropertyMock(
             return_value=resource_group_mock
         )
@@ -172,18 +163,13 @@ class TestNonComputeParamsOverrides:
                 },
             ),
         ]
-        assert (
-            expected_calls
-            == resource_group_mock.create_or_update.call_args_list
-        )
+        assert expected_calls == resource_group_mock.create_or_update.call_args_list
 
     @pytest.mark.parametrize(
         "nsg_obj",
         (
             None,
-            AzureCreateParams(
-                "nsg001", "new-nsg-rg", {"location": "new-nsg-location"}
-            ),
+            AzureCreateParams("nsg001", "new-nsg-rg", {"location": "new-nsg-location"}),
         ),
     )
     def test_nsg_params_override(self, _m_get_client, nsg_obj):
@@ -238,10 +224,7 @@ class TestNonComputeParamsOverrides:
                 ),
             ]
 
-        assert (
-            expected_calls
-            == network_group_mock.begin_create_or_update.call_args_list
-        )
+        assert expected_calls == network_group_mock.begin_create_or_update.call_args_list
 
         network_group_mock.begin_create_or_update.reset_mock()
 
@@ -283,39 +266,24 @@ class TestNonComputeParamsOverrides:
         }
 
         if not vnet_obj:
-            expected_calls = [
-                mock.call("default-rg", "pyc-test-vnet", parameters)
-            ]
+            expected_calls = [mock.call("default-rg", "pyc-test-vnet", parameters)]
         else:
-            expected_calls = [
-                mock.call(
-                    vnet_obj.resource_group_name, vnet_obj.name, parameters
-                )
-            ]
+            expected_calls = [mock.call(vnet_obj.resource_group_name, vnet_obj.name, parameters)]
             parameters["address_space"]["address_prefixes"] = ["addr_prefix"]
             pass
-        assert (
-            expected_calls
-            == virtual_networks.begin_create_or_update.call_args_list
-        )
+        assert expected_calls == virtual_networks.begin_create_or_update.call_args_list
 
     @pytest.mark.parametrize(
         "subnet_obj",
         (
             None,
-            AzureCreateParams(
-                "subnet001", "new-subnet-rg", {"address_prefix": "addr_prfx"}
-            ),
+            AzureCreateParams("subnet001", "new-subnet-rg", {"address_prefix": "addr_prfx"}),
         ),
     )
     def test_subnet_params_override(self, _m_get_client, subnet_obj):
         subnets = mock.MagicMock()
-        type(network_client_mock).subnets = mock.PropertyMock(
-            return_value=subnets
-        )
-        type(resource_mock).name = mock.PropertyMock(
-            return_value="default-subnet-rg"
-        )
+        type(network_client_mock).subnets = mock.PropertyMock(return_value=subnets)
+        type(resource_mock).name = mock.PropertyMock(return_value="default-subnet-rg")
         type(resource_client_mock).resource_groups = mock.PropertyMock(
             return_value=resource_group_mock
         )
@@ -360,9 +328,7 @@ class TestNonComputeParamsOverrides:
         "ip_obj",
         (
             None,
-            AzureCreateParams(
-                "ip001", "new-ip-rg", {"sku": {"name": "Basic"}}
-            ),
+            AzureCreateParams("ip001", "new-ip-rg", {"sku": {"name": "Basic"}}),
         ),
     )
     @mock.patch("datetime.datetime", wraps=datetime.datetime)
@@ -374,9 +340,7 @@ class TestNonComputeParamsOverrides:
         type(network_client_mock).public_ip_addresses = mock.PropertyMock(
             return_value=public_ip_addresses
         )
-        type(resource_mock).name = mock.PropertyMock(
-            return_value="default-ip-rg"
-        )
+        type(resource_mock).name = mock.PropertyMock(return_value="default-ip-rg")
         type(resource_client_mock).resource_groups = mock.PropertyMock(
             return_value=resource_group_mock
         )
@@ -416,18 +380,13 @@ class TestNonComputeParamsOverrides:
                     parameters,
                 )
             ]
-        assert (
-            expected_calls
-            == public_ip_addresses.begin_create_or_update.call_args_list
-        )
+        assert expected_calls == public_ip_addresses.begin_create_or_update.call_args_list
 
     @pytest.mark.parametrize(
         "nic_obj",
         (
             None,
-            AzureCreateParams(
-                "nic001", "new-nic-rg", {"location": "new-nic-location"}
-            ),
+            AzureCreateParams("nic001", "new-nic-rg", {"location": "new-nic-location"}),
         ),
     )
     @mock.patch("datetime.datetime", wraps=datetime.datetime)
@@ -439,9 +398,7 @@ class TestNonComputeParamsOverrides:
         type(network_client_mock).network_interfaces = mock.PropertyMock(
             return_value=network_interfaces
         )
-        type(resource_mock).name = mock.PropertyMock(
-            return_value="default-nic-rg"
-        )
+        type(resource_mock).name = mock.PropertyMock(return_value="default-nic-rg")
         type(resource_client_mock).resource_groups = mock.PropertyMock(
             return_value=resource_group_mock
         )
@@ -452,9 +409,7 @@ class TestNonComputeParamsOverrides:
             timestamp_suffix=False,
             config_file=StringIO(CONFIG),
         )
-        cloud._create_network_interface_client(
-            "ip_id", "subnet_id", "nsg_id", nic_obj
-        )
+        cloud._create_network_interface_client("ip_id", "subnet_id", "nsg_id", nic_obj)
 
         expected_calls = []
 
@@ -471,11 +426,7 @@ class TestNonComputeParamsOverrides:
             "tags": {"name": cloud.tag},
         }
         if not nic_obj:
-            expected_calls = [
-                mock.call(
-                    "default-nic-rg", "{}-nic".format(cloud.tag), parameters
-                )
-            ]
+            expected_calls = [mock.call("default-nic-rg", "{}-nic".format(cloud.tag), parameters)]
         else:
             parameters["location"] = "new-nic-location"
             parameters["ip_configurations"] = [
@@ -485,12 +436,5 @@ class TestNonComputeParamsOverrides:
                     "public_ip_address": {"id": "ip_id"},
                 }
             ]
-            expected_calls = [
-                mock.call(
-                    nic_obj.resource_group_name, nic_obj.name, parameters
-                )
-            ]
-        assert (
-            expected_calls
-            == network_interfaces.begin_create_or_update.call_args_list
-        )
+            expected_calls = [mock.call(nic_obj.resource_group_name, nic_obj.name, parameters)]
+        assert expected_calls == network_interfaces.begin_create_or_update.call_args_list

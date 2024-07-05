@@ -59,13 +59,8 @@ class TestWait:
         instance = concrete_instance_cls(key_pair=None)
         m_time.side_effect = [1, 1, 2, 40 * 60, 40 * 60 + 1]
         m_execute.side_effect = execute_effect
-        expected_msg = (
-            "Instance can't be reached after 40 minutes. "
-            "Failed to obtain new boot id"
-        )
-        expected_call_args = [
-            mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)
-        ] * 2
+        expected_msg = "Instance can't be reached after 40 minutes. " "Failed to obtain new boot id"
+        expected_call_args = [mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)] * 2
 
         with pytest.raises(PycloudlibTimeoutError) as excinfo:
             instance.wait()
@@ -130,9 +125,7 @@ class TestRestart:
     ):
         """Test when instance is reachable."""
         instance = concrete_instance_cls(key_pair=None)
-        m_boot_id.side_effect = Result(
-            "11111111-1111-1111-1111-111111111111", "", 0
-        )
+        m_boot_id.side_effect = Result("11111111-1111-1111-1111-111111111111", "", 0)
         instance.restart(wait=True)
         assert m_do_restart.call_count == 1
         assert m_wait_for_restart.call_count == 1
@@ -161,9 +154,7 @@ class TestWaitForRestart:
     ):
         """Test wait calls _wait_for_execute and waits till differing."""
         instance = concrete_instance_cls(key_pair=None)
-        instance.wait_for_restart(
-            old_boot_id="11111111-1111-1111-1111-111111111111"
-        )
+        instance.wait_for_restart(old_boot_id="11111111-1111-1111-1111-111111111111")
         assert m_execute.call_count == 5
 
     @pytest.mark.parametrize(
@@ -188,18 +179,11 @@ class TestWaitForRestart:
         m_execute.side_effect = execute_side_effect
         instance = concrete_instance_cls(key_pair=None)
         m_time.side_effect = [1, 1, 2, 40 * 60, 40 * 60 + 1]
-        expected_msg = (
-            "Instance can't be reached after 40 minutes. "
-            "Failed to obtain new boot id"
-        )
-        expected_call_args = [
-            mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)
-        ] * 2
+        expected_msg = "Instance can't be reached after 40 minutes. " "Failed to obtain new boot id"
+        expected_call_args = [mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)] * 2
 
         with pytest.raises(PycloudlibTimeoutError) as excinfo:
-            instance.wait_for_restart(
-                old_boot_id="11111111-1111-1111-1111-111111111111"
-            )
+            instance.wait_for_restart(old_boot_id="11111111-1111-1111-1111-111111111111")
 
         assert expected_msg == str(excinfo.value)
         assert m_sleep.call_count == 2
