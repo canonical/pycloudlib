@@ -144,7 +144,7 @@ class VPC:
             kwargs["Ipv6CidrBlock"] = ipv6_cidr[:-2] + "64"
         except ValueError as e:
             logger.warning(
-                "Skipping IPv6 association on vpc." " Could not understand Ipv6CidrBlock: [%s]: %s",
+                "Skipping IPv6 association on vpc. Could not understand Ipv6CidrBlock: [%s]: %s",
                 ipv6_cidr,
                 str(e),
             )

@@ -215,6 +215,6 @@ class OpenstackInstance(BaseInstance):
             self.added_local_ports.remove(port.id)
         except ValueError:
             self._log.warning(
-                "Expected port to be in added_local_ports list " "but was not: %s",
+                "Expected port to be in added_local_ports list but was not: %s",
                 port.id,
             )

@@ -471,7 +471,7 @@ class EC2Instance(BaseInstance):
                 self._client.disassociate_address(AssociationId=association["AssociationId"])
             except botocore.exceptions.ClientError as ex:
                 self._log.debug(
-                    "Error disassociating Public IP from NIC with IP" " %s: %s",
+                    "Error disassociating Public IP from NIC with IP %s: %s",
                     private_ip,
                     str(ex),
                 )
@@ -479,7 +479,7 @@ class EC2Instance(BaseInstance):
                 self._client.release_address(AllocationId=association["AllocationId"])
             except botocore.exceptions.ClientError as ex:
                 self._log.debug(
-                    "Error deleting Public IP from NIC with IP" " %s: %s",
+                    "Error deleting Public IP from NIC with IP %s: %s",
                     private_ip,
                     str(ex),
                 )

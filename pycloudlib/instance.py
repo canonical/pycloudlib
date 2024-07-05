@@ -503,7 +503,7 @@ class BaseInstance(ABC):
             time.sleep(1)
 
         raise PycloudlibTimeoutError(
-            f"Instance can't be reached after {timeout} minutes. " "Failed to obtain new boot id",
+            f"Instance can't be reached after {timeout} minutes. Failed to obtain new boot id",
         )
 
     def _wait_for_cloudinit(self):

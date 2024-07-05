@@ -1,4 +1,4 @@
-"""Integration tests for Qemu class.""" ""
+"""Integration tests for Qemu class."""
 import pytest
 import yaml
 

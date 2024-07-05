@@ -106,7 +106,7 @@ class _Subnet:
                 raise
             return False
 
-        msg = f"Subnet not terminated after {sleep_seconds} seconds. " "Check IBM VPC console."
+        msg = f"Subnet not terminated after {sleep_seconds} seconds. Check IBM VPC console."
 
         _wait_until(
             _check_fn,
@@ -321,7 +321,7 @@ class _IBMInstanceType(Enum):
             return cls.BARE_METAL_SERVER
         if "host" in instance_type:
             logger.warning(
-                "%s instance_type looks like a Dedicated Host," " which is not supported.",
+                "%s instance_type looks like a Dedicated Host, which is not supported.",
                 instance_type,
             )
         return cls.VSI
@@ -757,7 +757,7 @@ class IBMInstance(BaseInstance):
                 raise
             return False
 
-        msg = f"Instance not terminated after {sleep_seconds} seconds. " "Check IBM VPC console."
+        msg = f"Instance not terminated after {sleep_seconds} seconds. Check IBM VPC console."
 
         terminated = _wait_until(
             _check_fn,

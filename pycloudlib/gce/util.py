@@ -20,7 +20,7 @@ def raise_on_error(response):
             fp=None,
         )
     if "error" in response:
-        raise GceException("Received error(s)!\n" "Errors: {}".format(response["error"]["errors"]))
+        raise GceException("Received error(s)!\nErrors: {}".format(response["error"]["errors"]))
 
 
 def get_credentials(credentials_path):

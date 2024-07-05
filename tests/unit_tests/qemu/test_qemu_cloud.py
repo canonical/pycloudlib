@@ -89,7 +89,7 @@ def test_unparseable_release_page(qemu):
     ):
         with pytest.raises(
             PycloudlibError,
-            match=("Could not parse url: " "https://nonexistent"),
+            match=("Could not parse url: https://nonexistent"),
         ):
             qemu.cloud._get_latest_image("https://nonexistent", "none", "none.img")
 

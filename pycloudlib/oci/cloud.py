@@ -89,14 +89,14 @@ class OCI(BaseCloud):
                 self.oci_config = config_dict
             except oci.exceptions.InvalidConfig as e:
                 raise ValueError(
-                    "Config dict is invalid. Pass a valid config dict. " "{}".format(e)
+                    "Config dict is invalid. Pass a valid config dict. {}".format(e)
                 ) from e
 
         else:
             config_path = config_path or self.config.get("config_path") or "~/.oci/config"
             if not os.path.isfile(os.path.expanduser(config_path)):
                 raise ValueError(
-                    "{} is not a valid config file. Pass a valid config " "file.".format(
+                    "{} is not a valid config file. Pass a valid config file.".format(
                         config_path
                     )
                 )

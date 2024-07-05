@@ -170,7 +170,7 @@ class IBM(BaseCloud):
             specified release.
 
         """
-        self._log.info("There are no daily images in IBM Cloud." " Using released image instead")
+        self._log.info("There are no daily images in IBM Cloud. Using released image instead")
         return self.released_image(release, **kwargs)
 
     def image_serial(self, image_id):
@@ -392,7 +392,7 @@ class IBM(BaseCloud):
             == Image.StatusEnum.AVAILABLE.value,
             timeout_seconds=timeout_seconds,
             timeout_msg_fn=lambda: (
-                f"Snapshot not available after {timeout_seconds} seconds. " "Check IBM VPC console."
+                f"Snapshot not available after {timeout_seconds} seconds. Check IBM VPC console."
             ),
         )
         self.created_images.append(snapshot_id)

@@ -114,7 +114,7 @@ class IBMClassic(BaseCloud):
             specified release.
 
         """
-        self._log.info("There are no daily images in IBM Cloud." " Using released image instead.")
+        self._log.info("There are no daily images in IBM Cloud. Using released image instead.")
         return self.released_image(release, **kwargs)
 
     def image_serial(self, image_id):
@@ -219,7 +219,7 @@ class IBMClassic(BaseCloud):
         self._log.info("Preparing to launch instance")
         if disk_size not in ["25G", "100G"]:
             raise IBMClassicException(
-                "Invalid disk_size given. " "disk_size must be either '25G' or '100G'"
+                "Invalid disk_size given. disk_size must be either '25G' or '100G'"
             )
         if user_data:
             self._log.error(
@@ -438,7 +438,7 @@ class IBMClassic(BaseCloud):
         for direction in directions:
             if direction not in ["ingress", "egress"]:
                 raise ValueError(
-                    f"Invalid direction: {direction}. " "Must be 'ingress' or 'egress'."
+                    f"Invalid direction: {direction}. Must be 'ingress' or 'egress'."
                 )
             for ethertype in ethertypes:
                 self._network_manager.add_securitygroup_rule(
@@ -450,7 +450,7 @@ class IBMClassic(BaseCloud):
                     port_max=port,
                 )
                 self._log.debug(
-                    "Added rule allowing %s %s traffic on port %s" "to security group %s",
+                    "Added rule allowing %s %s traffic on port %s to security group %s",
                     ethertype,
                     direction,
                     port,

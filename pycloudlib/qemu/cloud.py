@@ -274,7 +274,7 @@ class Qemu(BaseCloud):
         """
         if not (user_data or meta_data or vendor_data):
             self._log.warning(
-                "Not creating seed iso as there is no user data, meta data, " "or vendor data."
+                "Not creating seed iso as there is no user data, meta data, or vendor data."
             )
             return None
 

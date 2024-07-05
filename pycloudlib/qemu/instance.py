@@ -99,7 +99,7 @@ class QemuInstance(BaseInstance):
         else:
             # Since our VM may still have started, we don't want to
             # force a cleanup here since it may still be useful for debugging
-            self._log.error("Failed to find QMP socket. Instance likely in an " "unusable state")
+            self._log.error("Failed to find QMP socket. Instance likely in an unusable state")
 
         qmp = None
         if qmp_socket:
@@ -148,7 +148,7 @@ class QemuInstance(BaseInstance):
                 self.handle.kill()
             else:
                 raise CleanupError(
-                    "No QMP connection or process handle. " "Manual cleanup required"
+                    "No QMP connection or process handle. Manual cleanup required"
                 )
         except Exception as e:  # pylint: disable=broad-except
             errors.append(e)

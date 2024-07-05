@@ -746,7 +746,7 @@ class TestIP:
                 1,
                 150,
                 PycloudlibTimeoutError(
-                    "Unable to determine IP address after 150 retries." " exit:1 stdout:"
+                    "Unable to determine IP address after 150 retries. exit:1 stdout:"
                 ),
             ),
             (  # empty values will retry indefinitely
@@ -755,7 +755,7 @@ class TestIP:
                 0,
                 150,
                 PycloudlibTimeoutError(
-                    "Unable to determine IP address after 150 retries." " exit:0 stdout:  stderr: "
+                    "Unable to determine IP address after 150 retries. exit:0 stdout:  stderr: "
                 ),
             ),
             (  # only retry until success

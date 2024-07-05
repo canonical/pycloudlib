@@ -59,7 +59,7 @@ class TestWait:
         instance = concrete_instance_cls(key_pair=None)
         m_time.side_effect = [1, 1, 2, 40 * 60, 40 * 60 + 1]
         m_execute.side_effect = execute_effect
-        expected_msg = "Instance can't be reached after 40 minutes. " "Failed to obtain new boot id"
+        expected_msg = "Instance can't be reached after 40 minutes. Failed to obtain new boot id"
         expected_call_args = [mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)] * 2
 
         with pytest.raises(PycloudlibTimeoutError) as excinfo:
@@ -179,7 +179,7 @@ class TestWaitForRestart:
         m_execute.side_effect = execute_side_effect
         instance = concrete_instance_cls(key_pair=None)
         m_time.side_effect = [1, 1, 2, 40 * 60, 40 * 60 + 1]
-        expected_msg = "Instance can't be reached after 40 minutes. " "Failed to obtain new boot id"
+        expected_msg = "Instance can't be reached after 40 minutes. Failed to obtain new boot id"
         expected_call_args = [mock.call("cat /proc/sys/kernel/random/boot_id", no_log=True)] * 2
 
         with pytest.raises(PycloudlibTimeoutError) as excinfo:
