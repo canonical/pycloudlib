@@ -73,7 +73,7 @@ class IBM(BaseCloud):
 
         api_key = api_key or self.config.get("api_key")
         authenticator = IAMAuthenticator(api_key)
-        self.instance_counter = itertools.count()
+        self.instance_counter = itertools.count(1)
 
         self._client = VpcV1(authenticator=authenticator)
         self._client.set_service_url(
