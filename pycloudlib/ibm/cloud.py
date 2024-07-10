@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """IBM Cloud type."""
 
+import itertools
 from typing import List, Optional
 
 from ibm_cloud_sdk_core import ApiException
@@ -72,6 +73,7 @@ class IBM(BaseCloud):
 
         api_key = api_key or self.config.get("api_key")
         authenticator = IAMAuthenticator(api_key)
+        self.instance_counter = itertools.count(1)
 
         self._client = VpcV1(authenticator=authenticator)
         self._client.set_service_url(
@@ -350,7 +352,7 @@ class IBM(BaseCloud):
 
         vpc = vpc or self.vpc
         floating_ip_name = f"{name}-fi" if name else None
-        name = name or f"{self.tag}-vm"
+        name = name or f"{self.tag}-vm{next(self.instance_counter)}"
 
         floating_ip_substring = (
             use_existing_floating_ip_with_name
