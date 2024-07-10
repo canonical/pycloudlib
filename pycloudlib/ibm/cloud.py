@@ -352,7 +352,7 @@ class IBM(BaseCloud):
 
         vpc = vpc or self.vpc
         floating_ip_name = f"{name}-fi" if name else None
-        name = name or f"{self.tag}-{next(self.instance_counter)}vm"
+        name = name or f"{self.tag}-vm{next(self.instance_counter)}"
 
         floating_ip_substring = (
             use_existing_floating_ip_with_name
