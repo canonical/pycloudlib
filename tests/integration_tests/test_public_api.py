@@ -20,9 +20,7 @@ runcmd:
 @pytest.fixture
 def cloud(request):
     cloud_instance: BaseCloud
-    with request.param(
-        tag="pycl-test", timestamp_suffix=True
-    ) as cloud_instance:
+    with request.param(tag="pycl-test", timestamp_suffix=True) as cloud_instance:
         if isinstance(cloud_instance, pycloudlib.EC2):
             cloud_instance.upload_key(
                 public_key_path=cloud_instance.config["public_key_path"],
@@ -43,9 +41,7 @@ def exercise_push_pull(instance: BaseInstance):
         push_path = Path(tmpdir).joinpath("pushed")
         push_path.write_text("pushed", encoding="utf-8")
         instance.push_file(str(push_path), "/var/tmp/pushed")
-        assert (
-            "pushed" == instance.execute("cat /var/tmp/pushed").stdout.strip()
-        )
+        assert "pushed" == instance.execute("cat /var/tmp/pushed").stdout.strip()
 
         instance.execute("echo 'pulled' > /var/tmp/pulled")
         pull_path = Path(tmpdir).joinpath("pulled")
@@ -81,15 +77,11 @@ def exercise_instance(instance: BaseInstance):
 @pytest.mark.parametrize(
     "cloud",
     [
-        pytest.param(
-            pycloudlib.Azure, id="azure", marks=pytest.mark.main_check
-        ),
+        pytest.param(pycloudlib.Azure, id="azure", marks=pytest.mark.main_check),
         pytest.param(pycloudlib.EC2, id="ec2", marks=pytest.mark.main_check),
         pytest.param(pycloudlib.GCE, id="gce", marks=pytest.mark.main_check),
         pytest.param(pycloudlib.IBM, id="ibm"),
-        pytest.param(
-            pycloudlib.LXDContainer, id="lxd_container", marks=pytest.mark.ci
-        ),
+        pytest.param(pycloudlib.LXDContainer, id="lxd_container", marks=pytest.mark.ci),
         pytest.param(pycloudlib.LXDVirtualMachine, id="lxd_vm"),
         pytest.param(pycloudlib.OCI, id="oci"),
         pytest.param(pycloudlib.Qemu, id="qemu"),
@@ -120,20 +112,17 @@ def test_public_api(cloud: BaseCloud):
         snapshot_id = cloud.snapshot(instance)
         instance.delete()  # Remove me
 
-    instance_from_snapshot = cloud.launch(
-        image_id=snapshot_id, user_data=cloud_config
-    )
+    instance_from_snapshot = cloud.launch(image_id=snapshot_id, user_data=cloud_config)
     instance_from_snapshot.wait()
     exercise_instance(instance_from_snapshot)
 
     cloud.delete_image(snapshot_id)  # Remove me
 
-    latest_devel_release = sorted(
-        UBUNTU_RELEASE_VERSION_MAP.items(), key=lambda items: items[1]
-    )[-1][0]
+    latest_devel_release = sorted(UBUNTU_RELEASE_VERSION_MAP.items(), key=lambda items: items[1])[
+        -1
+    ][0]
     print(f"Checking latest daily devel release image: {latest_devel_release}")
     daily_devel_image_id = cloud.daily_image(release=latest_devel_release)
     assert daily_devel_image_id, (
-        "Unable to find daily development image for "
-        f"{cloud._type}:{latest_devel_release}"
+        "Unable to find daily development image for " f"{cloud._type}:{latest_devel_release}"
     )

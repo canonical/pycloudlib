@@ -88,13 +88,7 @@ def get_subnet_id(
             raise PycloudlibError(f"Found multiple vcns with name: {vcn_name}")
         vcn_id = vcns[0].id
     else:  # if no vcn_name specified, use most recently created vcn
-        vcn_id = (
-            network_client.list_vcns(
-                compartment_id, retry_strategy=retry_strategy
-            )
-            .data[0]
-            .id
-        )
+        vcn_id = network_client.list_vcns(compartment_id, retry_strategy=retry_strategy).data[0].id
 
     subnets = network_client.list_subnets(
         compartment_id, vcn_id=vcn_id, retry_strategy=retry_strategy
@@ -111,7 +105,5 @@ def get_subnet_id(
     else:
         subnet_id = subnets[0].id
     if not subnet_id:
-        raise PycloudlibError(
-            f"Unable to determine subnet id for domain: {availability_domain}"
-        )
+        raise PycloudlibError(f"Unable to determine subnet id for domain: {availability_domain}")
     return subnet_id

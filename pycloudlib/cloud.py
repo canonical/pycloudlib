@@ -56,9 +56,7 @@ class BaseCloud(ABC):
         self.created_instances: List[BaseInstance] = []
         self.created_images: List[str] = []
 
-        self._log = logging.getLogger(
-            "{}.{}".format(__name__, self.__class__.__name__)
-        )
+        self._log = logging.getLogger("{}.{}".format(__name__, self.__class__.__name__))
         self._check_and_set_config(config_file, required_values)
 
         user = getpass.getuser()
@@ -66,9 +64,7 @@ class BaseCloud(ABC):
             public_key_path=os.path.expandvars(
                 self.config.get("public_key_path", f"~{user}/.ssh/id_rsa.pub")
             ),
-            private_key_path=os.path.expandvars(
-                self.config.get("private_key_path", "")
-            ),
+            private_key_path=os.path.expandvars(self.config.get("private_key_path", "")),
             name=self.config.get("key_name", user),
         )
         if timestamp_suffix:

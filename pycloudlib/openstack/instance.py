@@ -82,9 +82,7 @@ class OpenstackInstance(BaseInstance):
 
     def __repr__(self):
         """Create string representation of class."""
-        return "{}(instance_id={})".format(
-            self.__class__.__name__, self.server.id
-        )
+        return "{}(instance_id={})".format(self.__class__.__name__, self.server.id)
 
     @property
     def id(self) -> str:
@@ -132,9 +130,7 @@ class OpenstackInstance(BaseInstance):
                 exceptions.append(e)
         for port_id in self.added_local_ports:
             try:
-                self.conn.network.delete_port(
-                    port=port_id, ignore_missing=True
-                )
+                self.conn.network.delete_port(port=port_id, ignore_missing=True)
             except Exception as e:
                 exceptions.append(e)
         if wait:
@@ -207,9 +203,7 @@ class OpenstackInstance(BaseInstance):
             for ip in port["fixed_ips"]:
                 if ip["ip_address"] == ip_address:
                     return port
-        raise PycloudlibError(
-            "Could not find port with IP: {}".format(ip_address)
-        )
+        raise PycloudlibError("Could not find port with IP: {}".format(ip_address))
 
     def remove_network_interface(self, ip_address: str):
         """Remove nic from running instance."""
@@ -221,7 +215,6 @@ class OpenstackInstance(BaseInstance):
             self.added_local_ports.remove(port.id)
         except ValueError:
             self._log.warning(
-                "Expected port to be in added_local_ports list "
-                "but was not: %s",
+                "Expected port to be in added_local_ports list but was not: %s",
                 port.id,
             )

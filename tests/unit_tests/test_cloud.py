@@ -53,9 +53,7 @@ class TestBaseCloud:
             BaseCloud(  # pylint: disable=E0110
                 tag="", config_file=StringIO(CONFIG)
             )
-        assert "Can't instantiate abstract class BaseCloud" in str(
-            exc_info.value
-        )
+        assert "Can't instantiate abstract class BaseCloud" in str(exc_info.value)
 
     @pytest.mark.parametrize(
         "tag,timestamp_suffix,expected_tag",
@@ -91,9 +89,7 @@ class TestBaseCloud:
         well known $HOME. Also its $HOME is not under /home, so this
         verifies that we're not hardcoding /home/<user> paths.
         """
-        mycloud = CloudSubclass(
-            tag="tag", timestamp_suffix=False, config_file=StringIO(CONFIG)
-        )
+        mycloud = CloudSubclass(tag="tag", timestamp_suffix=False, config_file=StringIO(CONFIG))
         assert mycloud.key_pair.name == "root"
         assert mycloud.key_pair.private_key_path == ("/root/.ssh/id_rsa")
         assert mycloud.key_pair.public_key_path == ("/root/.ssh/id_rsa.pub")

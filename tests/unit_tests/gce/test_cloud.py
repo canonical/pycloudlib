@@ -93,9 +93,7 @@ class TestGCE:
     ):
         gce = FakeGCE(tag="tag")
         with mock.patch.object(gce, "compute") as m_compute:
-            m_execute = mock.MagicMock(
-                name="m_execute", side_effect=api_side_effects
-            )
+            m_execute = mock.MagicMock(name="m_execute", side_effect=api_side_effects)
             m_executor = mock.MagicMock(name="m_executor")
             m_executor.execute = m_execute
             m_list = mock.MagicMock(name="m_list", return_value=m_executor)
@@ -143,12 +141,8 @@ class TestGCE:
         m_query_image_list,
     ):
         gce = FakeGCE(tag="tag")
-        image = gce.daily_image(
-            "jammy", arch="x86_64", image_type=ImageType.GENERIC
-        )
-        assert m_get_project.call_args_list == [
-            mock.call(image_type=ImageType.GENERIC)
-        ]
+        image = gce.daily_image("jammy", arch="x86_64", image_type=ImageType.GENERIC)
+        assert m_get_project.call_args_list == [mock.call(image_type=ImageType.GENERIC)]
         assert m_get_name_filter.call_args_list == [
             mock.call(release="jammy", image_type=ImageType.GENERIC)
         ]

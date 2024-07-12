@@ -61,9 +61,7 @@ def _get_session(access_key_id, secret_access_key, region):
         "after-call.ec2.GetConsoleOutput",
         botocore.handlers.decode_console_output,
     )
-    mysess.register(
-        "after-call.ec2.GetConsoleOutput", _decode_console_output_as_bytes
-    )
+    mysess.register("after-call.ec2.GetConsoleOutput", _decode_console_output_as_bytes)
     return boto3.Session(
         botocore_session=mysess,
         aws_access_key_id=access_key_id,
