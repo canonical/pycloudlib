@@ -47,13 +47,25 @@ class TestWait:
 
     @pytest.mark.parametrize(
         "execute_effect",
-        [lambda *args, **kwargs: Result("", "", 1), SSHException],
+        [
+            pytest.param(
+                lambda *args, **kwargs: Result("", "", 1), id="nonzero"
+            ),
+            pytest.param(SSHException, id="exception"),
+        ],
     )
     @mock.patch.object(BaseInstance, "execute")
     @mock.patch("pycloudlib.instance.time.sleep")
     @mock.patch("pycloudlib.instance.time.time")
+    @mock.patch("logging.Logger.debug")
     def test_wait_execute_failure(
-        self, m_time, m_sleep, m_execute, execute_effect, concrete_instance_cls
+        self,
+        m_debug,
+        m_time,
+        m_sleep,
+        m_execute,
+        execute_effect,
+        concrete_instance_cls,
     ):
         """Test wait calls when execute command fails."""
         instance = concrete_instance_cls(key_pair=None)
@@ -176,8 +188,10 @@ class TestWaitForRestart:
     @mock.patch.object(BaseInstance, "execute")
     @mock.patch("pycloudlib.instance.time.sleep")
     @mock.patch("pycloudlib.instance.time.time")
+    @mock.patch("logging.Logger.debug")
     def test_boot_id_failure(
         self,
+        m_debug,
         m_time,
         m_sleep,
         m_execute,
