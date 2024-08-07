@@ -510,9 +510,7 @@ class BaseInstance(ABC):
                 if not old_boot_id or boot_id != old_boot_id:
                     return
             except (SSHException, OSError) as e:
-                self._log.debug(
-                    "Failed to obtain new boot id: %s", e
-                )
+                self._log.debug("Failed to obtain new boot id: %s", e)
             time.sleep(1)
 
         raise PycloudlibTimeoutError(
