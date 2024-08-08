@@ -409,6 +409,8 @@ class GCE(BaseCloud):
             },
         }
 
+        config.update(kwargs)
+
         if self.service_account_email:
             config["serviceAccounts"] = [{"email": self.service_account_email}]
 
