@@ -34,26 +34,20 @@ def exercise_api(client: BaseCloud, image_id=None):
         instance.execute("cloud-init status --wait --long")
         with suppress(NotImplementedError):
             instance.console_log()
-        example_output = instance.execute(
-            "cat /home/ubuntu/example.txt"
-        ).stdout
+        example_output = instance.execute("cat /home/ubuntu/example.txt").stdout
         assert example_output == "hello", example_output
 
         print("restarting instance...")
         instance.execute("sync")  # Prevent's some wtfs :)
         instance.restart()
-        example_output = instance.execute(
-            "cat /home/ubuntu/example.txt"
-        ).stdout
+        example_output = instance.execute("cat /home/ubuntu/example.txt").stdout
         assert example_output == "hello", example_output
 
         print("shutting down instance...")
         instance.shutdown()
         print("starting instance...")
         instance.start()
-        example_output = instance.execute(
-            "cat /home/ubuntu/example.txt"
-        ).stdout
+        example_output = instance.execute("cat /home/ubuntu/example.txt").stdout
         assert example_output == "hello", example_output
         snapshot_id = None
         with suppress(NotImplementedError):
@@ -64,9 +58,7 @@ def exercise_api(client: BaseCloud, image_id=None):
             assert snapshot_id != image_id
             with client.launch(image_id=snapshot_id) as instance_from_snapshot:
                 instance_from_snapshot.start()
-                instance_from_snapshot.execute(
-                    "cloud-init status --wait --long"
-                )
+                instance_from_snapshot.execute("cloud-init status --wait --long")
                 print("deleting instance created from snapshot")
             print("deleting snapshot...")
             client.delete_image(snapshot_id)

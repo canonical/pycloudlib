@@ -21,9 +21,7 @@ def snapshot_instance():
     Finally, launch another instance from the snapshot of the instance.
     """
     with pycloudlib.LXDContainer("example-snapshot") as lxd:
-        with lxd.launch(
-            name="pycloudlib-snapshot-base", image_id=RELEASE
-        ) as inst:
+        with lxd.launch(name="pycloudlib-snapshot-base", image_id=RELEASE) as inst:
             inst.wait()
             snapshot_name = "snapshot"
             inst.local_snapshot(snapshot_name)
@@ -61,11 +59,7 @@ def image_snapshot_instance(ephemeral_instance=False):
                 image_id=snapshot_image,
                 ephemeral=ephemeral_instance,
             ) as snapshot_inst:
-                print(
-                    "Snapshot instance output: {}".format(
-                        snapshot_inst.execute("ls")
-                    )
-                )
+                print("Snapshot instance output: {}".format(snapshot_inst.execute("ls")))
 
 
 def modify_instance():
@@ -214,9 +208,7 @@ def launch_virtual_machine():
         with open(priv_key_path, "w", encoding="utf-8") as f:
             f.write(priv_key)
 
-        lxd.use_key(
-            public_key_path=pub_key_path, private_key_path=priv_key_path
-        )
+        lxd.use_key(public_key_path=pub_key_path, private_key_path=priv_key_path)
 
         image_id = lxd.released_image(release=RELEASE)
         image_serial = lxd.image_serial(image_id)

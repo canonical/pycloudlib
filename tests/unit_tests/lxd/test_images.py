@@ -38,9 +38,7 @@ class TestImages:  # pylint: disable=W0212
         m_find_images.return_value = images
         assert expected_result == _images.find_image_serial(image_id)
 
-        assert [
-            mock.call("my", (("fingerprint", "image_id"),))
-        ] == m_find_images.call_args_list
+        assert [mock.call("my", (("fingerprint", "image_id"),))] == m_find_images.call_args_list
         assert [] == m_subp.call_args_list
 
     @pytest.mark.parametrize(
@@ -182,9 +180,7 @@ class TestImages:  # pylint: disable=W0212
         def find_images(remote, filters=None):
             # pylint: disable=unused-argument
             filters_map = dict(filters)
-            return list(
-                filter(lambda img: img["type"] == filters_map["type"], images)
-            )
+            return list(filter(lambda img: img["type"] == filters_map["type"], images))
 
         m_find_images.side_effect = find_images
 
@@ -258,8 +254,6 @@ class TestImages:  # pylint: disable=W0212
                     )
                 )
 
-        assert expected_output == _images.find_last_fingerprint(
-            daily, release, is_container, arch
-        )
+        assert expected_output == _images.find_last_fingerprint(daily, release, is_container, arch)
         assert expected_find_images_calls == m_find_images.call_args_list
         assert [] == m_subp.call_args_list
