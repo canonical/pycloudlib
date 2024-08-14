@@ -37,8 +37,40 @@ def manage_ssh_key(classic: pycloudlib.IBMClassic):
         name=key_name,
     )
 
+def launch_with_basic_cloud_config(
+    ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: str = None
+):
+    """Launch a basic instance and demo basic functionality."""
+    image_gid = ibm_classic.released_image("22.04", disk_size=disk_size)
 
-def launch_basic(
+    userdata = """#cloud-config
+write_files:
+  - path: /tmp/cloud-init-test.txt
+    content: |
+      Cloud-init is working!
+    permissions: '0644'
+"""
+    with ibm_classic.launch(
+        image_gid,
+        instance_type="B1_2x4",
+        disk_size=disk_size,
+        datacenter_region="dal",
+        datacenter=datacenter,
+        user_data=userdata,
+    ) as instance:
+        try:
+            print("Waiting for instance to be ready!")
+            instance.wait()
+            print("Checking if cloud-init userdata worked!")
+            print(instance.execute("ls /tmp/cloud-init-test.txt"))
+            print(instance.execute("cat /tmp/cloud-init-test.txt"))
+            print("Example Completed!")
+        except Exception as e:
+            logging.error("Something went wrong: %s", e)
+            raise e
+
+
+def launch_and_demo_all_lifecycle_features(
     ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: str = None
 ):
     """Launch a basic instance and demo basic functionality."""
@@ -76,7 +108,6 @@ def launch_basic(
             )
 
             print("Example Completed!")
-
         except Exception as e:
             logging.error("Something went wrong: %s", e)
             raise e
@@ -86,7 +117,7 @@ def demo():
     """Demo the basic functionality of pycloudlib with IBM Classic."""
     with pycloudlib.IBMClassic(tag="pycloudlib-example") as ibm_classic:
         manage_ssh_key(ibm_classic)
-        launch_basic(ibm_classic)
+        launch_and_demo_all_lifecycle_features(ibm_classic)
 
 
 if __name__ == "__main__":

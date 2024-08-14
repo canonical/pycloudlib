@@ -218,12 +218,11 @@ class IBMClassic(BaseCloud):
             instance_type: type of instance to create. This value is
             combined with the disk_size to create the instance flavor. For
             example, B1_2X4 with disk_size of 25G would result in "B1_2X4X25".
-            user_data: Will raise an exception if provided because IBM
-            Classic does not support user data.
+            user_data: cloud-init user data to pass to the instance
             datacenter_region: region to launch the instance in.
             This will automatically select a datacenter in the region if
             "datacenter" is not provided.
-            datacenter: datacenter to launch the instance in. If not
+            datacenter: datacenter to launch the instance in. If notq
             provided, "datacenter_region" will be used. If both are provided,
             "datacenter" will be used.
             **kwargs: dictionary of other arguments to pass to launch
@@ -237,11 +236,6 @@ class IBMClassic(BaseCloud):
             raise IBMClassicException(
                 "Invalid disk_size given. "
                 "disk_size must be either '25G' or '100G'"
-            )
-        if user_data:
-            self._log.error(
-                "IBM Classic does not support user data for instance "
-                "launch. No user data will be used."
             )
 
         # check if image_id is a GID by checking if it contains hyphens
@@ -278,6 +272,7 @@ class IBMClassic(BaseCloud):
             private_security_group_ids=[private_security_group_id],
             ssh_key_ids=[self._get_or_create_key()],
             domain_name=self._domain_name or "pycloudlib.cloud",
+            userdata=user_data,
             **kwargs,
         )
 
