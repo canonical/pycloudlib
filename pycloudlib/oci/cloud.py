@@ -36,10 +36,12 @@ class OCI(BaseCloud):
         availability_domain: Optional[str] = None,
         compartment_id: Optional[str] = None,
         config_path: Optional[str] = None,
-        config_dict: Optional[str] = None,
+        config_dict: Optional[dict] = None,
         vcn_name: Optional[str] = None,
         fault_domain: Optional[str] = None,
-    ):
+        profile: Optional[str] = None,
+        region: Optional[str] = None,
+    ):  # pylint: disable-msg=too-many-locals
         """
         Initialize the connection to OCI.
 
@@ -95,6 +97,10 @@ class OCI(BaseCloud):
             try:
                 oci.config.validate_config(config_dict)
                 self.oci_config = config_dict
+                if profile:
+                    self._log.warning(
+                        "Profile name is ignored when using config_dict"
+                    )
             except oci.exceptions.InvalidConfig as e:
                 raise ValueError(
                     "Config dict is invalid. Pass a valid config dict. "
@@ -112,11 +118,21 @@ class OCI(BaseCloud):
                     "{} is not a valid config file. Pass a valid config "
                     "file.".format(config_path)
                 )
-            self.oci_config = oci.config.from_file(config_path)
+            profile = profile or self.config.get("profile")
+            if profile:
+                self.oci_config = oci.config.from_file(
+                    config_path, profile_name=profile
+                )
+            else:
+                self.oci_config = oci.config.from_file(config_path)
+
+        self.oci_config["region"] = (
+            region or self.config.get("region") or self.oci_config["region"]
+        )
+        self.region = self.oci_config["region"]
 
         self.vcn_name = vcn_name
         self.fault_domain = fault_domain
-
         self._log.debug("Logging into OCI")
         self.compute_client = oci.core.ComputeClient(self.oci_config)  # noqa: E501
         self.network_client = oci.core.VirtualNetworkClient(self.oci_config)  # noqa: E501
