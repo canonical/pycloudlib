@@ -7,7 +7,6 @@ import datetime
 import logging
 import os
 import platform
-import re
 import shlex
 import subprocess
 import tempfile
