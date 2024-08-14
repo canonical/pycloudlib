@@ -479,6 +479,23 @@ class IBMInstance(BaseInstance):
         )
 
     @classmethod
+    def create_instance(
+        cls,
+        *args,
+        client: VpcV1,
+        instance: dict,
+        username: Optional[str] = None,
+        **kwargs,
+    ):
+        ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
+        return cls(
+            *args,
+            client=client,
+            instance=instance,
+            username=username,
+            **kwargs,
+        )
+    @classmethod
     def with_floating_ip(
         cls,
         *args,
@@ -499,14 +516,12 @@ class IBMInstance(BaseInstance):
             network_interface_id=nic_id,
         ).get_result()
 
-        return cls(
-            *args,
-            client=client,
-            instance=instance,
-            floating_ip=floating_ip,
-            username=username,
-            **kwargs,
-        )
+        
+    # TODO: attach floating ip via id
+    # def attach_floating_ip_with_id
+
+    # TODO: function that retries until succesfully attaching floating ip
+    # this will choose random floating IP
 
     @classmethod
     def from_existing(

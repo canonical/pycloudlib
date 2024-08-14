@@ -265,6 +265,7 @@ class IBM(BaseCloud):
             self.created_vpcs.append(vpc)
             return vpc
 
+    # TODO move to instance class
     def _choose_from_existing_floating_ips(
         self, name_includes="default-floating-ip"
     ) -> dict:
@@ -297,12 +298,16 @@ class IBM(BaseCloud):
                 f"All floating IPs matching substring {name_includes}",
                 "are already in use.",
             )
+        # pick random floating ip
+        import random 
+        floating_ip = random.choice(floating_ips)
+
         self._log.info(
             "Using existing floating ip '%s' with address %s",
-            floating_ips[0]["name"],
-            floating_ips[0]["address"],
+            floating_ip["name"],
+            floating_ip["address"],
         )
-        return floating_ips[0]
+        return floating_ip
 
     def _create_floating_ip(self, name: Optional[str] = None) -> dict:
         name = name or f"{self.tag}-fi"
@@ -361,14 +366,6 @@ class IBM(BaseCloud):
             or self.config.get("floating_ip_substring")
         )
 
-        if floating_ip_substring:
-            self._log.info("Existing floating ip name provided.")
-            floating_ip = self._choose_from_existing_floating_ips(
-                floating_ip_substring
-            )
-        else:
-            self._log.info("Creating new floating ip.")
-            floating_ip = self._create_floating_ip(name=floating_ip_name)
 
         raw_instance = IBMInstance.create_raw_instance(
             client=self._client,
@@ -383,14 +380,29 @@ class IBM(BaseCloud):
             **kwargs,
         )
 
-        instance = IBMInstance.with_floating_ip(
+
+        instance = IBMInstance.create_instance(
             self.key_pair,
             client=self._client,
             instance=raw_instance,
-            floating_ip=floating_ip,
             username=username,
             using_existing_floating_ip=floating_ip_substring is not None,
         )
+
+        # floating ip stuff 
+        if not floating_ip_substring:
+            self._log.info("Creating new floating ip.")
+            floating_ip = self._create_floating_ip(name=floating_ip_name)
+            instance.assign_existing_floating_ip(
+                floating_ip["address"], floating_ip["id"]
+            )
+        else:
+            while True: # retry until we get floating ip  
+                pass
+                instance.assign_existing_floating_ip(
+                    ...
+                )  
+
         self.created_instances.append(instance)
 
         return instance
