@@ -12,7 +12,11 @@ import oci
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
-from pycloudlib.errors import CloudSetupError, InstanceNotFoundError
+from pycloudlib.errors import (
+    CloudSetupError,
+    InstanceNotFoundError,
+    PycloudlibException,
+)
 from pycloudlib.oci.instance import OciInstance
 from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
@@ -203,6 +207,23 @@ class OCI(BaseCloud):
 
         """
         raise NotImplementedError
+
+    def get_image_id_from_name(self, name: str) -> str:
+        """Get the image id from the name.
+
+        Args:
+            name: string, name of the image to get the id for
+
+        Returns:
+            string, id of the image
+
+        """
+        image_response = self.compute_client.list_images(
+            self.compartment_id, display_name=name
+        )
+        if not image_response.data:
+            raise PycloudlibException(f"Image with name {name} not found")
+        return image_response.data[0].id
 
     def get_instance(
         self, instance_id, *, username: Optional[str] = None, **kwargs
