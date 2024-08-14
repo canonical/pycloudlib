@@ -265,50 +265,6 @@ class IBM(BaseCloud):
             self.created_vpcs.append(vpc)
             return vpc
 
-    # TODO move to instance class
-    def _choose_from_existing_floating_ips(
-        self, name_includes="default-floating-ip"
-    ) -> dict:
-        """
-        Choose a floating IP from existing floating IPs via substring match.
-
-        Args:
-            name_includes: string, name to filter floating IPs by
-
-        Returns:
-            A floating IP object
-        """
-        floating_ips = list(
-            _iter_resources(
-                self._client.list_floating_ips,
-                resource_name="floating_ips",
-                # Select that match the desired name
-                filter_fn=lambda ip: name_includes in ip["name"]
-                and ip["zone"]["name"] == self.zone,
-            )
-        )
-        if not floating_ips:
-            raise IBMException(
-                f"No floating IPs found matching substring {name_includes}"
-            )
-        # filter out floating ips that are already associated with an instance
-        floating_ips = [ip for ip in floating_ips if "target" not in ip]
-        if not floating_ips:
-            raise IBMCapacityException(
-                f"All floating IPs matching substring {name_includes}",
-                "are already in use.",
-            )
-        # pick random floating ip
-        import random 
-        floating_ip = random.choice(floating_ips)
-
-        self._log.info(
-            "Using existing floating ip '%s' with address %s",
-            floating_ip["name"],
-            floating_ip["address"],
-        )
-        return floating_ip
-
     def _create_floating_ip(self, name: Optional[str] = None) -> dict:
         name = name or f"{self.tag}-fi"
         proto = {
@@ -381,7 +337,7 @@ class IBM(BaseCloud):
         )
 
 
-        instance = IBMInstance.create_instance(
+        instance: IBMInstance = IBMInstance.create_instance(
             self.key_pair,
             client=self._client,
             instance=raw_instance,
