@@ -322,7 +322,6 @@ class IBM(BaseCloud):
             or self.config.get("floating_ip_substring")
         )
 
-
         raw_instance = IBMInstance.create_raw_instance(
             client=self._client,
             name=name,
@@ -336,7 +335,6 @@ class IBM(BaseCloud):
             **kwargs,
         )
 
-
         instance: IBMInstance = IBMInstance.create_instance(
             self.key_pair,
             client=self._client,
@@ -345,21 +343,19 @@ class IBM(BaseCloud):
             using_existing_floating_ip=floating_ip_substring is not None,
         )
 
-        # floating ip stuff 
-        if not floating_ip_substring:
-            self._log.info("Creating new floating ip.")
-            floating_ip = self._create_floating_ip(name=floating_ip_name)
-            instance.assign_existing_floating_ip(
-                floating_ip["address"], floating_ip["id"]
+        # append before attaching floating ip so we can clean up in case of failure while attaching floating ip
+        self.created_instances.append(instance)
+
+        # floating ip stuff
+        if floating_ip_substring:
+            instance.attach_floating_ip_until_success(
+                floating_ip_name_includes=floating_ip_substring,
+                zone=self.zone,
             )
         else:
-            while True: # retry until we get floating ip  
-                pass
-                instance.assign_existing_floating_ip(
-                    ...
-                )  
-
-        self.created_instances.append(instance)
+            self._log.info("Creating new floating ip.")
+            floating_ip = self._create_floating_ip(name=floating_ip_name)
+            instance.attach_floating_ip(floating_ip=floating_ip)
 
         return instance
 
