@@ -77,10 +77,22 @@ class OciInstance(BaseInstance):
                 compartment_id=self.compartment_id,
                 instance_id=self.instance_data.id,
             ).data[0]
-
-            self._ip = self.network_client.get_vnic(
+            vnic_info = self.network_client.get_vnic(
                 vnic_attachment.vnic_id
-            ).data.public_ip
+            ).data
+            # if not public IP, check for ipv6
+            if vnic_info.public_ip is None:
+                if vnic_info.ipv6_addresses:
+                    self._ip = vnic_info.ipv6_addresses[0]
+                    self._log.info("Using ipv6 address: %s", self._ip)
+                else:
+                    raise PycloudlibError(
+                        "No public ipv4 address or ipv6 address found"
+                    )
+            else:
+                self._ip = vnic_info.public_ip
+                self._log.info("Using ipv4 address: %s", self._ip)
+            return self._ip
         return self._ip
 
     @property
