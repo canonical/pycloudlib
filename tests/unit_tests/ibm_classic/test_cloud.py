@@ -1,3 +1,4 @@
+from typing import List
 import mock
 import pytest
 
@@ -119,7 +120,7 @@ rule5 = "Must not contain only numbers"
         ("123.456-789", []),
     ],
 )
-def test_validate_tag(tag: str, rules_failed: list[str]):
+def test_validate_tag(tag: str, rules_failed: List[str]):
     if len(rules_failed) == 0:
         assert IBMClassic.validate_tag(tag) == tag
     else:

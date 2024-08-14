@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Module for IBM cloud tests."""
 
+from typing import List
 from unittest import mock
 
 import pytest
@@ -35,7 +36,7 @@ rule5 = "Must start with a letter"
         ("1t a_g-", [rule3, rule4, rule5]),
     ],
 )
-def test_validate_tag(tag: str, rules_failed: list[str]):
+def test_validate_tag(tag: str, rules_failed: List[str]):
     if len(rules_failed) == 0:
         assert IBM.validate_tag(tag) == tag
     else:

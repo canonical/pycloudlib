@@ -2,6 +2,7 @@
 
 from io import StringIO
 from textwrap import dedent
+from typing import List
 
 import mock
 import pytest
@@ -159,7 +160,7 @@ class TestBaseCloud:
             ("t a_g", [rule4]),
         ],
     )
-    def test_validate_tag(self, tag: str, rules_failed: list[str]):
+    def test_validate_tag(self, tag: str, rules_failed: List[str]):
         if len(rules_failed) == 0:
             assert BaseCloud.validate_tag(tag) == tag
         else:
