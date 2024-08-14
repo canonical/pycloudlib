@@ -18,6 +18,7 @@ rule3 = "Must not start or end with a hyphen"
 rule4 = "Must be alphanumeric and hyphens only"
 rule5 = "Must start with a letter"
 
+
 @pytest.mark.parametrize(
     "tag, rules_failed",
     [
@@ -27,13 +28,13 @@ rule5 = "Must start with a letter"
         ("TAG-", [rule1, rule3]),
         ("-tag_", [rule3, rule4]),
         ("-", [rule3]),
-        ("x"*64, [rule2]),
+        ("x" * 64, [rule2]),
         ("", [rule2]),
-        ("x"*63, []),
+        ("x" * 63, []),
         ("x", []),
         ("1t a_g-", [rule3, rule4, rule5]),
     ],
-)   
+)
 def test_validate_tag(tag: str, rules_failed: list[str]):
     if len(rules_failed) == 0:
         assert IBM.validate_tag(tag) == tag

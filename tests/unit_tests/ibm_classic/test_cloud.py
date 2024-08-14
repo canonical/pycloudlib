@@ -110,15 +110,15 @@ rule5 = "Must not contain only numbers"
         ("-tag_", [rule3, rule4]),
         (".tag_", [rule3, rule4]),
         ("-", [rule3]),
-        ("x"*64, [rule2]),
+        ("x" * 64, [rule2]),
         ("", [rule2]),
-        ("x"*63, []),
+        ("x" * 63, []),
         ("x", []),
         ("t a_g", [rule4]),
         ("123456", [rule5]),
         ("123.456-789", []),
     ],
-)   
+)
 def test_validate_tag(tag: str, rules_failed: list[str]):
     if len(rules_failed) == 0:
         assert IBMClassic.validate_tag(tag) == tag

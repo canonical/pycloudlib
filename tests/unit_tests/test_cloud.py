@@ -139,7 +139,6 @@ class TestBaseCloud:
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
         assert mycloud.key_pair.private_key_path == "/home/asdf/.ssh/id_rsa"
 
-
     rule1 = "All letters must be lowercase"
     rule2 = "Must be between 1 and 63 characters long"
     rule3 = "Must not start or end with a hyphen"
@@ -153,13 +152,13 @@ class TestBaseCloud:
             ("TAG-", [rule1, rule3]),
             ("-tag_", [rule3, rule4]),
             ("-", [rule3]),
-            ("x"*64, [rule2]),
+            ("x" * 64, [rule2]),
             ("", [rule2]),
-            ("x"*63, []),
+            ("x" * 63, []),
             ("x", []),
             ("t a_g", [rule4]),
         ],
-    )   
+    )
     def test_validate_tag(self, tag: str, rules_failed: list[str]):
         if len(rules_failed) == 0:
             assert BaseCloud.validate_tag(tag) == tag

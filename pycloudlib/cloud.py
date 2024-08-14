@@ -285,7 +285,7 @@ class BaseCloud(ABC):
             self.config = {}
         else:
             self.config = parse_config(config_file)[self._type]
-    
+
     @staticmethod
     def validate_tag(tag: str):
         """
@@ -296,7 +296,7 @@ class BaseCloud(ABC):
         - Must be between 1 and 63 characters long
         - Must not start or end with a hyphen
         - Must be alphanumeric and hyphens only
-        
+
         :param tag: tag to validate
 
         :return: tag if it is valid
@@ -306,32 +306,24 @@ class BaseCloud(ABC):
         errors = []
         # all letters must be lowercase
         if any(c.isupper() for c in tag):
-            errors.append(
-                "All letters must be lowercase"
-            )
+            errors.append("All letters must be lowercase")
         # must be between 1 and 63 characters long
         if len(tag) < 1 or len(tag) > 63:
-            errors.append(
-                "Must be between 1 and 63 characters long"
-            )
+            errors.append("Must be between 1 and 63 characters long")
         # must not start or end with a hyphen
         if tag and (tag[0] in ("-") or tag[-1] in ("-")):
-            errors.append(
-                "Must not start or end with a hyphen"
-            )
+            errors.append("Must not start or end with a hyphen")
         # must be alphanumeric and hyphens only
         if not re.match(r"^[a-z0-9-]*$", tag):
-            errors.append(
-                "Must be alphanumeric and hyphens only"
-            )
-        
+            errors.append("Must be alphanumeric and hyphens only")
+
         if errors:
-            error_string = "Invalid tag specified. The following errors occurred:"
+            error_string = (
+                "Invalid tag specified. The following errors occurred:"
+            )
             for error in errors:
                 error_string += f"\n - {error}"
             error_string += "\nTag: {}".format(tag)
-            raise ValueError(
-                error_string 
-            )
-        
+            raise ValueError(error_string)
+
         return tag
