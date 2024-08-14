@@ -37,6 +37,7 @@ def manage_ssh_key(classic: pycloudlib.IBMClassic):
         name=key_name,
     )
 
+
 def launch_with_basic_cloud_config(
     ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: str = None
 ):
