@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """IBM Cloud type."""
 
+import re
 from typing import List, Literal, Optional, Tuple
 
 import SoftLayer  # type: ignore
@@ -508,3 +509,60 @@ class IBMClassic(BaseCloud):
             except Exception as e:
                 exceptions.append(e)
         return exceptions
+
+    @staticmethod
+    def validate_tag(tag: str):
+        """
+        Ensure that this tag is a valid name for IBM Cloud Classic Infrastructure resources.
+
+        Rules:
+        - All letters must be lowercase
+        - Must be between 1 and 63 characters long
+        - Must not start or end with a hyphen or period
+        - Must be alphanumeric, periods, and hyphens only
+        - Must not contain only numbers
+        
+        :param tag: tag to validate
+
+        :return: tag if it is valid
+
+        :raises ValueError: if the tag is invalid
+        """
+        errors = []
+        # all letters must be lowercase
+        if any(c.isupper() for c in tag):
+            errors.append(
+                "All letters must be lowercase"
+            )
+        # must be between 1 and 63 characters long
+        if len(tag) < 1 or len(tag) > 63:
+            errors.append(
+                "Must be between 1 and 63 characters long"
+            )
+        # must not start or end with a hyphen or
+        if tag and (tag[0] in ("-",".") or tag[-1] in ("-",".")):
+            errors.append(
+                "Must not start or end with a hyphen or period"
+            )
+        # must be alphanumeric, periods, and hyphens only
+        if not re.match(r"^[a-z0-9.-]+$", tag):
+            errors.append(
+                "Must be alphanumeric, periods, and hyphens only"
+            )
+        # must not contain only numbers
+        if tag.isdigit():
+            errors.append(
+                "Must not contain only numbers"
+            )
+        
+        
+        if errors:
+            error_string = "Invalid tag specified. The following errors occurred:"
+            for error in errors:
+                error_string += f"\n - {error}"
+            error_string += "\nTag: {}".format(tag)
+            raise ValueError(
+                error_string 
+            )
+        
+        return tag

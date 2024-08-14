@@ -2,6 +2,7 @@
 """IBM Cloud type."""
 
 import itertools
+import re
 from typing import List, Optional
 
 from ibm_cloud_sdk_core import ApiException
@@ -502,3 +503,59 @@ class IBM(BaseCloud):
             except Exception as e:
                 exceptions.append(e)
         return exceptions
+
+    @staticmethod
+    def validate_tag(tag: str):
+        """
+        Ensure that this tag is a valid name for cloud resources.
+
+        Rules:
+        - All letters must be lowercase
+        - Must be between 1 and 63 characters long
+        - Must not start or end with a hyphen
+        - Must be alphanumeric and hyphens only
+        - Must start with a letter
+        
+        :param tag: tag to validate
+
+        :return: tag if it is valid
+
+        :raises ValueError: if the tag is invalid
+        """
+        errors = []
+        # all letters must be lowercase
+        if any(c.isupper() for c in tag):
+            errors.append(
+                "All letters must be lowercase"
+            )
+        # must be between 1 and 63 characters long
+        if len(tag) < 1 or len(tag) > 63:
+            errors.append(
+                "Must be between 1 and 63 characters long"
+            )
+        # must not start or end with a hyphen
+        if tag and (tag[0] in ("-") or tag[-1] in ("-")):
+            errors.append(
+                "Must not start or end with a hyphen"
+            )
+        # must be alphanumeric and hyphens only
+        if not re.match(r"^[a-z0-9-]*$", tag):
+            errors.append(
+                "Must be alphanumeric and hyphens only"
+            )
+        # must start with a letter
+        if tag and not tag[0].isalpha():
+            errors.append(
+                "Must start with a letter"
+            ) 
+
+        if errors:
+            error_string = "Invalid tag specified. The following errors occurred:"
+            for error in errors:
+                error_string += f"\n - {error}"
+            error_string += "\nTag: {}".format(tag)
+            raise ValueError(
+                error_string 
+            )
+        
+        return tag

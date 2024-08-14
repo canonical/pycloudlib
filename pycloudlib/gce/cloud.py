@@ -8,6 +8,7 @@ instance. It however, does not allow any further actions from occurring.
 
 import logging
 import os
+import re
 import time
 from itertools import count
 from typing import Any, MutableMapping, Optional

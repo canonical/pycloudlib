@@ -7,6 +7,7 @@ import io
 import logging
 import os
 from abc import ABC, abstractmethod
+import re
 from typing import Any, List, Optional, Sequence
 
 import paramiko
@@ -18,7 +19,6 @@ from pycloudlib.key import KeyPair
 from pycloudlib.util import (
     get_timestamped_tag,
     log_exception_list,
-    validate_tag,
 )
 
 _RequiredValues = Optional[Sequence[Optional[Any]]]
@@ -72,9 +72,9 @@ class BaseCloud(ABC):
             name=self.config.get("key_name", user),
         )
         if timestamp_suffix:
-            self.tag = validate_tag(get_timestamped_tag(tag))
+            self.tag = self.validate_tag(get_timestamped_tag(tag))
         else:
-            self.tag = validate_tag(tag)
+            self.tag = self.validate_tag(tag)
 
     def __enter__(self):
         """Enter context manager for this class."""
@@ -285,3 +285,53 @@ class BaseCloud(ABC):
             self.config = {}
         else:
             self.config = parse_config(config_file)[self._type]
+    
+    @staticmethod
+    def validate_tag(tag: str):
+        """
+        Ensure that this tag is a valid name for cloud resources.
+
+        Rules:
+        - All letters must be lowercase
+        - Must be between 1 and 63 characters long
+        - Must not start or end with a hyphen
+        - Must be alphanumeric and hyphens only
+        
+        :param tag: tag to validate
+
+        :return: tag if it is valid
+
+        :raises ValueError: if the tag is invalid
+        """
+        errors = []
+        # all letters must be lowercase
+        if any(c.isupper() for c in tag):
+            errors.append(
+                "All letters must be lowercase"
+            )
+        # must be between 1 and 63 characters long
+        if len(tag) < 1 or len(tag) > 63:
+            errors.append(
+                "Must be between 1 and 63 characters long"
+            )
+        # must not start or end with a hyphen
+        if tag and (tag[0] in ("-") or tag[-1] in ("-")):
+            errors.append(
+                "Must not start or end with a hyphen"
+            )
+        # must be alphanumeric and hyphens only
+        if not re.match(r"^[a-z0-9-]*$", tag):
+            errors.append(
+                "Must be alphanumeric and hyphens only"
+            )
+        
+        if errors:
+            error_string = "Invalid tag specified. The following errors occurred:"
+            for error in errors:
+                error_string += f"\n - {error}"
+            error_string += "\nTag: {}".format(tag)
+            raise ValueError(
+                error_string 
+            )
+        
+        return tag
