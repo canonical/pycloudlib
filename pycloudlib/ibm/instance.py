@@ -3,11 +3,11 @@
 """Base class for all instances to provide consistent set of functions."""
 
 import logging
+import random
+import time
 from enum import Enum, auto
 from functools import partial
 from itertools import chain
-import random
-import time
 from typing import TYPE_CHECKING, Callable, List, Optional
 
 from ibm_cloud_sdk_core import ApiException, DetailedResponse
@@ -481,15 +481,24 @@ class IBMInstance(BaseInstance):
         )
 
     @classmethod
-    def create_instance(
+    def from_raw_instance(
         cls,
         *args,
         client: VpcV1,
         instance: dict,
         username: Optional[str] = None,
         **kwargs,
-    ):
-        ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
+    ) -> "IBMInstance":
+        """
+        Instantiate IBMInstance object from raw instance dict.
+
+        Args:
+            args: positional arguments
+            client: IBM VPC client
+            instance: raw instance dict
+            username: username to use for SSH
+            kwargs: other keyword arguments
+        """
         return cls(
             *args,
             client=client,
@@ -497,32 +506,6 @@ class IBMInstance(BaseInstance):
             username=username,
             **kwargs,
         )
-
-    # @classmethod
-    # def with_floating_ip(
-    #     cls,
-    #     *args,
-    #     client: VpcV1,
-    #     instance: dict,
-    #     floating_ip: dict,
-    #     username: Optional[str] = None,
-    #     **kwargs,
-    # ) -> "IBMInstance":
-    #     """Instantiate `self` from `instance` associated to `floating_ip`."""
-    #     nic_id = instance["primary_network_interface"]["id"]
-
-    #     ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
-    #     ibm_instance_type.add_instance_network_interface_floating_ip(
-    #         client,
-    #         id=floating_ip["id"],
-    #         instance_id=instance["id"],
-    #         network_interface_id=nic_id,
-    #     ).get_result()
-    #     # sleep 1s to let cloud update then check to make sure that floating IP successfully attached
-    #     time.sleep(1)
-    #     floating_ip = cls._discover_floating_ip(client, instance)
-    #     if floating_ip is None:
-    #         pass
 
     def _choose_from_existing_floating_ips(
         self,
@@ -574,12 +557,15 @@ class IBMInstance(BaseInstance):
         )
         return floating_ip
 
-    def attach_floating_ip(self, floating_ip: dict) -> dict | None:
+    def attach_floating_ip(self, floating_ip: dict) -> Optional[dict]:
         """
         Attach a floating IP to this instance.
 
-        :param floating_ip: The floating IP to attach.
-        :return: True if the floating IP was successfully attached, False otherwise.
+        Args:
+            floating_ip: floating IP dict
+
+        Returns:
+            A floating IP dict if successfully attached, else None
         """
         nic_id = self._instance["primary_network_interface"]["id"]
         self._ibm_instance_type.add_instance_network_interface_floating_ip(
@@ -599,8 +585,13 @@ class IBMInstance(BaseInstance):
         """
         Attempt to attach floating ip until able to successfully attach one.
 
+        Args:
+            floating_ip_name_includes: substring to filter floating IPs by
+            zone: zone to filter floating IPs by
+
+        Returns:
+            A floating IP dict
         """
-        self._using_existing_floating_ip
         attached_floating_ip = None
         while attached_floating_ip is None:
             target_floating_ip = self._choose_from_existing_floating_ips(

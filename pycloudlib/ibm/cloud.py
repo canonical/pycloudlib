@@ -17,7 +17,7 @@ from pycloudlib.errors import InvalidTagNameError
 from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
-from pycloudlib.ibm.errors import IBMCapacityException, IBMException
+from pycloudlib.ibm.errors import IBMException
 from pycloudlib.ibm.instance import VPC, IBMInstance
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP
@@ -335,7 +335,7 @@ class IBM(BaseCloud):
             **kwargs,
         )
 
-        instance: IBMInstance = IBMInstance.create_instance(
+        instance: IBMInstance = IBMInstance.from_raw_instance(
             self.key_pair,
             client=self._client,
             instance=raw_instance,
