@@ -576,8 +576,7 @@ class IBMInstance(BaseInstance):
         ).get_result()
         # sleep 1s to let cloud update then check to make sure that floating IP successfully attached
         time.sleep(1)
-        floating_ip = self._discover_floating_ip(self._client, self._instance)
-        return floating_ip
+        return self._discover_floating_ip(self._client, self._instance)
 
     def attach_floating_ip_until_success(
         self, floating_ip_name_includes: str, zone: str
