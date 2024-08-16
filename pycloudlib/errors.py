@@ -138,3 +138,21 @@ class CleanupError(PycloudlibException):
 
 class MissingPrerequisiteError(PycloudlibException):
     """Raised when a prerequisite is missing."""
+
+
+class InvalidTagNameError(PycloudlibException):
+    """Raised when a tag for a cloud is invalid."""
+
+    def __init__(self, tag: str, rules_failed: list):
+        """Init method.
+
+        :param tag: The tag that failed validation
+        :param rules_failed: List of rules that the tag failed
+        """
+        super().__init__()
+        self.tag = tag
+        self.rules_failed = rules_failed
+
+    def __str__(self) -> str:
+        """Return string representation of the error."""
+        return f"Tag '{self.tag}' failed the following rules: {', '.join(self.rules_failed)}"

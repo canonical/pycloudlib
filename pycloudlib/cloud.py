@@ -13,7 +13,7 @@ from typing import Any, List, Optional, Sequence
 import paramiko
 
 from pycloudlib.config import ConfigFile, parse_config
-from pycloudlib.errors import CleanupError
+from pycloudlib.errors import CleanupError, InvalidTagNameError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.util import (
@@ -301,29 +301,23 @@ class BaseCloud(ABC):
 
         :return: tag if it is valid
 
-        :raises ValueError: if the tag is invalid
+        :raises InvalidTagNameError: if the tag is invalid
         """
-        errors = []
+        rules_failed = []
         # all letters must be lowercase
         if any(c.isupper() for c in tag):
-            errors.append("All letters must be lowercase")
+            rules_failed.append("All letters must be lowercase")
         # must be between 1 and 63 characters long
         if len(tag) < 1 or len(tag) > 63:
-            errors.append("Must be between 1 and 63 characters long")
+            rules_failed.append("Must be between 1 and 63 characters long")
         # must not start or end with a hyphen
         if tag and (tag[0] in ("-") or tag[-1] in ("-")):
-            errors.append("Must not start or end with a hyphen")
+            rules_failed.append("Must not start or end with a hyphen")
         # must be alphanumeric and hyphens only
         if not re.match(r"^[a-z0-9-]*$", tag):
-            errors.append("Must be alphanumeric and hyphens only")
+            rules_failed.append("Must be alphanumeric and hyphens only")
 
-        if errors:
-            error_string = (
-                "Invalid tag specified. The following errors occurred:"
-            )
-            for error in errors:
-                error_string += f"\n - {error}"
-            error_string += "\nTag: {}".format(tag)
-            raise ValueError(error_string)
+        if rules_failed:
+            raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
 
         return tag

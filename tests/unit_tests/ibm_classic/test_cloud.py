@@ -2,6 +2,7 @@ from typing import List
 import mock
 import pytest
 
+from pycloudlib.errors import InvalidTagNameError
 from pycloudlib.ibm_classic.cloud import IBMClassic
 from pycloudlib.ibm_classic.errors import IBMClassicException
 
@@ -124,7 +125,8 @@ def test_validate_tag(tag: str, rules_failed: List[str]):
     if len(rules_failed) == 0:
         assert IBMClassic.validate_tag(tag) == tag
     else:
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(InvalidTagNameError) as exc_info:
             IBMClassic.validate_tag(tag)
+        assert tag in str(exc_info.value)
         for rule in rules_failed:
             assert rule in str(exc_info.value)

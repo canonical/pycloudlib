@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from pycloudlib.errors import PycloudlibTimeoutError
+from pycloudlib.errors import InvalidTagNameError, PycloudlibTimeoutError
 from pycloudlib.ibm.cloud import (
     IBM,
 )
@@ -40,7 +40,8 @@ def test_validate_tag(tag: str, rules_failed: List[str]):
     if len(rules_failed) == 0:
         assert IBM.validate_tag(tag) == tag
     else:
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(InvalidTagNameError) as exc_info:
             IBM.validate_tag(tag)
+        assert tag in str(exc_info.value)
         for rule in rules_failed:
             assert rule in str(exc_info.value)

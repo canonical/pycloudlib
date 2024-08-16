@@ -8,6 +8,7 @@ import SoftLayer  # type: ignore
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
+from pycloudlib.errors import InvalidTagNameError
 from pycloudlib.ibm_classic.errors import IBMClassicException
 from pycloudlib.ibm_classic.instance import IBMClassicInstance
 from pycloudlib.instance import BaseInstance
@@ -526,32 +527,30 @@ class IBMClassic(BaseCloud):
 
         :return: tag if it is valid
 
-        :raises ValueError: if the tag is invalid
+        :raises InvalidTagNameError: if the tag is invalid
         """
-        errors = []
+        rules_failed = []
         # all letters must be lowercase
         if any(c.isupper() for c in tag):
-            errors.append("All letters must be lowercase")
+            rules_failed.append("All letters must be lowercase")
         # must be between 1 and 63 characters long
         if len(tag) < 1 or len(tag) > 63:
-            errors.append("Must be between 1 and 63 characters long")
+            rules_failed.append("Must be between 1 and 63 characters long")
         # must not start or end with a hyphen or
         if tag and (tag[0] in ("-", ".") or tag[-1] in ("-", ".")):
-            errors.append("Must not start or end with a hyphen or period")
+            rules_failed.append(
+                "Must not start or end with a hyphen or period"
+            )
         # must be alphanumeric, periods, and hyphens only
         if not re.match(r"^[a-z0-9.-]+$", tag):
-            errors.append("Must be alphanumeric, periods, and hyphens only")
+            rules_failed.append(
+                "Must be alphanumeric, periods, and hyphens only"
+            )
         # must not contain only numbers
         if tag.isdigit():
-            errors.append("Must not contain only numbers")
+            rules_failed.append("Must not contain only numbers")
 
-        if errors:
-            error_string = (
-                "Invalid tag specified. The following errors occurred:"
-            )
-            for error in errors:
-                error_string += f"\n - {error}"
-            error_string += "\nTag: {}".format(tag)
-            raise ValueError(error_string)
+        if rules_failed:
+            raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
 
         return tag
