@@ -38,10 +38,10 @@ rule5 = "Must start with a letter"
 )
 def test_validate_tag(tag: str, rules_failed: List[str]):
     if len(rules_failed) == 0:
-        assert IBM.validate_tag(tag) == tag
+        assert IBM._validate_tag(tag) == tag
     else:
         with pytest.raises(InvalidTagNameError) as exc_info:
-            IBM.validate_tag(tag)
+            IBM._validate_tag(tag)
         assert tag in str(exc_info.value)
         for rule in rules_failed:
             assert rule in str(exc_info.value)

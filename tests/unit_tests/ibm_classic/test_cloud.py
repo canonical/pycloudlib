@@ -123,10 +123,10 @@ rule5 = "Must not contain only numbers"
 )
 def test_validate_tag(tag: str, rules_failed: List[str]):
     if len(rules_failed) == 0:
-        assert IBMClassic.validate_tag(tag) == tag
+        assert IBMClassic._validate_tag(tag) == tag
     else:
         with pytest.raises(InvalidTagNameError) as exc_info:
-            IBMClassic.validate_tag(tag)
+            IBMClassic._validate_tag(tag)
         assert tag in str(exc_info.value)
         for rule in rules_failed:
             assert rule in str(exc_info.value)

@@ -512,7 +512,7 @@ class IBMClassic(BaseCloud):
         return exceptions
 
     @staticmethod
-    def validate_tag(tag: str):
+    def _validate_tag(tag: str):
         """
         Ensure that this tag is a valid name for IBM Cloud Classic Infrastructure resources.
 

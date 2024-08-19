@@ -72,9 +72,9 @@ class BaseCloud(ABC):
             name=self.config.get("key_name", user),
         )
         if timestamp_suffix:
-            self.tag = self.validate_tag(get_timestamped_tag(tag))
+            self.tag = self._validate_tag(get_timestamped_tag(tag))
         else:
-            self.tag = self.validate_tag(tag)
+            self.tag = self._validate_tag(tag)
 
     def __enter__(self):
         """Enter context manager for this class."""
@@ -287,7 +287,7 @@ class BaseCloud(ABC):
             self.config = parse_config(config_file)[self._type]
 
     @staticmethod
-    def validate_tag(tag: str):
+    def _validate_tag(tag: str):
         """
         Ensure that this tag is a valid name for cloud resources.
 
