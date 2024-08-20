@@ -348,14 +348,18 @@ class IBM(BaseCloud):
 
         # floating ip stuff
         if floating_ip_substring:
-            instance.attach_floating_ip_until_success(
+            instance._attach_floating_ip_until_success(
                 floating_ip_name_includes=floating_ip_substring,
                 zone=self.zone,
             )
         else:
             self._log.info("Creating new floating ip.")
             floating_ip = self._create_floating_ip(name=floating_ip_name)
-            instance.attach_floating_ip(floating_ip=floating_ip)
+            success = instance._attach_floating_ip(floating_ip=floating_ip)
+            if success:
+                self._log.info("Successfully attached floating ip.")
+            else:
+                raise IBMException("Failed to attach floating ip to instance.")
 
         return instance
 
