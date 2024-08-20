@@ -299,8 +299,6 @@ class BaseCloud(ABC):
 
         :param tag: tag to validate
 
-        :return: tag if it is valid
-
         :raises InvalidTagNameError: if the tag is invalid
         """
         rules_failed = []
@@ -319,5 +317,3 @@ class BaseCloud(ABC):
 
         if rules_failed:
             raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
-
-        return tag

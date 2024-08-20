@@ -123,7 +123,8 @@ rule5 = "Must not contain only numbers"
 )
 def test_validate_tag(tag: str, rules_failed: List[str]):
     if len(rules_failed) == 0:
-        assert IBMClassic._validate_tag(tag) == tag
+        # test that no exception is raised
+        IBMClassic._validate_tag(tag)
     else:
         with pytest.raises(InvalidTagNameError) as exc_info:
             IBMClassic._validate_tag(tag)

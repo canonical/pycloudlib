@@ -5,7 +5,7 @@ Each cloud can have specific errors, please refer to each
 """
 
 import enum
-from typing import Optional
+from typing import List, Optional
 
 
 class PycloudlibException(Exception):
@@ -143,7 +143,7 @@ class MissingPrerequisiteError(PycloudlibException):
 class InvalidTagNameError(PycloudlibException):
     """Raised when a tag for a cloud is invalid."""
 
-    def __init__(self, tag: str, rules_failed: list):
+    def __init__(self, tag: str, rules_failed: List[str]):
         """Init method.
 
         :param tag: The tag that failed validation

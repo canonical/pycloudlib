@@ -552,5 +552,3 @@ class IBMClassic(BaseCloud):
 
         if rules_failed:
             raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
-
-        return tag
