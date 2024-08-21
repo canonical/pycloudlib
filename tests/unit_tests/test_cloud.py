@@ -85,7 +85,11 @@ class TestBaseCloud:
         assert expected_tag == mycloud.tag
 
     @mock.patch(MPATH + "getpass.getuser", return_value="root")
-    def test_init_sets_key_pair_based_on_getuser(self, _m_getuser):
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_rsa" in x)
+    def test_init_sets_key_pair_based_on_getuser(
+        self, _m_getuser, _m_expanduser, _m_exists,
+    ):
         """
         The default key_pair for the cloud is based on the current user.
 
@@ -100,7 +104,85 @@ class TestBaseCloud:
         assert mycloud.key_pair.private_key_path == ("/root/.ssh/id_rsa")
         assert mycloud.key_pair.public_key_path == ("/root/.ssh/id_rsa.pub")
 
-    def test_init_sets_key_pair_from_config(self):
+    # function being tested:
+
+    # def _get_ssh_keys(self) -> KeyPair:
+    #     user = getpass.getuser()
+    #     # check if id_rsa or id_ed25519 keys exist in the user's .ssh directory
+    #     possible_default_keys = [
+    #         os.path.expanduser("~/.ssh/id_rsa.pub"),
+    #         os.path.expanduser("~/.ssh/id_ed25519.pub"),
+    #     ]
+    #     public_key_path: Optional[str] = os.path.expanduser(
+    #         self.config.get("public_key_path", "")
+    #     )
+    #     if not public_key_path:
+    #         for pubkey in possible_default_keys:
+    #             if os.path.exists(pubkey):
+    #                 self._log.debug(
+    #                     "No public key path provided, using: %s", pubkey
+    #                 )
+    #                 public_key_path = pubkey
+    #                 break
+    #         if not public_key_path:
+    #             raise PycloudlibError(
+    #                 "No public key path provided and no key found in default locations: "
+    #                 "'~/.ssh/id_rsa.pub' or '~/.ssh/id_ed25519.pub'"
+    #             )
+    #     if not os.path.exists(os.path.expanduser(public_key_path)):
+    #         raise PycloudlibError(
+    #             f"Provided public key path '{public_key_path}' does not exist"
+    #         )
+    #     if public_key_path not in possible_default_keys:
+    #         self._log.debug(
+    #             "Using provided public key path: '%s'", public_key_path
+    #         )
+    #     private_key_path = self.config.get("private_key_path", "")
+        
+    #     return KeyPair(
+    #         public_key_path=public_key_path,
+    #         private_key_path=private_key_path,
+    #         name=self.config.get("key_name", user),
+    #     )
+
+
+    # things to test
+    # - test1: that id_ed25519 can be used if id_rsa is not present and no public_key_path is provided
+    #   - parameterize for vice versa
+    # 
+    # - test2: test that errors are raised if no public key path is provided and no default keys are found
+    # - test3: test that errors are raised if the provided public key path does not exist
+
+    # test 1:
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_ed25519" in x)
+    @mock.patch(MPATH + "getpass.getuser", return_value="root")
+    def test_init_can_use_id_ed25519_key(
+        self, _m_getuser, _m_expanduser, _m_exists,
+    ):
+        """
+        Validates that key_pair uses the id_ed25519 key if id_rsa doesn't exist
+
+        To do this, we mock the os.path.exists function to return True ONLY
+        for the id_ed25519 key to simulate the absence of the id_rsa key.
+
+        """
+        mycloud = CloudSubclass(
+            tag="tag",
+            timestamp_suffix=False,
+            config_file=StringIO(CONFIG),
+        )
+        
+        id_ed25519_path = "/root/.ssh/id_ed25519.pub"
+
+        assert mycloud.key_pair.name == "root"
+        assert mycloud.key_pair.public_key_path == id_ed25519_path
+        assert mycloud.key_pair.private_key_path == id_ed25519_path.replace(".pub", "")
+
+
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_rsa" in x)
+    def test_init_sets_key_pair_from_config(self, _m_expanduser, _m_exists):
         """The key_pair is set from the config file."""
         mycloud = CloudSubclass(
             tag="tag",
@@ -121,7 +203,9 @@ class TestBaseCloud:
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
         assert mycloud.key_pair.private_key_path == "/home/asdf/.ssh/my_key"
 
-    def test_missing_private_key_in_ssh_config(self):
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_rsa" in x)
+    def test_missing_private_key_in_ssh_config(self, _m_expanduser, _m_exists):
         """The key_pair assumes the private key name."""
         mycloud = CloudSubclass(
             tag="tag",
