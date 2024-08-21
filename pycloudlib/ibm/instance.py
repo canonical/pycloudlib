@@ -456,15 +456,13 @@ class IBMInstance(BaseInstance):
         instance: dict,
         floating_ip: Optional[dict] = None,
         username: Optional[str] = None,
-        using_existing_floating_ip: bool = False,
     ):
-        """Set up instance."""
+        """Set up an IBMInstance object."""
         super().__init__(key_pair, username=username)
 
         self._client = client
         self._instance = instance
         self._floating_ip = floating_ip
-        self._using_existing_floating_ip = using_existing_floating_ip
 
         # mount methods that depend on `_IBMInstanceType`:
         self._ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
@@ -479,6 +477,8 @@ class IBMInstance(BaseInstance):
             self._client,
             id=self.id,
         )
+        self._created_floating_ips = []
+        self.zone = self._instance["zone"]["name"]
 
     @classmethod
     def from_raw_instance(
@@ -507,16 +507,35 @@ class IBMInstance(BaseInstance):
             **kwargs,
         )
 
+    def _create_floating_ip(self, name: Optional[str] = None) -> dict:
+        """
+        Create a new floating IP.
+
+        Args:
+            name: Optional name for the floating IP
+
+        Returns:
+            A floating IP dict
+        """
+        name = name or f"{self.name}-fi"
+        proto = {
+            "name": name,
+            "resource_group": {"id": self.resource_group_id},
+            "zone": {"name": self.zone},
+        }
+        floating_ip = self._client.create_floating_ip(proto).get_result()
+        self._created_floating_ips.append(floating_ip)
+        self._log.info("Floating ip created: %s", {floating_ip["name"]})
+        return floating_ip
+
     def _choose_from_existing_floating_ips(
         self,
-        zone: str,
         name_includes="default-floating-ip",
     ) -> dict:
         """
         Choose a random floating IP from existing floating IPs via substring match.
 
         Args:
-            zone: zone to search for floating IPs in
             name_includes: string, name to filter floating IPs by
 
         Returns:
@@ -533,7 +552,7 @@ class IBMInstance(BaseInstance):
                 # Select that match the desired name
                 filter_fn=lambda ip: name_includes in ip["name"]
                 and ip.get("zone")
-                and ip["zone"]["name"] == zone,
+                and ip["zone"]["name"] == self.zone,
             )
         )
         if not floating_ips:
@@ -558,6 +577,45 @@ class IBMInstance(BaseInstance):
         )
         return floating_ip
 
+    def attach_floating_ip(
+        self,
+        floating_ip_substring: str,
+    ) -> Optional[dict]:
+        """
+        Attach a floating IP to this instance.
+
+        If `floating_ip_substring` is given, it will try to attach an existing
+        floating IP that contains the substring in its name. If not, it will
+        create a new floating IP and attach it.
+
+        Args:
+            floating_ip_substring: substring to filter floating IPs by
+
+        Returns:
+            A floating IP dict if successful, None otherwise
+
+        Raises:
+            IBMException: If failed to attach floating IP to instance
+            IBMCapacityException: If all floating IPs matching the substring are already in use
+        """
+        if floating_ip_substring:
+            self._attach_floating_ip_until_success(
+                floating_ip_substring=floating_ip_substring,
+                zone=self.zone,
+            )
+        else:
+            floating_ip_name = f"{self.name}-fi"
+
+            self._log.info("Creating new floating ip.")
+            floating_ip = self._create_floating_ip(name=floating_ip_name)
+            success = self._attach_floating_ip(floating_ip=floating_ip)
+            if success:
+                self._log.info("Successfully attached floating ip.")
+            else:
+                raise IBMException("Failed to attach floating ip to instance.")
+
+        return self._discover_floating_ip(self._client, self._instance)
+
     def _attach_floating_ip(self, floating_ip: dict) -> bool:
         """
         Attach a floating IP to this instance.
@@ -577,17 +635,17 @@ class IBMInstance(BaseInstance):
         ).get_result()
         # sleep 1s to let cloud update then check to make sure that floating IP successfully attached
         time.sleep(1)
-        return self._discover_floating_ip(self._client, self._instance) is not None
+        self._floating_ip = self._discover_floating_ip(self._client, self._instance)
+        return self._floating_ip is not None
 
     def _attach_floating_ip_until_success(
-        self, floating_ip_name_includes: str, zone: str
+        self, floating_ip_substring: str
     ) -> dict:
         """
         Attempt to attach floating ip until able to successfully attach one.
 
         Args:
-            floating_ip_name_includes: substring to filter floating IPs by
-            zone: zone to filter floating IPs by
+            floating_ip_substring: substring to filter floating IPs by
 
         Returns:
             A floating IP dict
@@ -596,12 +654,12 @@ class IBMInstance(BaseInstance):
         self._log.info(
             "Will attempt to attach floating ip with name containing: %s"
             "until successful or all floating ips are in use.",
-            floating_ip_name_includes,
+            floating_ip_substring,
         )
         while attached_floating_ip is None:
             target_floating_ip = self._choose_from_existing_floating_ips(
-                zone=zone,
-                name_includes=floating_ip_name_includes,
+                zone=self.zone,
+                name_includes=floating_ip_substring,
             )
             self._log.info(
                 "Attempting to attach floating ip: %s",
@@ -809,9 +867,9 @@ class IBMInstance(BaseInstance):
                 exceptions.append(e)
 
         # if using an existing floating ip, do not delete it
-        if not self._using_existing_floating_ip:
+        for floating_ip in self._created_floating_ips:
             try:
-                self._client.delete_floating_ip(self._floating_ip_id)
+                self._client.delete_floating_ip(floating_ip["id"])
             except ApiException as e:
                 if "not found" not in str(e):
                     exceptions.append(e)

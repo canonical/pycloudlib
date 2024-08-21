@@ -265,17 +265,6 @@ class IBM(BaseCloud):
             self.created_vpcs.append(vpc)
             return vpc
 
-    def _create_floating_ip(self, name: Optional[str] = None) -> dict:
-        name = name or f"{self.tag}-fi"
-        proto = {
-            "name": name,
-            "resource_group": {"id": self.resource_group_id},
-            "zone": {"name": self.zone},
-        }
-        floating_ip = self._client.create_floating_ip(proto).get_result()
-        self._log.info("Floating ip created: %s", {floating_ip["name"]})
-        return floating_ip
-
     def launch(
         self,
         image_id: str,
@@ -285,7 +274,7 @@ class IBM(BaseCloud):
         name: Optional[str] = None,
         vpc: Optional[VPC] = None,
         username: Optional[str] = None,
-        use_existing_floating_ip_with_name: Optional[str] = None,
+        floating_ip_substring: Optional[str] = None,
         **kwargs,
     ) -> BaseInstance:
         """Launch an instance.
@@ -298,8 +287,8 @@ class IBM(BaseCloud):
             vpc: VPC to allocate the instance in. If not given, the instance
             username: username to use when connecting via SSH
             will be allocated in the zone's default VPC.
-            use_existing_floating_ip_with_name: use existing floating IP whose
-            name contains this substring. This floating IP will not be deleted
+            floating_ip_substring: use existing floating IP whose name
+            contains this substring. This floating IP will not be deleted
             when the instance is deleted.
             **kwargs: dictionary of other arguments to pass to launch
 
@@ -314,12 +303,10 @@ class IBM(BaseCloud):
             )
 
         vpc = vpc or self.vpc
-        floating_ip_name = f"{name}-fi" if name else None
         name = name or f"{self.tag}-vm{next(self.instance_counter)}"
 
-        floating_ip_substring = (
-            use_existing_floating_ip_with_name
-            or self.config.get("floating_ip_substring")
+        floating_ip_substring = floating_ip_substring or self.config.get(
+            "floating_ip_substring"
         )
 
         raw_instance = IBMInstance.create_raw_instance(
@@ -340,26 +327,15 @@ class IBM(BaseCloud):
             client=self._client,
             instance=raw_instance,
             username=username,
-            using_existing_floating_ip=floating_ip_substring is not None,
         )
 
-        # append before attaching floating ip so we can clean up in case of failure while attaching floating ip
+        # add instance to cleanup list before attaching floating ip in case of error during attach
         self.created_instances.append(instance)
 
-        # floating ip stuff
-        if floating_ip_substring:
-            instance._attach_floating_ip_until_success(
-                floating_ip_name_includes=floating_ip_substring,
-                zone=self.zone,
-            )
-        else:
-            self._log.info("Creating new floating ip.")
-            floating_ip = self._create_floating_ip(name=floating_ip_name)
-            success = instance._attach_floating_ip(floating_ip=floating_ip)
-            if success:
-                self._log.info("Successfully attached floating ip.")
-            else:
-                raise IBMException("Failed to attach floating ip to instance.")
+        instance.attach_floating_ip(
+            floating_ip_substring=floating_ip_substring,
+            zone=self.zone,
+        )
 
         return instance
 
