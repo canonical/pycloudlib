@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+import dataclasses
 import enum
 import getpass
 import io
@@ -38,6 +39,36 @@ class ImageType(enum.Enum):
     PRO_FIPS = "Pro FIPS"
 
 
+@dataclasses.dataclass
+class ImageInfo:
+    """Dataclass that represents an image on any given cloud."""
+
+    image_id: str
+    image_name: str
+
+    def __str__(self):
+        """Return a human readable string representation of the image."""
+        return f"{self.image_name} [id: {self.image_id}]"
+
+    def __repr__(self):
+        """Return a string representation of the image."""
+        return f"ImageInfo(id={self.image_id}, name={self.image_name})"
+
+    def __eq__(self, other):
+        """
+        Check if two ImageInfo objects represent the same image.
+
+        Only the id is used for comparison since this should be the unique identifier for an image.
+        """
+        if not isinstance(other, ImageInfo):
+            return False
+        return self.image_id == other.image_id
+
+    def __dict__(self):
+        """Return a dictionary representation of the image."""
+        return {"image_id": self.image_id, "image_name": self.image_name}
+
+
 class BaseCloud(ABC):
     """Base Cloud Class."""
 
@@ -58,7 +89,8 @@ class BaseCloud(ABC):
             config_file: path to pycloudlib configuration file
         """
         self.created_instances: List[BaseInstance] = []
-        self.created_images: List[str] = []
+        self.created_images: List[ImageInfo] = []
+        self.preserved_images: List[ImageInfo] = []  # each dict will hold an id and name
 
         self._log = logging.getLogger("{}.{}".format(__name__, self.__class__.__name__))
         self._check_and_set_config(config_file, required_values)
@@ -185,12 +217,13 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def snapshot(self, instance, clean=True, **kwargs):
+    def snapshot(self, instance, *, clean=True, keep=False, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -212,11 +245,18 @@ class BaseCloud(ABC):
                 instance.delete()
             except Exception as e:
                 exceptions.append(e)
-        for image_id in self.created_images:
+        for image_info in self.created_images:
             try:
-                self.delete_image(image_id)
+                self.delete_image(image_id=image_info.image_id)
             except Exception as e:
                 exceptions.append(e)
+        for image_info in self.preserved_images:
+            # noop - just log that we're not cleaning up these images
+            self._log.info(
+                "Preserved image %s [id:%s] is NOT being cleaned up.",
+                image_info.image_name,
+                image_info.image_id,
+            )
         return exceptions
 
     def list_keys(self):
@@ -311,6 +351,18 @@ class BaseCloud(ABC):
             raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
 
     def _get_ssh_keys(self) -> KeyPair:
+        """
+        Get the ssh key pair to use for the cloud instance.
+
+        If no key pair is provided in the config file, the default key pair
+        will be used. The default key pair is the id_rsa or id_ed25519 key
+        in the user's .ssh directory.
+
+        :raises PycloudlibError: if no public key path is provided and no default key is found
+        :raises PycloudlibError: if the public key path provided in the config does not exist
+
+        :return: KeyPair object with the public and private key paths
+        """
         user = getpass.getuser()
         # check if id_rsa or id_ed25519 keys exist in the user's .ssh directory
         possible_default_keys = [
@@ -340,3 +392,70 @@ class BaseCloud(ABC):
             private_key_path=private_key_path,
             name=self.config.get("key_name", user),
         )
+
+    def _store_snapshot_info(
+        self,
+        snapshot_id: str,
+        snapshot_name: str,
+        keep_snapshot: bool,
+    ) -> ImageInfo:
+        """
+        Save the snapshot information for later cleanup depending on the keep_snapshot arg.
+
+        Will either save the snapshot information to created_images or preserved_images depending
+        on the keep_snapshot arg. These lists are used by the BaseCloud's clean() method to
+        cleanup the snapshots when the cloud instance is cleaned up. The snapshot information
+        is also logged appropriately and in a consistent format.
+
+        :param snapshot_id: ID of the snapshot (this is used later to delete the snapshot)
+        :param snapshot_name: Name of the snapshot (this is for user reference)
+        :param keep_snapshot: Keep the snapshot after the cloud instance is cleaned up
+
+        :return: ImageInfo object with the snapshot information
+        """
+        image_info = ImageInfo(
+            image_id=snapshot_id,
+            image_name=snapshot_name,
+        )
+        if not keep_snapshot:
+            self.created_images.append(image_info)
+            self._log.info(
+                "Created temporary snapshot %s",
+                image_info,
+            )
+        else:
+            self.preserved_images.append(image_info)
+            self._log.info(
+                "Created permanent snapshot %s",
+                image_info,
+            )
+        return image_info
+
+    def _record_image_deletion(self, image_id: str):
+        """
+        Record the deletion of an image.
+
+        This method should be called after an image is successfully deleted.
+        It will remove the image from the list of created_images or preserved_images
+        so that the cloud does not attempt to re-clean it up later. It will also log
+        the deletion of the image.
+
+        :param image_id: ID of the image that was deleted
+        """
+        if match := [i for i in self.created_images if i.image_id == image_id]:
+            deleted_image = match[0]
+            self.created_images.remove(deleted_image)
+            self._log.debug(
+                "Snapshot %s has been deleted. Will no longer need to be cleaned up later.",
+                deleted_image,
+            )
+        elif match := [i for i in self.preserved_images if i.image_id == image_id]:
+            deleted_image = match[0]
+            self.preserved_images.remove(deleted_image)
+            self._log.debug(
+                "Snapshot %s has been deleted. This snapshot was taken with keep=True, "
+                "but since it has been manually deleted, it will not be preserved.",
+                deleted_image,
+            )
+        else:
+            self._log.debug("Deleted image %s", image_id)

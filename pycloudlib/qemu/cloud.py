@@ -107,6 +107,7 @@ class Qemu(BaseCloud):
         image_file = Path(image_id)
         if image_file.exists():
             image_file.unlink()
+            self._record_image_deletion(image_id)
         else:
             self._log.debug("Cannot delete image %s as it does not exist", image_file)
 
@@ -542,12 +543,13 @@ class Qemu(BaseCloud):
 
         return instance
 
-    def snapshot(self, instance: QemuInstance, clean=True, **kwargs) -> str:
+    def snapshot(self, instance: QemuInstance, *, clean=True, keep=False, **kwargs) -> str:
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -596,7 +598,11 @@ class Qemu(BaseCloud):
             snapshot_path,
             instance.instance_path,
         )
-        self.created_images.append(str(snapshot_path))
+        self._store_snapshot_info(
+            snapshot_name=snapshot_path.stem,
+            snapshot_id=str(snapshot_path),
+            keep_snapshot=keep,
+        )
 
         return str(snapshot_path)
 
