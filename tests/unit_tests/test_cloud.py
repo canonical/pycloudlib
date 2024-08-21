@@ -40,7 +40,7 @@ class CloudSubclass(BaseCloud):
     def launch(self, image_id, instance_type=None, user_data=None, **kwargs):
         """Skeletal launch."""
 
-    def snapshot(self, instance, clean=True, **kwargs):
+    def snapshot(self, instance, *, clean=True, keep=False, **kwargs):
         """Skeletal snapshot."""
 
     def list_keys(self):
@@ -237,3 +237,85 @@ class TestBaseCloud:
             assert tag in str(exc_info.value)
             for rule in rules_failed:
                 assert rule in str(exc_info.value)
+
+
+class TestSnapshotHelpers:
+    """
+    Tests covering both the _store_snapshot_info and _record_image_deletion methods of BaseCloud.
+    """
+
+    @pytest.fixture
+    def cloud(self):
+        """Fixture to create a CloudSubclass instance for testing."""
+        return CloudSubclass(tag="tag", timestamp_suffix=False, config_file=StringIO(CONFIG))
+
+    def test_store_snapshot_info_temporary(self, cloud, caplog):
+        """Test storing snapshot info as temporary."""
+        snapshot_id = "snap-123"
+        snapshot_name = "snapshot-temp"
+        keep_snapshot = False
+
+        caplog.set_level(logging.DEBUG)
+        image_info = cloud._store_snapshot_info(snapshot_id, snapshot_name, keep_snapshot)
+
+        assert image_info.image_id == snapshot_id
+        assert image_info.image_name == snapshot_name
+        assert image_info in cloud.created_images
+        assert image_info not in cloud.preserved_images
+        assert f"Created temporary snapshot {image_info}" in caplog.text
+
+    def test_store_snapshot_info_permanent(self, cloud, caplog):
+        """Test storing snapshot info as permanent."""
+        snapshot_id = "snap-456"
+        snapshot_name = "snapshot-perm"
+        keep_snapshot = True
+
+        caplog.set_level(logging.DEBUG)
+        image_info = cloud._store_snapshot_info(snapshot_id, snapshot_name, keep_snapshot)
+
+        assert image_info.image_id == snapshot_id
+        assert image_info.image_name == snapshot_name
+        assert image_info not in cloud.created_images
+        assert image_info in cloud.preserved_images
+        assert f"Created permanent snapshot {image_info}" in caplog.text
+
+    def test_record_image_deletion_created_image(self, cloud, caplog):
+        """Test recording deletion of a created image."""
+        snapshot_id = "snap-789"
+        snapshot_name = "snapshot-created"
+        keep_snapshot = False
+
+        image_info = cloud._store_snapshot_info(snapshot_id, snapshot_name, keep_snapshot)
+        caplog.set_level(logging.DEBUG)
+        cloud._record_image_deletion(snapshot_id)
+
+        assert image_info not in cloud.created_images
+        assert image_info not in cloud.preserved_images
+        assert (
+            f"Snapshot {image_info} has been deleted. Will no longer need to be cleaned up later."
+            in caplog.text
+        )
+
+    def test_record_image_deletion_preserved_image(self, cloud, caplog):
+        """Test recording deletion of a preserved image."""
+        snapshot_id = "snap-101"
+        snapshot_name = "snapshot-preserved"
+        keep_snapshot = True
+
+        image_info = cloud._store_snapshot_info(snapshot_id, snapshot_name, keep_snapshot)
+        caplog.set_level(logging.DEBUG)
+        cloud._record_image_deletion(snapshot_id)
+
+        assert image_info not in cloud.created_images
+        assert image_info not in cloud.preserved_images
+        assert (
+            f"Snapshot {image_info} has been deleted. This snapshot was taken with keep=True, "
+            "but since it has been manually deleted, it will not be preserved."
+        ) in caplog.text
+
+    def test_record_image_deletion_nonexistent_image(self, cloud, caplog):
+        """Test recording deletion of a non-existent image."""
+        snapshot_id = "snap-999"
+        caplog.set_level(logging.DEBUG)
+        cloud._record_image_deletion(snapshot_id)
+        assert f"Deleted image {snapshot_id}" in caplog.text

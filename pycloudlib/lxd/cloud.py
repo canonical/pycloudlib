@@ -394,11 +394,10 @@ class _BaseLXD(BaseCloud, ABC):
             image_id: string, LXD image fingerprint
         """
         self._log.debug("Deleting image: '%s'", image_id)
-
         subp(["lxc", "image", "delete", image_id])
-        self._log.debug("Deleted %s", image_id)
+        self._record_image_deletion(image_id)
 
-    def snapshot(self, instance, clean=True, name=None):
+    def snapshot(self, instance: LXDInstance, *, clean=True, keep=False, name=None):  # type: ignore
         """Take a snapshot of the passed in instance for use as image.
 
         :param instance: The instance to create an image from
@@ -413,7 +412,11 @@ class _BaseLXD(BaseCloud, ABC):
             instance.clean()
 
         snapshot_name = instance.snapshot(name)
-        self.created_snapshots.append(snapshot_name)
+        self._store_snapshot_info(
+            snapshot_name=snapshot_name,
+            snapshot_id=snapshot_name,
+            keep_snapshot=keep,
+        )
         return snapshot_name
 
     # pylint: disable=broad-except
@@ -424,13 +427,6 @@ class _BaseLXD(BaseCloud, ABC):
         existence. This includes all instances, snapshots, resources, etc.
         """
         exceptions = super().clean()
-
-        for snapshot in self.created_snapshots:
-            try:
-                subp(["lxc", "image", "delete", snapshot])
-            except RuntimeError as e:
-                if "Image not found" not in str(e):
-                    exceptions.append(e)
 
         for profile in self.created_profiles:
             try:

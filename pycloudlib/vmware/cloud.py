@@ -100,6 +100,8 @@ class VMWare(BaseCloud):
         except subprocess.CalledProcessError as e:
             if "not found" not in str(e):
                 raise
+        else:
+            self._record_image_deletion(image_id)
 
     def daily_image(self, release: str, **kwargs):
         """Return released_image for VMWare.
@@ -220,12 +222,13 @@ class VMWare(BaseCloud):
         instance.start()
         return instance
 
-    def snapshot(self, instance, clean=True, **kwargs):
+    def snapshot(self, instance, *, clean=True, keep=False, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -246,6 +249,10 @@ class VMWare(BaseCloud):
             check=True,
         )
 
-        self.created_images.append(image_name)
+        self._store_snapshot_info(
+            snapshot_name=image_name,
+            snapshot_id=image_name,
+            keep_snapshot=keep,
+        )
 
         return image_name

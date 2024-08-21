@@ -81,6 +81,7 @@ class IBMClassic(BaseCloud):
             ) from e
         except SoftLayer.SoftLayerAPIError as e:
             raise IBMClassicException(f"Error deleting image {image_id}") from e
+        self._record_image_deletion(image_id)
 
     def released_image(self, release, *, disk_size: str = "25G", **kwargs):
         """ID (globalIdentifier) of the latest released image for a particular release.
@@ -267,7 +268,9 @@ class IBMClassic(BaseCloud):
     def snapshot(
         self,
         instance,
+        *,
         clean=True,
+        keep=False,
         note: Optional[str] = None,
         **kwargs,
     ):
@@ -276,6 +279,7 @@ class IBMClassic(BaseCloud):
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
             note: optional note to add to the snapshot
 
         Returns:
@@ -290,10 +294,10 @@ class IBMClassic(BaseCloud):
             name=f"{self.tag}-snapshot",
             notes=note,
         )
-        self._log.info(
-            "Successfully created snapshot '%s' with ID: %s",
-            snapshot_result["name"],
-            snapshot_result["id"],
+        self._store_snapshot_info(
+            snapshot_name=snapshot_result["name"],
+            snapshot_id=snapshot_result["id"],
+            keep_snapshot=keep,
         )
         return snapshot_result["id"]
 
