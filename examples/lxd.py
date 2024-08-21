@@ -6,7 +6,7 @@ import logging
 import textwrap
 
 import pycloudlib
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 
 RELEASE = "noble"
 

@@ -13,7 +13,7 @@ from ibm_vpc.vpc_v1 import Image, ListImagesEnums
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
-from pycloudlib.errors import InvalidTagNameError
+from pycloudlib.errors import InvalidTagNameError, ResourceNotFoundError, ResourceType
 from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
@@ -130,7 +130,9 @@ class IBM(BaseCloud):
             self._client.delete_image(image_id).get_result()
         except ApiException as e:
             if "does not exist" not in str(e):
-                raise
+                raise ResourceNotFoundError(ResourceType.IMAGE, image_id) from e
+        else:
+            self._record_image_deletion(image_id)
 
     def released_image(self, release, *, arch: str = "amd64", **kwargs):
         """ID of the latest released image for a particular release.
@@ -312,12 +314,13 @@ class IBM(BaseCloud):
 
         return instance
 
-    def snapshot(self, instance: IBMInstance, clean: bool = True, **kwargs) -> str:
+    def snapshot(self, instance: IBMInstance, *, clean=True, keep=False, **kwargs) -> str:
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -347,7 +350,11 @@ class IBM(BaseCloud):
                 f"Snapshot not available after {timeout_seconds} seconds. Check IBM VPC console."
             ),
         )
-        self.created_images.append(snapshot_id)
+        self._store_snapshot_info(
+            snapshot_name=str(image_prototype["name"]),
+            snapshot_id=snapshot_id,
+            keep_snapshot=keep,
+        )
         return snapshot_id
 
     def list_keys(self) -> List[str]:

@@ -56,6 +56,7 @@ class Openstack(BaseCloud):
             image_id: string, id of the image to delete
         """
         self.conn.delete_image(image_id, wait=True)
+        self._record_image_deletion(image_id)
 
     def released_image(self, release, **kwargs):
         """Not supported for openstack."""
@@ -171,12 +172,13 @@ class Openstack(BaseCloud):
         self.created_instances.append(instance)
         return instance
 
-    def snapshot(self, instance, clean=True, **kwargs):
+    def snapshot(self, instance, *, clean=True, keep=False, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -188,7 +190,11 @@ class Openstack(BaseCloud):
         image = self.conn.create_image_snapshot(
             "{}-snapshot".format(self.tag), instance.server.id, wait=True
         )
-        self.created_images.append(image.id)
+        self._store_snapshot_info(
+            snapshot_name=image.name,
+            snapshot_id=image.id,
+            keep_snapshot=keep,
+        )
         return image.id
 
     def use_key(self, public_key_path, private_key_path=None, name=None):
