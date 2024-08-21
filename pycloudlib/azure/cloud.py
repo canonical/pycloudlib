@@ -637,7 +637,7 @@ class Azure(BaseCloud):
         if delete_poller.status() == "Succeeded":
             if image_id in self.registered_images:
                 del self.registered_images[image_id]
-                self._log.debug("Image %s was deleted", image_id)
+                self._record_image_deletion(image_id)
         else:
             self._log.debug(
                 "Error deleting %s. Status: %d",
@@ -1102,12 +1102,13 @@ class Azure(BaseCloud):
 
         raise InstanceNotFoundError(resource_id=instance_id)
 
-    def snapshot(self, instance, clean=True, delete_provisioned_user=True, **kwargs):
+    def snapshot(self, instance, *, clean=True, keep=False, delete_provisioned_user=True, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: Run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
             delete_provisioned_user: Deletes the last provisioned user
             kwargs: Other named arguments specific to this implementation
 
@@ -1139,7 +1140,11 @@ class Azure(BaseCloud):
         image_id = image.id
         image_name = image.name
 
-        self.created_images.append(image_id)
+        self._store_snapshot_info(
+            snapshot_id=image_id,
+            snapshot_name=image_name,
+            keep_snapshot=keep,
+        )
 
         self.registered_images[image_id] = {
             "name": image_name,
