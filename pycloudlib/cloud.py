@@ -71,10 +71,9 @@ class BaseCloud(ABC):
             ),
             name=self.config.get("key_name", user),
         )
-        if timestamp_suffix:
-            self.tag = self._validate_tag(get_timestamped_tag(tag))
-        else:
-            self.tag = self._validate_tag(tag)
+        
+        self.tag = get_timestamped_tag(tag) if timestamp_suffix else tag
+        self._validate_tag(self.tag)
 
     def __enter__(self):
         """Enter context manager for this class."""
