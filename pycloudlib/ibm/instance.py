@@ -477,7 +477,7 @@ class IBMInstance(BaseInstance):
             self._client,
             id=self.id,
         )
-        self._created_floating_ips = []
+        self._created_floating_ips: List[dict] = []
         self.zone = self._instance["zone"]["name"]
 
     @classmethod
@@ -520,7 +520,7 @@ class IBMInstance(BaseInstance):
         name = name or f"{self.name}-fi"
         proto = {
             "name": name,
-            "resource_group": {"id": self.resource_group_id},
+            "resource_group": {"id": self._instance["resource_group"]["id"]},
             "zone": {"name": self.zone},
         }
         floating_ip = self._client.create_floating_ip(proto).get_result()
@@ -579,7 +579,7 @@ class IBMInstance(BaseInstance):
 
     def attach_floating_ip(
         self,
-        floating_ip_substring: str,
+        floating_ip_substring: Optional[str],
     ) -> Optional[dict]:
         """
         Attach a floating IP to this instance.
@@ -589,7 +589,8 @@ class IBMInstance(BaseInstance):
         create a new floating IP and attach it.
 
         Args:
-            floating_ip_substring: substring to filter floating IPs by
+            floating_ip_substring: optional substring to find existing floating IPs by.
+                If not given, ta new floating IP will be created and attached.
 
         Returns:
             A floating IP dict if successful, None otherwise
@@ -601,7 +602,6 @@ class IBMInstance(BaseInstance):
         if floating_ip_substring:
             self._attach_floating_ip_until_success(
                 floating_ip_substring=floating_ip_substring,
-                zone=self.zone,
             )
         else:
             floating_ip_name = f"{self.name}-fi"
@@ -635,7 +635,9 @@ class IBMInstance(BaseInstance):
         ).get_result()
         # sleep 1s to let cloud update then check to make sure that floating IP successfully attached
         time.sleep(1)
-        self._floating_ip = self._discover_floating_ip(self._client, self._instance)
+        self._floating_ip = self._discover_floating_ip(
+            self._client, self._instance
+        )
         return self._floating_ip is not None
 
     def _attach_floating_ip_until_success(
@@ -658,7 +660,6 @@ class IBMInstance(BaseInstance):
         )
         while attached_floating_ip is None:
             target_floating_ip = self._choose_from_existing_floating_ips(
-                zone=self.zone,
                 name_includes=floating_ip_substring,
             )
             self._log.info(

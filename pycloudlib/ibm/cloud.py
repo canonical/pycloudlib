@@ -333,8 +333,7 @@ class IBM(BaseCloud):
         self.created_instances.append(instance)
 
         instance.attach_floating_ip(
-            floating_ip_substring=floating_ip_substring,
-            zone=self.zone,
+            floating_ip_substring=floating_ip_substring
         )
 
         return instance
