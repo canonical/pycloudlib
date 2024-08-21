@@ -313,15 +313,17 @@ class OCI(BaseCloud):
         self.created_instances.append(instance)
         return instance
 
-    def snapshot(self, instance, clean=True, name=None):
+    def snapshot(self, instance, *, clean=True, keep=False, name=None):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
-            name: (Optional) Name of created image
+            keep: Keep the image after the cloud instance is cleaned up
+            name: Name of created image
+
         Returns:
-            An image object
+            The image id of the snapshot
         """
         if clean:
             instance.clean()
@@ -340,6 +342,10 @@ class OCI(BaseCloud):
             desired_state="AVAILABLE",
         )
 
-        self.created_images.append(image_data.id)
+        self._store_snapshot_info(
+            snapshot_name=image_data.display_name,
+            snapshot_id=image_data.id,
+            keep_snapshot=keep,
+        )
 
         return image_data.id

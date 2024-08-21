@@ -39,7 +39,7 @@ class CloudSubclass(BaseCloud):
     def launch(self, image_id, instance_type=None, user_data=None, **kwargs):
         """Skeletal launch."""
 
-    def snapshot(self, instance, clean=True, **kwargs):
+    def snapshot(self, instance, *, clean=True, keep=False, **kwargs):
         """Skeletal snapshot."""
 
     def list_keys(self):

@@ -312,12 +312,13 @@ class IBM(BaseCloud):
 
         return instance
 
-    def snapshot(self, instance: IBMInstance, clean: bool = True, **kwargs) -> str:
+    def snapshot(self, instance: IBMInstance, *, clean=True, keep=False, **kwargs) -> str:
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -347,7 +348,11 @@ class IBM(BaseCloud):
                 f"Snapshot not available after {timeout_seconds} seconds. Check IBM VPC console."
             ),
         )
-        self.created_images.append(snapshot_id)
+        self._store_snapshot_info(
+            snapshot_name=str(image_prototype["name"]),
+            snapshot_id=snapshot_id,
+            keep_snapshot=keep,
+        )
         return snapshot_id
 
     def list_keys(self) -> List[str]:

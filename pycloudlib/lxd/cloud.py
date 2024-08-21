@@ -397,7 +397,7 @@ class _BaseLXD(BaseCloud, ABC):
         subp(["lxc", "image", "delete", image_id])
         self._log.debug("Deleted %s", image_id)
 
-    def snapshot(self, instance, clean=True, name=None):
+    def snapshot(self, instance, *, clean=True, keep=False, name=None):
         """Take a snapshot of the passed in instance for use as image.
 
         :param instance: The instance to create an image from
@@ -412,7 +412,11 @@ class _BaseLXD(BaseCloud, ABC):
             instance.clean()
 
         snapshot_name = instance.snapshot(name)
-        self.created_snapshots.append(snapshot_name)
+        self._store_snapshot_info(
+            snapshot_name=snapshot_name,
+            snapshot_id=snapshot_name,
+            keep_snapshot=keep,
+        )
         return snapshot_name
 
     # pylint: disable=broad-except

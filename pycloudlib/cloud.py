@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+import dataclasses
 import enum
 import getpass
 import io
@@ -38,6 +39,14 @@ class ImageType(enum.Enum):
     PRO_FIPS = "Pro FIPS"
 
 
+@dataclasses.dataclass
+class ImageInfo:
+    """Dataclass to hold image information."""
+
+    id: str
+    name: str
+
+
 class BaseCloud(ABC):
     """Base Cloud Class."""
 
@@ -58,7 +67,8 @@ class BaseCloud(ABC):
             config_file: path to pycloudlib configuration file
         """
         self.created_instances: List[BaseInstance] = []
-        self.created_images: List[str] = []
+        self.created_images: List[ImageInfo] = []
+        self.preserved_images: List[ImageInfo] = []  # each dict will hold an id and name
 
         self._log = logging.getLogger("{}.{}".format(__name__, self.__class__.__name__))
         self._check_and_set_config(config_file, required_values)
@@ -185,12 +195,13 @@ class BaseCloud(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def snapshot(self, instance, clean=True, **kwargs):
+    def snapshot(self, instance, *, clean=True, keep=False, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -212,11 +223,18 @@ class BaseCloud(ABC):
                 instance.delete()
             except Exception as e:
                 exceptions.append(e)
-        for image_id in self.created_images:
+        for image_info in self.created_images:
             try:
-                self.delete_image(image_id)
+                self.delete_image(image_id=image_info.id)
             except Exception as e:
                 exceptions.append(e)
+        for image_info in self.preserved_images:
+            # noop - just log that we're not cleaning up these images
+            self._log.info(
+                "Preserved image %s [id:%s] is NOT being cleaned up.",
+                image_info.name,
+                image_info.id,
+            )
         return exceptions
 
     def list_keys(self):
@@ -340,3 +358,43 @@ class BaseCloud(ABC):
             private_key_path=private_key_path,
             name=self.config.get("key_name", user),
         )
+
+    def _store_snapshot_info(
+        self,
+        snapshot_id: str,
+        snapshot_name: str,
+        keep_snapshot: bool,
+    ) -> ImageInfo:
+        """
+        Save the snapshot information for later cleanup depending on the keep_snapshot arg.
+
+        Will either save the snapshot information to created_images or preserved_images depending
+        on the keep_snapshot arg. These lists are used by the BaseCloud's clean() method to
+        cleanup the snapshots when the cloud instance is cleaned up. The snapshot information
+        is also logged appropriately and in a consistent format.
+
+        :param snapshot_id: ID of the snapshot (this is used later to delete the snapshot)
+        :param snapshot_name: Name of the snapshot (this is for user reference)
+        :param keep_snapshot: Keep the snapshot after the cloud instance is cleaned up
+
+        :return: ImageInfo object with the snapshot information
+        """
+        image_info = ImageInfo(
+            id=snapshot_id,
+            name=snapshot_name,
+        )
+        if not keep_snapshot:
+            self.created_images.append(image_info)
+            self._log.info(
+                "Created temporary snapshot %s [id:%s]",
+                image_info.name,
+                image_info.id,
+            )
+        else:
+            self.preserved_images.append(image_info)
+            self._log.info(
+                "Created permanent snapshot %s [id:%s]",
+                image_info.name,
+                image_info.id,
+            )
+        return image_info
