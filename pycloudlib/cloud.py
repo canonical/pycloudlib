@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+import dataclasses
 import enum
 import getpass
 import io
@@ -8,7 +9,7 @@ import logging
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional, Sequence, Dict
 
 import paramiko
 
@@ -34,6 +35,13 @@ class ImageType(enum.Enum):
     PRO_FIPS = "Pro FIPS"
 
 
+@dataclasses.dataclass
+class ImageInfo:
+    """Dataclass to hold image information."""
+    id: str
+    name: str
+
+
 class BaseCloud(ABC):
     """Base Cloud Class."""
 
@@ -55,6 +63,7 @@ class BaseCloud(ABC):
         """
         self.created_instances: List[BaseInstance] = []
         self.created_images: List[str] = []
+        self.preserved_images: List[ImageInfo] = [] # each dict will hold an id and name
 
         self._log = logging.getLogger(
             "{}.{}".format(__name__, self.__class__.__name__)
@@ -224,6 +233,13 @@ class BaseCloud(ABC):
                 self.delete_image(image_id)
             except Exception as e:
                 exceptions.append(e)
+        for image_info in self.preserved_images:
+            # noop - just log that we're not cleaning up these images  
+            self._log.info(
+                "Preserved image %s [id:%s] is NOT being cleaned up.",
+                image_info.name,
+                image_info.id,
+            )
         return exceptions
 
     def list_keys(self):
