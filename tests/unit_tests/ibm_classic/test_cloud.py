@@ -1,6 +1,8 @@
+from typing import List
 import mock
 import pytest
 
+from pycloudlib.errors import InvalidTagNameError
 from pycloudlib.ibm_classic.cloud import IBMClassic
 from pycloudlib.ibm_classic.errors import IBMClassicException
 
@@ -91,3 +93,41 @@ def test_get_datacenter_invalid(mock_ibmclassic):
     ]
     with pytest.raises(IBMClassicException):
         mock_ibmclassic._get_datacenter("invalid")
+
+
+rule1 = "All letters must be lowercase"
+rule2 = "Must be between 1 and 63 characters long"
+rule3 = "Must not start or end with a hyphen or period"
+rule4 = "Must be alphanumeric, periods, and hyphens only"
+rule5 = "Must not contain only numbers"
+
+
+@pytest.mark.parametrize(
+    "tag, rules_failed",
+    [
+        ("tag", []),
+        ("TAG", [rule1]),
+        ("TAG-", [rule1, rule3]),
+        ("TAG.", [rule1, rule3]),
+        ("-tag_", [rule3, rule4]),
+        (".tag_", [rule3, rule4]),
+        ("-", [rule3]),
+        ("x" * 64, [rule2]),
+        ("", [rule2]),
+        ("x" * 63, []),
+        ("x", []),
+        ("t a_g", [rule4]),
+        ("123456", [rule5]),
+        ("123.456-789", []),
+    ],
+)
+def test_validate_tag(tag: str, rules_failed: List[str]):
+    if len(rules_failed) == 0:
+        # test that no exception is raised
+        IBMClassic._validate_tag(tag)
+    else:
+        with pytest.raises(InvalidTagNameError) as exc_info:
+            IBMClassic._validate_tag(tag)
+        assert tag in str(exc_info.value)
+        for rule in rules_failed:
+            assert rule in str(exc_info.value)

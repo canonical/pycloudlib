@@ -7,7 +7,6 @@ import datetime
 import logging
 import os
 import platform
-import re
 import shlex
 import subprocess
 import tempfile
@@ -323,23 +322,6 @@ def get_timestamped_tag(tag):
 
     """
     return "%s-%s" % (tag, datetime.datetime.now().strftime("%m%d-%H%M%S"))
-
-
-def validate_tag(tag):
-    """Ensure tag will work as name for clouds that use it."""
-    # Currently google is the most restrictive, so just use that
-    # regex verbatum. You can trigger the error message that contains
-    # this regex by attempting to create an instance with a name
-    # of '-'
-    regex = r"^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$"
-    if not re.match(regex, tag):
-        raise ValueError(
-            "Invalid tag specified. After being timestamped, "
-            "tag must pass regex.\n"
-            "Regex: {}\n"
-            "Tag  : {}".format(regex, tag)
-        )
-    return tag
 
 
 def update_nested(mapping, update):

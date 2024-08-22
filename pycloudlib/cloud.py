@@ -6,19 +6,19 @@ import getpass
 import io
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Sequence
 
 import paramiko
 
 from pycloudlib.config import ConfigFile, parse_config
-from pycloudlib.errors import CleanupError
+from pycloudlib.errors import CleanupError, InvalidTagNameError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.util import (
     get_timestamped_tag,
     log_exception_list,
-    validate_tag,
 )
 
 _RequiredValues = Optional[Sequence[Optional[Any]]]
@@ -71,10 +71,9 @@ class BaseCloud(ABC):
             ),
             name=self.config.get("key_name", user),
         )
-        if timestamp_suffix:
-            self.tag = validate_tag(get_timestamped_tag(tag))
-        else:
-            self.tag = validate_tag(tag)
+
+        self.tag = get_timestamped_tag(tag) if timestamp_suffix else tag
+        self._validate_tag(self.tag)
 
     def __enter__(self):
         """Enter context manager for this class."""
@@ -285,3 +284,35 @@ class BaseCloud(ABC):
             self.config = {}
         else:
             self.config = parse_config(config_file)[self._type]
+
+    @staticmethod
+    def _validate_tag(tag: str):
+        """
+        Ensure that this tag is a valid name for cloud resources.
+
+        Rules:
+        - All letters must be lowercase
+        - Must be between 1 and 63 characters long
+        - Must not start or end with a hyphen
+        - Must be alphanumeric and hyphens only
+
+        :param tag: tag to validate
+
+        :raises InvalidTagNameError: if the tag is invalid
+        """
+        rules_failed = []
+        # all letters must be lowercase
+        if any(c.isupper() for c in tag):
+            rules_failed.append("All letters must be lowercase")
+        # must be between 1 and 63 characters long
+        if len(tag) < 1 or len(tag) > 63:
+            rules_failed.append("Must be between 1 and 63 characters long")
+        # must not start or end with a hyphen
+        if tag and (tag[0] in ("-") or tag[-1] in ("-")):
+            rules_failed.append("Must not start or end with a hyphen")
+        # must be alphanumeric and hyphens only
+        if not re.match(r"^[a-z0-9-]*$", tag):
+            rules_failed.append("Must be alphanumeric and hyphens only")
+
+        if rules_failed:
+            raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)

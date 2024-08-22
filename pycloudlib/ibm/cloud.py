@@ -2,6 +2,7 @@
 """IBM Cloud type."""
 
 import itertools
+import re
 from typing import List, Optional
 
 from ibm_cloud_sdk_core import ApiException
@@ -12,6 +13,7 @@ from ibm_vpc.vpc_v1 import Image, ListImagesEnums
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
+from pycloudlib.errors import InvalidTagNameError
 from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
@@ -502,3 +504,41 @@ class IBM(BaseCloud):
             except Exception as e:
                 exceptions.append(e)
         return exceptions
+
+    @staticmethod
+    def _validate_tag(tag: str):
+        """
+        Ensure that this tag is a valid name for cloud resources.
+
+        Rules:
+        - All letters must be lowercase
+        - Must be between 1 and 63 characters long
+        - Must not start or end with a hyphen
+        - Must be alphanumeric and hyphens only
+        - Must start with a letter
+
+        :param tag: tag to validate
+
+        :return: tag if it is valid
+
+        :raises InvalidTagNameError: if the tag is invalid
+        """
+        rules_failed = []
+        # all letters must be lowercase
+        if any(c.isupper() for c in tag):
+            rules_failed.append("All letters must be lowercase")
+        # must be between 1 and 63 characters long
+        if len(tag) < 1 or len(tag) > 63:
+            rules_failed.append("Must be between 1 and 63 characters long")
+        # must not start or end with a hyphen
+        if tag and (tag[0] in ("-") or tag[-1] in ("-")):
+            rules_failed.append("Must not start or end with a hyphen")
+        # must be alphanumeric and hyphens only
+        if not re.match(r"^[a-z0-9-]*$", tag):
+            rules_failed.append("Must be alphanumeric and hyphens only")
+        # must start with a letter
+        if tag and not tag[0].isalpha():
+            rules_failed.append("Must start with a letter")
+
+        if rules_failed:
+            raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
