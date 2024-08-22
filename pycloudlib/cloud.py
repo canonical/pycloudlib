@@ -71,7 +71,7 @@ class BaseCloud(ABC):
             ),
             name=self.config.get("key_name", user),
         )
-        
+
         self.tag = get_timestamped_tag(tag) if timestamp_suffix else tag
         self._validate_tag(self.tag)
 
