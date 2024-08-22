@@ -580,7 +580,7 @@ class IBMInstance(BaseInstance):
     def attach_floating_ip(
         self,
         floating_ip_substring: Optional[str],
-    ) -> Optional[dict]:
+    ) -> Optional[str]:
         """
         Attach a floating IP to this instance.
 
@@ -590,10 +590,10 @@ class IBMInstance(BaseInstance):
 
         Args:
             floating_ip_substring: optional substring to find existing floating IPs by.
-                If not given, ta new floating IP will be created and attached.
+                If not given, a new floating IP will be created and attached.
 
         Returns:
-            A floating IP dict if successful, None otherwise
+            ID of the floating IP attached if successful, otherwise None
 
         Raises:
             IBMException: If failed to attach floating IP to instance
@@ -614,7 +614,7 @@ class IBMInstance(BaseInstance):
             else:
                 raise IBMException("Failed to attach floating ip to instance.")
 
-        return self._discover_floating_ip(self._client, self._instance)
+        return self._floating_ip_id
 
     def _attach_floating_ip(self, floating_ip: dict) -> bool:
         """
@@ -651,6 +651,9 @@ class IBMInstance(BaseInstance):
 
         Returns:
             A floating IP dict
+
+        Raises:
+            IBMException: If failed to attach floating IP after 10 tries
         """
         attached_floating_ip = None
         self._log.info(
@@ -658,7 +661,10 @@ class IBMInstance(BaseInstance):
             "until successful or all floating ips are in use.",
             floating_ip_substring,
         )
+
+        tries = 0
         while attached_floating_ip is None:
+            tries += 1
             target_floating_ip = self._choose_from_existing_floating_ips(
                 name_includes=floating_ip_substring,
             )
@@ -671,6 +677,10 @@ class IBMInstance(BaseInstance):
                 self._log.info(
                     "Failed to attach floating ip: %s. Will try again.",
                     target_floating_ip["name"],
+                )
+            if tries == 10:
+                raise IBMException(
+                    "Unexpectedly failed to attach floating ip after 10 tries."
                 )
         self._log.info(
             "Successfully attached floating ip: %s",
