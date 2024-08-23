@@ -2,6 +2,6 @@
 OCI
 ===
 
-.. literalinclude:: ../../examples/oci.py
+.. literalinclude:: ../../examples/oracle.py
    :language: python
    :linenos:

@@ -832,7 +832,7 @@ class Azure(BaseCloud):
                     the VM, defaults to None i.e. use Azure's default.
             kwargs:
                 - vm_params: dict to override configuration for
-                virtual_machines.begin_create_or_update
+                  virtual_machines.begin_create_or_update
                 - security_type_params: dict to configure security_types
 
         Returns:

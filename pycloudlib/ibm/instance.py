@@ -594,7 +594,7 @@ class IBMInstance(BaseInstance):
             ID of the floating IP attached if successful, otherwise None
 
         Raises:
-            IBMException: If failed to attach floating IP to instance
+            pycloudlib.ibm.errors.IBMException: If failed to attach floating IP to instance
             IBMCapacityException: If all floating IPs matching the substring are already in use
         """
         if floating_ip_substring:
