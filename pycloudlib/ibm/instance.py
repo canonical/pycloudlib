@@ -566,10 +566,8 @@ class IBMInstance(BaseInstance):
                 f"All floating IPs matching substring {name_includes}",
                 "are already in use.",
             )
-
         # pick random floating ip to help reduce contention
         floating_ip = random.choice(floating_ips)
-
         self._log.info(
             "Found existing floating ip '%s' with address %s",
             floating_ip["name"],
@@ -613,7 +611,6 @@ class IBMInstance(BaseInstance):
                 self._log.info("Successfully attached floating ip.")
             else:
                 raise IBMException("Failed to attach floating ip to instance.")
-
         return self._floating_ip_id
 
     def _attach_floating_ip(self, floating_ip: dict) -> bool:
