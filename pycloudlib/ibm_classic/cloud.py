@@ -216,17 +216,17 @@ class IBMClassic(BaseCloud):
         Args:
             name: name of the instance
             image_id: image ID to use for the instance. Can accept
-            either an ID or a GID.
+              either an ID or a GID.
             instance_type: type of instance to create. This value is
             combined with the disk_size to create the instance flavor. For
             example, B1_2X4 with disk_size of 25G would result in "B1_2X4X25".
             user_data: cloud-init user data to pass to the instance
             datacenter_region: region to launch the instance in.
-            This will automatically select a datacenter in the region if
-            "datacenter" is not provided.
+              This will automatically select a datacenter in the region if
+              "datacenter" is not provided.
             datacenter: datacenter to launch the instance in. If not
-            provided, "datacenter_region" will be used. If both are provided,
-            "datacenter" will be used.
+              provided, "datacenter_region" will be used. If both are provided,
+              "datacenter" will be used.
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:
