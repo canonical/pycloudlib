@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Install dependencies
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
         uses: actions/checkout@v3
       - name: Run tox
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -q
-          sudo apt-get install -qqy distro-info tox
+          sudo apt-get install -qy distro-info tox
           sudo snap install lxd
       - name: Initialize LXD
         run: |
