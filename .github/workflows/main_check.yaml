@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -q
-          sudo apt-get install -qqy distro-info tox
+          sudo apt-get install -qy distro-info tox
           sudo apt-get remove --yes --purge azure-cli
       - name: Initialize Pycloudlib
         env:
