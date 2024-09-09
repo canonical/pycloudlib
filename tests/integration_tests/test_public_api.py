@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 import pycloudlib
-from pycloudlib.cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 
@@ -137,3 +137,38 @@ def test_public_api(cloud: BaseCloud):
         "Unable to find daily development image for "
         f"{cloud._type}:{latest_devel_release}"
     )
+    print(f"Checking latest minimal daily devel image: {latest_devel_release}")
+
+    if isinstance(cloud, pycloudlib.LXDContainer):
+        print(f"Checking latest daily minimal image: {latest_devel_release}")
+
+
+@pytest.mark.parametrize(
+    "cloud",
+    [
+        pytest.param(pycloudlib.EC2, id="ec2", marks=pytest.mark.main_check),
+        pytest.param(pycloudlib.GCE, id="gce", marks=pytest.mark.main_check),
+        pytest.param(
+            pycloudlib.LXDContainer, id="lxd_container", marks=pytest.mark.ci
+        ),
+        pytest.param(pycloudlib.LXDVirtualMachine, id="lxd_vm"),
+    ],
+    indirect=True,
+)
+def test_public_api_mininal_images(cloud: BaseCloud):
+    latest_lts = LTS_RELEASES[-1]
+    print(
+        f"Checking latest {cloud.__class__.__name__} daily minimal image: "
+        f"{latest_lts}"
+    )
+    released_minimal_image_id = cloud.daily_image(
+        release=latest_lts, image_type=ImageType.MINIMAL
+    )
+    with cloud.launch(image_id=released_minimal_image_id) as instance:
+        instance.wait()
+        assert "status: done" == instance.execute("cloud-init status").stdout
+        assert (
+            "minimal"
+            in instance.execute("grep build_name /etc/cloud/build.info").stdout
+        )
+        instance.delete()

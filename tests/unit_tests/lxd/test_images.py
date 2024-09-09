@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 
+from pycloudlib.cloud import ImageType
 from pycloudlib.lxd import _images
 
 M_PATH = "pycloudlib.lxd._images."
@@ -115,54 +116,113 @@ class TestImages:  # pylint: disable=W0212
         assert [] == m_subp.call_args_list
 
     @pytest.mark.parametrize(
-        ["images", "n_find_images_calls", "is_container", "expected_output"],
+        [
+            "images",
+            "n_find_images_calls",
+            "is_container",
+            "daily",
+            "is_minimal",
+            "expected_label",
+            "expected_output",
+        ],
         (
             (
                 [{"fingerprint": "asdf", "type": "container"}],
                 1,
                 True,
+                True,
+                False,
+                "daily",
                 "ubuntu-daily:asdf",
             ),
             (
                 [{"fingerprint": "asdf", "type": "squashfs"}],
                 2,
                 True,
+                True,
+                False,
+                "daily",
                 "ubuntu-daily:asdf",
             ),
             (
                 [{"fingerprint": "asdf", "type": "unknown"}],
                 2,
                 True,
+                True,
+                False,
+                "daily",
                 None,
             ),
             (
                 [{"fingerprint": "asdf", "type": "virtual-machine"}],
                 1,
                 False,
+                True,
+                False,
+                "daily",
                 "ubuntu-daily:asdf",
             ),
             (
                 [{"fingerprint": "asdf", "type": "disk-kvm.img"}],
                 2,
                 False,
+                True,
+                False,
+                "daily",
                 "ubuntu-daily:asdf",
             ),
             (
                 [{"fingerprint": "asdf", "type": "disk1.img"}],
                 3,
                 False,
+                True,
+                False,
+                "daily",
                 "ubuntu-daily:asdf",
             ),
             (
                 [{"fingerprint": "asdf", "type": "uefi1.img"}],
                 4,
                 False,
+                True,
+                False,
+                "daily",
                 "ubuntu-daily:asdf",
+            ),
+            (
+                [{"fingerprint": "asdf", "type": "uefi1.img"}],
+                4,
+                False,
+                False,
+                False,
+                "release",
+                "ubuntu:asdf",
+            ),
+            (
+                [{"fingerprint": "asdf", "type": "uefi1.img"}],
+                4,
+                False,
+                True,
+                True,
+                "minimal daily",
+                "ubuntu-minimal-daily:asdf",
+            ),
+            (
+                [{"fingerprint": "asdf", "type": "uefi1.img"}],
+                4,
+                False,
+                False,
+                True,
+                "minimal release",
+                "ubuntu-minimal:asdf",
             ),
             (
                 [{"fingerprint": "asdf", "type": "unknown"}],
                 4,
                 False,
+                True,
+                False,
+                "daily",
                 None,
             ),
         ),
@@ -174,7 +234,10 @@ class TestImages:  # pylint: disable=W0212
         m_subp,
         images,
         n_find_images_calls,
+        daily,
         is_container,
+        is_minimal,
+        expected_label,
         expected_output,
     ):
         """Test find_last_fingerprint method."""
@@ -188,10 +251,16 @@ class TestImages:  # pylint: disable=W0212
 
         m_find_images.side_effect = find_images
 
-        daily = True
         release = "bionic"
         arch = "amd64"
-        expected_remote = "ubuntu-daily:"
+        if is_minimal:
+            find_fingerprint_kwargs = {"image_type": ImageType.MINIMAL}
+            expected_remote = (
+                "ubuntu-minimal-daily:" if daily else "ubuntu-minimal:"
+            )
+        else:
+            find_fingerprint_kwargs = {}
+            expected_remote = "ubuntu-daily:" if daily else "ubuntu:"
 
         expected_find_images_calls = [
             mock.call(
@@ -199,7 +268,7 @@ class TestImages:  # pylint: disable=W0212
                 (
                     ("architecture", arch),
                     ("release", release),
-                    ("label", "daily"),
+                    ("label", expected_label),
                     (
                         "type",
                         "container" if is_container else "virtual-machine",
@@ -215,7 +284,7 @@ class TestImages:  # pylint: disable=W0212
                         (
                             ("architecture", arch),
                             ("release", release),
-                            ("label", "daily"),
+                            ("label", expected_label),
                             ("type", "squashfs"),
                         ),
                     )
@@ -228,7 +297,7 @@ class TestImages:  # pylint: disable=W0212
                         (
                             ("architecture", arch),
                             ("release", release),
-                            ("label", "daily"),
+                            ("label", expected_label),
                             ("type", "disk-kvm.img"),
                         ),
                     )
@@ -240,7 +309,7 @@ class TestImages:  # pylint: disable=W0212
                         (
                             ("architecture", arch),
                             ("release", release),
-                            ("label", "daily"),
+                            ("label", expected_label),
                             ("type", "disk1.img"),
                         ),
                     )
@@ -252,14 +321,14 @@ class TestImages:  # pylint: disable=W0212
                         (
                             ("architecture", arch),
                             ("release", release),
-                            ("label", "daily"),
+                            ("label", expected_label),
                             ("type", "uefi1.img"),
                         ),
                     )
                 )
 
         assert expected_output == _images.find_last_fingerprint(
-            daily, release, is_container, arch
+            daily, release, is_container, arch, **find_fingerprint_kwargs
         )
         assert expected_find_images_calls == m_find_images.call_args_list
         assert [] == m_subp.call_args_list
