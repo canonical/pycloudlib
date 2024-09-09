@@ -6,8 +6,9 @@ import logging
 import textwrap
 
 import pycloudlib
+from pycloudlib.cloud import ImageType
 
-RELEASE = "bionic"
+RELEASE = "noble"
 
 
 def snapshot_instance():
@@ -98,12 +99,17 @@ def launch_multiple():
     lxd = pycloudlib.LXDContainer("example-multiple")
 
     instances = []
-    for num in range(3):
+    for num in range(2):
         inst = lxd.launch(name="pycloudlib-%s" % num, image_id=RELEASE)
         instances.append(inst)
 
     for instance in instances:
         instance.wait()
+
+    # Launch daily minimal images
+    image_id = lxd.daily_image(release=RELEASE, image_type=ImageType.MINIMAL)
+    inst = lxd.launch(name="pycloudlib-minimal", image_id=image_id)
+    instances.append(inst)
 
     for instance in instances:
         instance.delete()

@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import yaml
 
-from pycloudlib.cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 from pycloudlib.lxd import _images
 from pycloudlib.lxd.defaults import base_vm_profiles
@@ -329,27 +329,43 @@ class _BaseLXD(BaseCloud, ABC):
 
         return instance
 
-    def released_image(self, release, arch=LOCAL_UBUNTU_ARCH):
+    def released_image(
+        self,
+        release,
+        arch=LOCAL_UBUNTU_ARCH,
+        *,
+        image_type: ImageType = ImageType.GENERIC,
+        **kwargs,
+    ):
         """Find the LXD fingerprint of the latest released image.
 
         Args:
             release: string, Ubuntu release to look for
             arch: string, architecture to use
+            image_type: image type to use: For example GENERIC or MINIMAL.
 
         Returns:
             string, LXD fingerprint of latest image
 
         """
-        self._log.debug("finding released Ubuntu image for %s", release)
+        self._log.debug(
+            "finding released Ubuntu image [%s] for %s", image_type, release
+        )
         return _images.find_last_fingerprint(
             daily=False,
             release=release,
             arch=arch,
             is_container=self._is_container,
+            image_type=image_type,
         )
 
     def daily_image(
-        self, release: str, arch: str = LOCAL_UBUNTU_ARCH, **kwargs
+        self,
+        release: str,
+        arch: str = LOCAL_UBUNTU_ARCH,
+        *,
+        image_type: ImageType = ImageType.GENERIC,
+        **kwargs,
     ):
         """Find the LXD fingerprint of the latest daily image.
 
@@ -361,12 +377,15 @@ class _BaseLXD(BaseCloud, ABC):
             string, LXD fingerprint of latest image
 
         """
-        self._log.debug("finding daily Ubuntu image for %s", release)
+        self._log.debug(
+            "finding daily Ubuntu image [%s] for %s", image_type, release
+        )
         return _images.find_last_fingerprint(
             daily=True,
             release=release,
             arch=arch,
             is_container=self._is_container,
+            image_type=image_type,
         )
 
     def image_serial(self, image_id):

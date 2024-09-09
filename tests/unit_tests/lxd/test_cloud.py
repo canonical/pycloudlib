@@ -6,7 +6,8 @@ from unittest import mock
 
 import pytest
 
-from pycloudlib.lxd.cloud import LXDContainer
+from pycloudlib.cloud import ImageType
+from pycloudlib.lxd.cloud import LXDContainer, LXDVirtualMachine
 
 M_PATH = "pycloudlib.lxd.cloud."
 
@@ -148,3 +149,121 @@ class TestProfileCreation:
                 ["lxc", "profile", "edit", profile_name], data=profile_config
             ),
         ]
+
+
+class TestReleaseImage:
+    @pytest.mark.parametrize(
+        "cloud_cls,release,arch,image_type,expected_kwargs",
+        (
+            (
+                (
+                    LXDContainer,
+                    "bionic",
+                    None,
+                    None,
+                    {
+                        "daily": False,
+                        "release": "bionic",
+                        "arch": "amd64",
+                        "image_type": ImageType.GENERIC,
+                        "is_container": True,
+                    },
+                ),
+                (
+                    LXDVirtualMachine,
+                    "jammy",
+                    "powerpc",
+                    ImageType.MINIMAL,
+                    {
+                        "daily": False,
+                        "release": "jammy",
+                        "arch": "powerpc",
+                        "image_type": ImageType.MINIMAL,
+                        "is_container": False,
+                    },
+                ),
+            )
+        ),
+    )
+    @mock.patch(M_PATH + "_images.find_last_fingerprint")
+    def test_release_image(
+        self,
+        find_last_fingerprint,
+        cloud_cls,
+        release,
+        arch,
+        image_type,
+        expected_kwargs,
+        caplog,
+    ):
+        """release_image only searches released image fingerprints."""
+        find_last_fingerprint.return_value = "1234"
+        kwargs = {
+            "release": release,
+        }
+        if arch:
+            kwargs["arch"] = arch
+        if image_type:
+            kwargs["image_type"] = image_type
+        cloud = cloud_cls(tag="test", config_file=io.StringIO(CONFIG))
+        assert "1234" == cloud.released_image(**kwargs)
+        find_last_fingerprint.assert_called_once_with(**expected_kwargs)
+
+
+class TestDailyImage:
+    @pytest.mark.parametrize(
+        "cloud_cls,release,arch,image_type,expected_kwargs",
+        (
+            (
+                (
+                    LXDContainer,
+                    "bionic",
+                    None,
+                    None,
+                    {
+                        "daily": True,
+                        "release": "bionic",
+                        "arch": "amd64",
+                        "image_type": ImageType.GENERIC,
+                        "is_container": True,
+                    },
+                ),
+                (
+                    LXDVirtualMachine,
+                    "jammy",
+                    "powerpc",
+                    ImageType.MINIMAL,
+                    {
+                        "daily": True,
+                        "release": "jammy",
+                        "arch": "powerpc",
+                        "image_type": ImageType.MINIMAL,
+                        "is_container": False,
+                    },
+                ),
+            )
+        ),
+    )
+    @mock.patch(M_PATH + "_images.find_last_fingerprint")
+    def test_release_image(
+        self,
+        find_last_fingerprint,
+        cloud_cls,
+        release,
+        arch,
+        image_type,
+        expected_kwargs,
+        caplog,
+    ):
+        """release_image only searches released image fingerprints."""
+        find_last_fingerprint.return_value = "1234"
+        kwargs = {
+            "release": release,
+        }
+        if arch:
+            kwargs["arch"] = arch
+        if image_type:
+            kwargs["image_type"] = image_type
+        cloud = cloud_cls(tag="test", config_file=io.StringIO(CONFIG))
+        assert "1234" == cloud.daily_image(**kwargs)
+        find_last_fingerprint.assert_called_once_with(**expected_kwargs)

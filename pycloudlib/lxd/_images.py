@@ -6,10 +6,13 @@ import json
 import logging
 from typing import Any, List, Optional, Sequence, Tuple
 
+from pycloudlib.cloud import ImageType
 from pycloudlib.util import subp
 
 _REMOTE_DAILY = "ubuntu-daily"
 _REMOTE_RELEASE = "ubuntu"
+_REMOTE_DAILY_MINIMAL = "ubuntu-minimal-daily"
+_REMOTE_RELEASE_MINIMAL = "ubuntu-minimal"
 log = logging.getLogger(__name__)
 
 
@@ -18,6 +21,7 @@ def find_last_fingerprint(
     release: str,
     is_container: bool,
     arch: str,
+    image_type: ImageType = ImageType.GENERIC,
 ) -> Optional[str]:
     """Find last LXD image fingerprint.
 
@@ -30,12 +34,17 @@ def find_last_fingerprint(
     Returns:
         string, LXD fingerprint of latest image if found
     """
-    remote = _REMOTE_DAILY if daily else _REMOTE_RELEASE
+    label = "daily" if daily else "release"
+    if image_type == ImageType.MINIMAL:
+        remote = _REMOTE_DAILY_MINIMAL if daily else _REMOTE_RELEASE_MINIMAL
+        label = f"minimal {label}"
+    else:
+        remote = _REMOTE_DAILY if daily else _REMOTE_RELEASE
     remote += ":"
     base_filters = (
         ("architecture", arch),
         ("release", release),
-        ("label", "daily" if daily else "release"),
+        ("label", label),
     )
     filters = (
         *base_filters,
