@@ -681,7 +681,7 @@ class IBMInstance(BaseInstance):
                 )
         self._log.info(
             "Successfully attached floating ip: %s",
-            attached_floating_ip["name"],
+            self._floating_ip["name"],
         )
 
     @classmethod
