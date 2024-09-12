@@ -42,7 +42,7 @@ def launch_basic(ibm: IBM, daily, instance_type):
     with ibm.launch(
         daily,
         instance_type=instance_type,
-        use_existing_floating_ip_with_name="default-floating-ip",
+        floating_ip_substring="default-floating-ip",
     ) as instance:
         instance.wait()
         print(instance.execute("lsb_release -a"))
