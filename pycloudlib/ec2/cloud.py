@@ -138,14 +138,17 @@ class EC2(BaseCloud):
         self, release: str, image_type: ImageType, daily: bool
     ):
         disk_type = "hvm-ssd" if release in NO_GP3_RELEASES else "hvm-ssd-gp3"
-        if image_type == ImageType.GENERIC:
-            base_location = "ubuntu/{image_type}/{disk_type}".format(
-                image_type="images-testing" if daily else "images",
+        if image_type in (ImageType.GENERIC, ImageType.MINIMAL):
+            base_location = "ubuntu/{images_path}/{disk_type}".format(
+                images_path="images-testing" if daily else "images",
                 disk_type=disk_type,
             )
             if release in LTS_RELEASES:
-                return "{}/ubuntu-{}{}-*-server-*".format(
-                    base_location, release, "-daily" if daily else ""
+                return "{}/ubuntu-{}{}-*-server{}-*".format(
+                    base_location,
+                    release,
+                    "-daily" if daily else "",
+                    "-minimal" if image_type == ImageType.MINIMAL else "",
                 )
 
             return "{}/ubuntu-{}{}-*".format(
@@ -170,7 +173,8 @@ class EC2(BaseCloud):
     def _get_owner(self, image_type: ImageType):
         return (
             "099720109477"
-            if image_type in (ImageType.GENERIC, ImageType.PRO)
+            if image_type
+            in (ImageType.GENERIC, ImageType.MINIMAL, ImageType.PRO)
             else "aws-marketplace"
         )
 
