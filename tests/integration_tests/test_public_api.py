@@ -155,7 +155,7 @@ def test_public_api(cloud: BaseCloud):
     ],
     indirect=True,
 )
-def test_public_api_mininal_images(cloud: BaseCloud):
+def test_public_api_minimal_images(cloud: BaseCloud):
     latest_lts = LTS_RELEASES[-1]
     print(
         f"Checking latest {cloud.__class__.__name__} daily minimal image: "

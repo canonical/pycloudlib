@@ -139,13 +139,18 @@ class GCE(BaseCloud):
     def _get_project(self, image_type: ImageType):
         return (
             "ubuntu-os-cloud-devel"
-            if image_type == ImageType.GENERIC
+            if image_type in (ImageType.GENERIC, ImageType.MINIMAL)
             else "ubuntu-os-pro-cloud"
         )
 
     def _get_name_filter(self, release: str, image_type: ImageType):
         if image_type == ImageType.GENERIC:
             return "daily-ubuntu-{}-{}-*".format(
+                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+            )
+
+        if image_type == ImageType.MINIMAL:
+            return "daily-ubuntu-minimal-{}-{}-*".format(
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )
 

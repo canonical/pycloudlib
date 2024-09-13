@@ -91,7 +91,7 @@ class TestGCE:
         expected_filter_calls,
         expected_image_list,
     ):
-        gce = FakeGCE(tag="tag")
+        gce = FakeGCE()
         with mock.patch.object(gce, "compute") as m_compute:
             m_execute = mock.MagicMock(
                 name="m_execute", side_effect=api_side_effects
@@ -142,7 +142,7 @@ class TestGCE:
         m_get_name_filter,
         m_query_image_list,
     ):
-        gce = FakeGCE(tag="tag")
+        gce = FakeGCE()
         image = gce.daily_image(
             "jammy", arch="x86_64", image_type=ImageType.GENERIC
         )
@@ -156,3 +156,34 @@ class TestGCE:
             mock.call("jammy", "project-name", "name-filter", "x86_64")
         ]
         assert image == "projects/project-name/global/images/4"
+
+    @pytest.mark.parametrize(
+        ["release", "image_type", "expected_name_filter"],
+        [
+            pytest.param(
+                "jammy",
+                ImageType.GENERIC,
+                "daily-ubuntu-2204-jammy-*",
+            ),
+            pytest.param(
+                "noble",
+                ImageType.MINIMAL,
+                "daily-ubuntu-minimal-2404-noble-*",
+            ),
+            pytest.param(
+                "focal",
+                ImageType.PRO,
+                "ubuntu-pro-2004-focal-*",
+            ),
+            pytest.param(
+                "focal",
+                ImageType.PRO_FIPS,
+                "ubuntu-pro-fips-2004-focal-*",
+            ),
+        ],
+    )
+    def test_get_name_filter(self, release, image_type, expected_name_filter):
+        gce = FakeGCE()
+        assert (
+            gce._get_name_filter(release, image_type) == expected_name_filter
+        )
