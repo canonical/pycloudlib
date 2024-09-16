@@ -53,6 +53,50 @@ def gce(request, common_mocks, tmpdir):
 class TestGCE:
     """General GCE testing."""
 
+    @pytest.mark.parametrize(
+        "toml_content,expected",
+        (
+            (
+                "[gce]\nservice_account_email = 'toml@mail.com'\n",
+                "toml@mail.com",
+            ),
+            ("[gce]\n", "service-acct@mail.com"),
+        ),
+    )
+    def test_init_config_parsing_service_account_email(
+        self, toml_content, expected, common_mocks, tmpdir
+    ):
+        """
+        service_account_email comes from pycloudlib.toml fallback config_file.
+        """
+        cfg_file = tmpdir.join("pyproject.toml")
+        cfg_file.write(toml_content)
+        gce = GCE(tag="pycl-tag", config_file=cfg_file.strpath)
+        assert expected == gce.service_account_email
+
+    @pytest.mark.parametrize(
+        "environ,cred_path,project",
+        [
+            ({}, "", "my-project"),
+            (
+                {"GOOGLE_APPLICATION_CREDENTIALS": "other-file"},
+                "other-file",
+                "my-project",
+            ),
+            ({"GOOGLE_CLOUD_PROJECT": "env-project"}, "", "env-project"),
+        ],
+    )
+    def test_init_config_parsing_from_environment(
+        self, environ, cred_path, project, common_mocks, tmpdir
+    ):
+        with mock.patch.dict("os.environ", values=environ):
+            gce = GCE(
+                tag="pycl-tag",
+                config_file=tmpdir.join("pyproject.toml").strpath,
+            )
+        assert cred_path == gce.credentials_path
+        assert project == gce.project
+
     @pytest.mark.parametrize("gce", [{}], indirect=True)
     @pytest.mark.parametrize(
         [
