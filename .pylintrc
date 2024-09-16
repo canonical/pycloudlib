@@ -16,5 +16,4 @@ jobs=4
 disable=R0902, R0903, R0913, W0221, C0103, C0122, C0301, R0201, C0209, R0801
 
 [TYPECHECK]
-# Ignore the googleapiclient module to avoid no-member checks
-ignored-modules=googleapiclient.discovery
+# Add typechecking rules here

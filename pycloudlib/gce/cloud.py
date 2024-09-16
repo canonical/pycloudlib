@@ -12,7 +12,9 @@ import time
 from itertools import count
 from typing import Any, MutableMapping, Optional
 
-import googleapiclient.discovery
+from google.api_core.exceptions import GoogleAPICallError
+from google.api_core.extended_operation import ExtendedOperation
+from google.cloud import compute_v1
 
 from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
@@ -25,7 +27,7 @@ from pycloudlib.gce.instance import GceInstance
 from pycloudlib.gce.util import get_credentials, raise_on_error
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
-logging.getLogger("googleapiclient.discovery").setLevel(logging.WARNING)
+logging.getLogger("google.cloud").setLevel(logging.WARNING)
 
 
 class GCE(BaseCloud):
@@ -104,13 +106,16 @@ class GCE(BaseCloud):
                     raise CloudSetupError(exception_text)
                 project = result.stdout
 
-        # disable cache_discovery due to:
-        # https://github.com/google/google-api-python-client/issues/299
-        self.compute = googleapiclient.discovery.build(
-            "compute",
-            "v1",
-            cache_discovery=False,
-            credentials=credentials,
+        self._images_client = compute_v1.ImagesClient(credentials=credentials)
+        self._disks_client = compute_v1.DisksClient(credentials=credentials)
+        self._instances_client = compute_v1.InstancesClient(
+            credentials=credentials
+        )
+        self._zone_operations_client = compute_v1.ZoneOperationsClient(
+            credentials=credentials
+        )
+        self._global_operations_client = compute_v1.GlobalOperationsClient(
+            credentials=credentials
         )
         region = region or self.config.get("region") or "us-west2"
         zone = zone or self.config.get("zone") or "a"
@@ -214,19 +219,23 @@ class GCE(BaseCloud):
         page_token = ""
         reqs = 0
         while page_token is not None:
-            image_list_result = (
-                self.compute.images()
-                .list(
+            try:
+                image_list_request = compute_v1.ListImagesRequest(
                     project=project,
                     filter=filter_string,
-                    maxResults=500,
-                    pageToken=page_token,
+                    max_results=500,
+                    page_token=page_token,
                 )
-                .execute()
-            )
+                image_list_result = self._images_client.list(
+                    image_list_request
+                )
+            except GoogleAPICallError as e:
+                raise_on_error(e)
             reqs += 1
-            image_list += image_list_result.get("items", [])
-            page_token = image_list_result.get("nextPageToken", None)
+            image_list += image_list_result.items
+            page_token = image_list_result.next_page_token
+            if page_token == "":
+                break
 
         self._log.debug(
             (
@@ -284,13 +293,13 @@ class GCE(BaseCloud):
                 image_type=image_type.value, arch=arch, release=release
             )
 
-        image = sorted(image_list, key=lambda x: x["creationTimestamp"])[-1]
+        image = sorted(image_list, key=lambda x: x.creation_timestamp)[-1]
         self._log.debug(
             'Found image name "%s" for arch "%s"',
-            image["name"],
+            image.name,
             arch,
         )
-        return "projects/{}/global/images/{}".format(project, image["id"])
+        return "projects/{}/global/images/{}".format(project, image.id)
 
     def image_serial(self, image_id):
         """Find the image serial of the latest daily image for a particular release.
@@ -311,25 +320,27 @@ class GCE(BaseCloud):
             image_id: string, id of the image to delete
         """
         try:
-            api_image_id = (
-                self.compute.images()
-                .get(project=self.project, image=os.path.basename(image_id))
-                .execute()["id"]
+            images_get_request = compute_v1.GetImageRequest(
+                project=self.project,
+                image=os.path.basename(image_id),
             )
-        except googleapiclient.errors.HttpError as e:
+            api_image_id = str(self._images_client.get(images_get_request).id)
+        except GoogleAPICallError as e:
             if "was not found" not in str(e):
                 raise
             return
-        response = (
-            self.compute.images()
-            .delete(
+
+        try:
+            delete_image_request = compute_v1.DeleteImageRequest(
                 project=self.project,
                 image=api_image_id,
             )
-            .execute()
-        )
-
-        raise_on_error(response)
+            operation: ExtendedOperation = self._images_client.delete(
+                delete_image_request
+            )
+            raise_on_error(operation)
+        except GoogleAPICallError as e:
+            raise_on_error(e)
 
     def get_instance(
         self,
@@ -386,22 +397,22 @@ class GCE(BaseCloud):
         instance_name = "i{}-{}".format(next(self.instance_counter), self.tag)
         config: MutableMapping[str, Any] = {
             "name": instance_name,
-            "machineType": "zones/%s/machineTypes/%s"
+            "machine_type": "zones/%s/machineTypes/%s"
             % (self.zone, instance_type),
             "disks": [
                 {
                     "boot": True,
-                    "autoDelete": True,
-                    "initializeParams": {
-                        "sourceImage": image_id,
+                    "auto_delete": True,
+                    "initialize_params": {
+                        "source_image": image_id,
                     },
                 }
             ],
-            "networkInterfaces": [
+            "network_interfaces": [
                 {
                     "network": "global/networks/default",
-                    "accessConfigs": [
-                        {"type": "ONE_TO_ONE_NAT", "name": "External NAT"}
+                    "access_configs": [
+                        {"type_": "ONE_TO_ONE_NAT", "name": "External NAT"}
                     ],
                 }
             ],
@@ -425,26 +436,31 @@ class GCE(BaseCloud):
             user_metadata = {"key": "user-data", "value": user_data}
             config["metadata"]["items"].append(user_metadata)
 
-        operation = (
-            self.compute.instances()
-            .insert(project=self.project, zone=self.zone, body=config)
-            .execute()
-        )
-        raise_on_error(operation)
+        try:
+            insert_instance_request = compute_v1.InsertInstanceRequest(
+                project=self.project,
+                zone=self.zone,
+                instance_resource=config,
+            )
+            operation: ExtendedOperation = self._instances_client.insert(
+                insert_instance_request
+            )
+            raise_on_error(operation)
+        except GoogleAPICallError as e:
+            raise_on_error(e)
 
-        result = (
-            self.compute.instances()
-            .get(
+        try:
+            instance_get_request = compute_v1.GetInstanceRequest(
                 project=self.project,
                 zone=self.zone,
                 instance=instance_name,
             )
-            .execute()
-        )
-        raise_on_error(result)
+            result = self._instances_client.get(instance_get_request)
+        except GoogleAPICallError as e:
+            raise_on_error(e)
 
         instance = self.get_instance(
-            result["id"], name=result["name"], username=username
+            result.id, name=result.name, username=username
         )
         self.created_instances.append(instance)
         return instance
@@ -459,14 +475,17 @@ class GCE(BaseCloud):
         Returns:
             An image id
         """
-        response = (
-            self.compute.disks()
-            .list(project=self.project, zone=self.zone)
-            .execute()
-        )
+        try:
+            list_disks_request = compute_v1.ListDisksRequest(
+                project=self.project,
+                zone=self.zone,
+            )
+            response = self._disks_client.list(list_disks_request)
+        except GoogleAPICallError as e:
+            raise_on_error(e)
 
         instance_disks = [
-            disk for disk in response["items"] if disk["name"] == instance.name
+            disk for disk in response.items if disk.name == instance.name
         ]
 
         if len(instance_disks) > 1:
@@ -477,18 +496,21 @@ class GCE(BaseCloud):
         instance.shutdown()
 
         snapshot_name = "{}-image".format(instance.name)
-        operation = (
-            self.compute.images()
-            .insert(
-                project=self.project,
-                body={
-                    "name": snapshot_name,
-                    "sourceDisk": instance_disks[0]["selfLink"],
-                },
+        try:
+            image_resource = compute_v1.Image(
+                name=snapshot_name,
+                source_disk=instance_disks[0].self_link,
             )
-            .execute()
-        )
-        raise_on_error(operation)
+            insert_image_request = compute_v1.InsertImageRequest(
+                project=self.project,
+                image_resource=image_resource,
+            )
+            operation: ExtendedOperation = self._images_client.insert(
+                insert_image_request
+            )
+            raise_on_error(operation)
+        except GoogleAPICallError as e:
+            raise_on_error(e)
         self._wait_for_operation(operation)
 
         image_id = "projects/{}/global/images/{}".format(
@@ -500,34 +522,29 @@ class GCE(BaseCloud):
     def _wait_for_operation(
         self, operation, operation_type="global", sleep_seconds=300
     ):
-        response = None
-        kwargs = {"project": self.project, "operation": operation["name"]}
         if operation_type == "zone":
-            kwargs["zone"] = self.zone
-            api = self.compute.zoneOperations()
+            api = self._zone_operations_client
+            request = compute_v1.GetZoneOperationRequest(
+                project=self.project, zone=self.zone, operation=operation.name
+            )
         else:
-            api = self.compute.globalOperations()
+            api = self._global_operations_client
+            request = compute_v1.GetGlobalOperationRequest(
+                project=self.project, operation=operation.name
+            )
         for _ in range(sleep_seconds):
             try:
-                response = api.get(**kwargs).execute()
-            except ConnectionResetError:
-                # This exception is known to be raised by GCE every so often:
-                # https://github.com/canonical/pycloudlib/issues/101.
-                response = {
-                    "status": "ConnectionResetError",
-                    "statusMessage": "n/a",
-                }
+                response = api.get(request)
+            except GoogleAPICallError as e:
+                raise_on_error(e)
             else:
-                if response["status"] == "DONE":
+                if str(response.status) == "Status.DONE":
                     break
             time.sleep(1)
         else:
             raise PycloudlibError(
                 "Expected DONE state, but found {} after waiting {} seconds. "
-                "Check GCE console for more details. \n"
-                "Status message: {}".format(
-                    response["status"],
-                    sleep_seconds,
-                    response["statusMessage"],
+                "Check GCE console for more details. \n".format(
+                    response.status, sleep_seconds
                 )
             )
