@@ -5,25 +5,55 @@ import pytest
 
 from pycloudlib.cloud import ImageType
 from pycloudlib.gce.cloud import GCE
+from pycloudlib.result import Result
 
 # mock module path
 MPATH = "pycloudlib.gce.cloud."
 
 
-class FakeGCE(GCE):
-    """GCE Class that doesn't load config or make requests during __init__."""
+class FakeGCECredentials:
+    """Fake GCE Service credentials object."""
 
-    # pylint: disable=super-init-not-called
-    def __init__(self, *_, **__):
-        """Fake __init__ that sets mocks for needed variables."""
-        self._log = mock.MagicMock()
-        self.compute = mock.MagicMock()
+    def __init__(self, service_account_email: str = None):
+        self.service_account_email = service_account_email
+
+
+@pytest.fixture()
+def common_mocks(tmpdir):
+    """Mock all known side-effects of GCE.__init__"""
+    cfg_file = tmpdir.join("pyproject.toml")
+    cfg_file.write("[gce]\n")
+    with mock.patch(
+        MPATH + "subp", return_value=Result("my-project", "", 0)
+    ), mock.patch(
+        MPATH + "googleapiclient.discovery.build",
+        return_value="fake_google_compute",
+    ), mock.patch(
+        MPATH + "get_credentials",
+        return_value=FakeGCECredentials("service-acct@mail.com"),
+    ), mock.patch.dict("os.environ", values={}):
+        yield
+
+
+@pytest.fixture()
+def gce(request, common_mocks, tmpdir):
+    """Mock subp calls to avoid __init__ side-effect w/ gcloud call"""
+    toml_cfg = request.param.pop("toml", "[gce]\n")
+    cfg_file = tmpdir.join("pyproject.toml")
+    cfg_file.write(toml_cfg)
+    kwargs = {
+        "tag": "pycl-tag",
+        "config_file": cfg_file.strpath,
+    }
+    kwargs.update(request.param.pop("kwargs", {}))
+    yield GCE(**kwargs)
 
 
 # pylint: disable=protected-access,missing-function-docstring
 class TestGCE:
     """General GCE testing."""
 
+    @pytest.mark.parametrize("gce", [{}], indirect=True)
     @pytest.mark.parametrize(
         [
             "release",
@@ -90,8 +120,8 @@ class TestGCE:
         api_side_effects,
         expected_filter_calls,
         expected_image_list,
+        gce,
     ):
-        gce = FakeGCE()
         with mock.patch.object(gce, "compute") as m_compute:
             m_execute = mock.MagicMock(
                 name="m_execute", side_effect=api_side_effects
@@ -109,6 +139,7 @@ class TestGCE:
             )
             assert m_list.call_args_list == expected_filter_calls
 
+    @pytest.mark.parametrize("gce", [{}], indirect=True)
     @mock.patch(
         MPATH + "GCE._query_image_list",
         return_value=[
@@ -141,8 +172,8 @@ class TestGCE:
         m_get_project,
         m_get_name_filter,
         m_query_image_list,
+        gce,
     ):
-        gce = FakeGCE()
         image = gce.daily_image(
             "jammy", arch="x86_64", image_type=ImageType.GENERIC
         )
@@ -157,6 +188,7 @@ class TestGCE:
         ]
         assert image == "projects/project-name/global/images/4"
 
+    @pytest.mark.parametrize("gce", [{}], indirect=True)
     @pytest.mark.parametrize(
         ["release", "image_type", "expected_name_filter"],
         [
@@ -182,8 +214,9 @@ class TestGCE:
             ),
         ],
     )
-    def test_get_name_filter(self, release, image_type, expected_name_filter):
-        gce = FakeGCE()
+    def test_get_name_filter(
+        self, release, image_type, expected_name_filter, gce
+    ):
         assert (
             gce._get_name_filter(release, image_type) == expected_name_filter
         )
