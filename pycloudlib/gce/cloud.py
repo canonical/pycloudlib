@@ -118,8 +118,10 @@ class GCE(BaseCloud):
         self.region = region
         self.zone = "%s-%s" % (region, zone)
         self.instance_counter = count()
+        # Prefer service_account_email from pycloudlib.toml and fallback to
+        # the credentials listed in GOOGLE_APPLICATION_CREDENTIALS otherwise
         self.service_account_email = service_account_email or self.config.get(
-            "service_account_email"
+            "service_account_email", credentials.service_account_email
         )
 
     def released_image(
