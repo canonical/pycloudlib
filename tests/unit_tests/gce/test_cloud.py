@@ -7,6 +7,9 @@ from pycloudlib.cloud import ImageType
 from pycloudlib.gce.cloud import GCE
 from pycloudlib.result import Result
 
+from google.cloud import compute_v1
+from google.cloud.compute_v1.services.images.pagers import ListPager
+
 # mock module path
 MPATH = "pycloudlib.gce.cloud."
 
@@ -26,8 +29,8 @@ def common_mocks(tmpdir):
     with mock.patch(
         MPATH + "subp", return_value=Result("my-project", "", 0)
     ), mock.patch(
-        MPATH + "googleapiclient.discovery.build",
-        return_value="fake_google_compute",
+        MPATH + "compute_v1.ImagesClient",
+        return_value="fake_images_client",
     ), mock.patch(
         MPATH + "get_credentials",
         return_value=FakeGCECredentials("service-acct@mail.com"),
@@ -110,7 +113,7 @@ class TestGCE:
             pytest.param(
                 "xenial",
                 "arm64",
-                Exception(),
+                [Exception()],
                 [],
                 [],
                 id="xenial_no_arm64_support_zero_sdk_list_calls",
@@ -118,41 +121,107 @@ class TestGCE:
             pytest.param(
                 "xenial",
                 "x86_64",
-                [{"items": [1, 2, 3]}, Exception()],
+                [
+                    ListPager(
+                        method=mock.MagicMock(),
+                        request=compute_v1.ListImagesRequest(
+                            project="project-name",
+                            filter="name=name-filter",
+                            max_results=500,
+                            page_token="",
+                        ),
+                        response=compute_v1.ImageList(
+                            items=[
+                                compute_v1.Image(name="image1"),
+                                compute_v1.Image(name="image2"),
+                                compute_v1.Image(name="image3"),
+                            ]
+                        ),
+                    ),
+                    Exception(),
+                ],
                 [
                     mock.call(
-                        project="project-name",
-                        filter="name=name-filter",
-                        maxResults=500,
-                        pageToken="",
+                        compute_v1.ListImagesRequest(
+                            project="project-name",
+                            filter="name=name-filter",
+                            max_results=500,
+                            page_token="",
+                        )
                     )
                 ],
-                [1, 2, 3],
+                [
+                    compute_v1.Image(name="image1"),
+                    compute_v1.Image(name="image2"),
+                    compute_v1.Image(name="image3"),
+                ],
                 id="xenial_x86_64_suppport_one_sdk_list_call_empty_pagetoken",
             ),
             pytest.param(
                 "kinetic",
                 "arm64",
                 [
-                    {"items": [1, 2, 3], "nextPageToken": "something"},
-                    {"items": [4, 5, 6]},
+                    ListPager(
+                        method=mock.MagicMock(),
+                        request=compute_v1.ListImagesRequest(
+                            project="project-name",
+                            filter="(name=name-filter) AND (architecture=ARM64)",
+                            max_results=500,
+                            page_token="",
+                        ),
+                        response=compute_v1.ImageList(
+                            items=[
+                                compute_v1.Image(name="image1"),
+                                compute_v1.Image(name="image2"),
+                                compute_v1.Image(name="image3"),
+                            ],
+                            next_page_token="something",
+                        ),
+                    ),
+                    ListPager(
+                        method=mock.MagicMock(),
+                        request=compute_v1.ListImagesRequest(
+                            project="project-name",
+                            filter="(name=name-filter) AND (architecture=ARM64)",
+                            max_results=500,
+                            page_token="something",
+                        ),
+                        response=compute_v1.ImageList(
+                            items=[
+                                compute_v1.Image(name="image4"),
+                                compute_v1.Image(name="image5"),
+                                compute_v1.Image(name="image6"),
+                            ]
+                        ),
+                    ),
                     Exception(),
                 ],
                 [
                     mock.call(
-                        project="project-name",
-                        filter="(name=name-filter) AND (architecture=ARM64)",
-                        maxResults=500,
-                        pageToken="",
+                        compute_v1.ListImagesRequest(
+                            project="project-name",
+                            filter="(name=name-filter) AND (architecture=ARM64)",
+                            max_results=500,
+                            page_token="",
+                        )
                     ),
                     mock.call(
-                        project="project-name",
-                        filter="(name=name-filter) AND (architecture=ARM64)",
-                        maxResults=500,
-                        pageToken="something",
+                        compute_v1.ListImagesRequest(
+                            project="project-name",
+                            filter="(name=name-filter) AND (architecture=ARM64)",
+                            max_results=500,
+                            page_token="something",
+                        )
                     ),
                 ],
-                [1, 2, 3, 4, 5, 6],
+                [
+                    compute_v1.Image(name="image1"),
+                    compute_v1.Image(name="image2"),
+                    compute_v1.Image(name="image3"),
+                    compute_v1.Image(name="image4"),
+                    compute_v1.Image(name="image5"),
+                    compute_v1.Image(name="image6"),
+                ],
                 id="non_xenial_arm64_suppport_one_sdk_list_call_per_page",
             ),
         ],
@@ -166,48 +235,35 @@ class TestGCE:
         expected_image_list,
         gce,
     ):
-        with mock.patch.object(gce, "compute") as m_compute:
-            m_execute = mock.MagicMock(
-                name="m_execute", side_effect=api_side_effects
-            )
-            m_executor = mock.MagicMock(name="m_executor")
-            m_executor.execute = m_execute
-            m_list = mock.MagicMock(name="m_list", return_value=m_executor)
-            m_lister = mock.MagicMock(name="m_lister")
-            m_lister.list = m_list
-            m_images = mock.MagicMock(name="m_images", return_value=m_lister)
-            m_compute.images = m_images
+        with mock.patch.object(gce, "_images_client") as m_images:
+            m_images.list.side_effect = api_side_effects
 
-            assert expected_image_list == gce._query_image_list(
+            qil = gce._query_image_list(
                 release, "project-name", "name-filter", arch
             )
-            assert m_list.call_args_list == expected_filter_calls
+            assert expected_image_list == qil
+            assert m_images.list.call_args_list == expected_filter_calls
 
     @pytest.mark.parametrize("gce", [{}], indirect=True)
     @mock.patch(
         MPATH + "GCE._query_image_list",
-        return_value=[
-            {
-                "id": "2",
-                "name": "2",
-                "creationTimestamp": "2",
-            },
-            {
-                "id": "4",
-                "name": "4",
-                "creationTimestamp": "4",
-            },
-            {
-                "id": "1",
-                "name": "1",
-                "creationTimestamp": "1",
-            },
-            {
-                "id": "3",
-                "name": "3",
-                "creationTimestamp": "3",
-            },
-        ],
+        return_value=ListPager(
+            method=mock.MagicMock(),
+            request=compute_v1.ListImagesRequest(
+                project="project-name",
+                filter="name=name-filter",
+                max_results=500,
+                page_token="",
+            ),
+            response=compute_v1.ImageList(
+                items=[
+                    compute_v1.Image(id="2", name="2", creation_timestamp="2"),
+                    compute_v1.Image(id="4", name="4", creation_timestamp="4"),
+                    compute_v1.Image(id="1", name="1", creation_timestamp="1"),
+                    compute_v1.Image(id="3", name="3", creation_timestamp="3"),
+                ]
+            ),
+        ),
     )
     @mock.patch(MPATH + "GCE._get_name_filter", return_value="name-filter")
     @mock.patch(MPATH + "GCE._get_project", return_value="project-name")
