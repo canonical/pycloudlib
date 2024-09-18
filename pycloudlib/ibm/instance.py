@@ -652,7 +652,7 @@ class IBMInstance(BaseInstance):
         Raises:
             IBMException: If failed to attach floating IP after 10 tries
         """
-        attached_floating_ip = None
+        floating_ip_is_attached = None
         self._log.info(
             "Will attempt to attach floating ip with name containing: %s"
             "until successful or all floating ips are in use.",
@@ -660,7 +660,7 @@ class IBMInstance(BaseInstance):
         )
 
         tries = 0
-        while attached_floating_ip is None:
+        while not floating_ip_is_attached:
             tries += 1
             target_floating_ip = self._choose_from_existing_floating_ips(
                 name_includes=floating_ip_substring,
@@ -669,8 +669,10 @@ class IBMInstance(BaseInstance):
                 "Attempting to attach floating ip: %s",
                 target_floating_ip["name"],
             )
-            attached_floating_ip = self._attach_floating_ip(target_floating_ip)
-            if not attached_floating_ip:
+            floating_ip_is_attached = self._attach_floating_ip(
+                floating_ip=target_floating_ip
+            )
+            if not floating_ip_is_attached:
                 self._log.info(
                     "Failed to attach floating ip: %s. Will try again.",
                     target_floating_ip["name"],
