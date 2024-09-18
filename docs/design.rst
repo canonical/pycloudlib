@@ -49,7 +49,7 @@ Logging for paramiko, used for SSH communication, is restricted to warning level
 Python Support
 ==============
 
-pycloudlib currently supports Python 3.6 and above.
+pycloudlib currently supports Python 3.8 and above.
 
 pycloudlib minimum supported Python version will adhere to the Python version of the oldest
 `Ubuntu Version with Standard Support <https://wiki.ubuntu.com/Releases>`_.
@@ -62,7 +62,7 @@ The following table lists the Python version supported in each Ubuntu LTS releas
 ============== ==============
 Ubuntu Version Python version
 ============== ==============
-18.04 LTS      3.6
 20.04 LTS      3.8
 22.04 LTS      3.10
+24.04 LTS      3.12
 ============== ==============
