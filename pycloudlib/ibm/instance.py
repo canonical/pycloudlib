@@ -962,7 +962,7 @@ class IBMInstance(BaseInstance):
 
     def _wait_for_instance_start(self, **kwargs):
         """Wait for the cloud instance to be up."""
-        # if self.b
+        self._log.info("Waiting for instance to finish provisioning.")
         self._wait_for_status(
             _Status.RUNNING,
             sleep_seconds=900,
