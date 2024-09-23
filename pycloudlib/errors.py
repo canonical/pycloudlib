@@ -156,3 +156,16 @@ class InvalidTagNameError(PycloudlibException):
     def __str__(self) -> str:
         """Return string representation of the error."""
         return f"Tag '{self.tag}' failed the following rules: {', '.join(self.rules_failed)}"
+
+
+class InsufficientQuotaError(PycloudlibError):
+    """Raised when the remaining vCPU quota is insufficient."""
+
+
+class QuotaLimitError(PycloudlibError):
+    """Raised when the vCPU limit will always be exceeded.
+
+    This typically occurs when the default vCPU limit for the selected SKU is
+    zero. Users should not re-attempt deployments when this Exception is raised
+    until the limit has been raised.
+    """

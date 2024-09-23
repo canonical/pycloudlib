@@ -6,10 +6,12 @@ import base64
 import contextlib
 import datetime
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
+import backoff
 from azure.core.exceptions import HttpResponseError, ResourceNotFoundError
 from azure.mgmt.compute import ComputeManagementClient
+from azure.mgmt.compute.models import ResourceSku, ResourceSkuCapabilities
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 
@@ -19,9 +21,11 @@ from pycloudlib.cloud import BaseCloud, ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     InstanceNotFoundError,
+    InsufficientQuotaError,
     NetworkNotFoundError,
     PycloudlibError,
     PycloudlibTimeoutError,
+    QuotaLimitError,
 )
 from pycloudlib.util import get_timestamped_tag, update_nested
 
@@ -665,6 +669,13 @@ class Azure(BaseCloud):
         except HttpResponseError as e:
             err_code = e.error.code
             err_msg = e.error.message
+            if (
+                err_code in ("OperationNotAllowed", "QuotaExceeded")
+                and "quota" in err_msg.lower()
+            ):
+                if "limit" in err_msg.lower():
+                    raise QuotaLimitError(err_msg) from e
+                raise InsufficientQuotaError(err_msg) from e
             raise PycloudlibError(
                 f"Virtual machine creation error: {err_code}\n{err_msg}"
             ) from e
@@ -782,6 +793,89 @@ class Azure(BaseCloud):
 
         return None
 
+    def _get_resource_sku_info(self, instance_type: str) -> Tuple[str, int]:
+        """Return the family and vCPU count for a VM size in a given region.
+
+        Raises:
+            ValueError: the specified VM size was not found or vCPU capability is invalid.
+        """
+        resource_sku_list = self.compute_client.resource_skus.list(
+            filter=f"location eq '{self.location}'"
+        )
+
+        if not resource_sku_list:
+            raise ValueError(
+                f"No resource SKUs available for location: {self.location}"
+            )
+
+        try:
+            resource_sku: ResourceSku = next(
+                resource_sku
+                for resource_sku in resource_sku_list
+                if instance_type == resource_sku.name
+            )
+        except StopIteration as e:
+            raise ValueError(f"Unknown Azure VM size: {instance_type}.") from e
+
+        if not resource_sku.capabilities:
+            raise ValueError(
+                f"No capabilities found for Azure VM size: {instance_type}"
+            )
+
+        try:
+            vcpu_capability: ResourceSkuCapabilities = next(
+                capability
+                for capability in resource_sku.capabilities
+                if capability.name == "vCPUs"
+            )
+        except StopIteration as e:
+            raise ValueError(
+                f"No vCPUs capability found for Azure VM size: {instance_type}."
+            ) from e
+
+        if (
+            vcpu_capability.value is None
+            or not vcpu_capability.value.isdigit()
+        ):
+            raise ValueError(
+                f"Invalid vCPU capability value: {vcpu_capability.value} for {instance_type}"
+            )
+
+        return resource_sku.family, int(vcpu_capability.value)
+
+    def _check_compute_quota(self, instance_type: str):
+        """Check if there is sufficient Azure Compute quota for the deployment.
+
+        Raises:
+            QuotaLimitError: the vCPU requirement exceeds the region quota limit.
+            InsufficientQuotaError: the vCPU requirement exceeds the remaining quota.
+        """
+        family, vcpu = self._get_resource_sku_info(instance_type)
+
+        usage_list = self.compute_client.usage.list(self.location)
+        usage = next(
+            usage for usage in usage_list if usage.name.value == family
+        )
+
+        if usage.limit < vcpu:
+            raise QuotaLimitError(
+                f"Instance vCPU requirements exceed the quota limit for {instance_type} in {self.location}. "
+                f"{instance_type} requires {vcpu} vCPU(s). The region quota limit is {usage.limit}."
+            )
+
+        remaining_vcpu = usage.limit - usage.current_value
+        if remaining_vcpu < vcpu:
+            raise InsufficientQuotaError(
+                f"Insufficient Azure Compute quota: {vcpu} vCPU(s) required, {remaining_vcpu} available."
+            )
+
+    @backoff.on_exception(
+        backoff.expo,
+        InsufficientQuotaError,
+        max_tries=15,
+        max_time=10800,  # 10800 3 hours ceiling to cover random_jitter
+        jitter=backoff.random_jitter,
+    )
     def launch(
         self,
         image_id,
@@ -841,6 +935,7 @@ class Azure(BaseCloud):
         """
         # pylint: disable-msg=too-many-locals
         # pylint: disable-msg=too-many-statements
+        # pylint: disable=too-many-branches
         if not image_id:
             raise ValueError(
                 f"{self._type} launch requires image_id param."
@@ -862,6 +957,17 @@ class Azure(BaseCloud):
         # we are using it as a base for the name of all the
         # resources we are creating.
         self.tag = get_timestamped_tag(self.base_tag)
+
+        try:
+            self._check_compute_quota(instance_type)
+
+        except Exception as e:
+            # Clean up resources created during the failed attempt
+            self._log.error("Exception during launch: %s", e)
+            if self.resource_group:
+                self.delete_resource_group(self.resource_group.name)
+                self.resource_group = None
+            raise
 
         if self.resource_group is None or resource_group_params:
             self.resource_group = self._create_resource_group(
