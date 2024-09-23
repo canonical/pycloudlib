@@ -86,6 +86,8 @@ class IBM(BaseCloud):
             authenticator=authenticator
         )
 
+        self._floating_ip_substring = self.config.get("floating_ip_substring")
+
     @property
     def resource_group_id(self) -> str:
         """Resource Group ID used to create new things under."""
@@ -305,8 +307,8 @@ class IBM(BaseCloud):
         vpc = vpc or self.vpc
         name = name or f"{self.tag}-vm{next(self.instance_counter)}"
 
-        floating_ip_substring = floating_ip_substring or self.config.get(
-            "floating_ip_substring"
+        floating_ip_substring = (
+            floating_ip_substring or self._floating_ip_substring
         )
 
         raw_instance = IBMInstance.create_raw_instance(
