@@ -454,7 +454,8 @@ class BaseInstance(ABC):
             SSHException,
             OSError,
         ) as e:
-            raise SSHException from e
+            error_msg = f"{type(e).__name__}: {str(e)}"
+            raise SSHException(error_msg) from e
         self._ssh_client = client
         return client
 
