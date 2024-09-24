@@ -430,7 +430,7 @@ class GCE(BaseCloud):
         config.update(kwargs)
 
         if self.service_account_email:
-            config["serviceAccounts"] = [{"email": self.service_account_email}]
+            config["service_accounts"] = [{"email": self.service_account_email}]
 
         if user_data:
             user_metadata = {"key": "user-data", "value": user_data}
