@@ -78,6 +78,13 @@ def exercise_instance(instance: BaseInstance):
     assert_example_output(instance)
 
 
+def create_ssh_keys():
+    key = pycloudlib.KeyPair(
+        public_key_path=Path.home().joinpath(".ssh/id_rsa.pub"),
+        private_key_path=Path.home().joinpath(".ssh/id_rsa"),
+    )
+    return key
+
 @pytest.mark.parametrize(
     "cloud",
     [
