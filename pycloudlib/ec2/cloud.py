@@ -139,20 +139,24 @@ class EC2(BaseCloud):
     ):
         disk_type = "hvm-ssd" if release in NO_GP3_RELEASES else "hvm-ssd-gp3"
         if image_type in (ImageType.GENERIC, ImageType.MINIMAL):
-            base_location = "ubuntu/{images_path}/{disk_type}".format(
-                images_path="images-testing" if daily else "images",
-                disk_type=disk_type,
+            base_location = "ubuntu{}/{}/{}".format(
+                "-minimal" if image_type == ImageType.MINIMAL else "",
+                "images-testing" if daily else "images",
+                disk_type,
             )
             if release in LTS_RELEASES:
-                return "{}/ubuntu-{}{}-*-server{}-*".format(
+                return "{}/ubuntu-{}{}-*-{}-*".format(
                     base_location,
                     release,
                     "-daily" if daily else "",
-                    "-minimal" if image_type == ImageType.MINIMAL else "",
+                    "minimal" if image_type == ImageType.MINIMAL else "server",
                 )
 
-            return "{}/ubuntu-{}{}-*".format(
-                base_location, release, "-daily" if daily else ""
+            return "{}/ubuntu-{}{}-*-{}-*".format(
+                base_location,
+                release,
+                "-daily" if daily else "",
+                "minimal" if image_type == ImageType.MINIMAL else "server",
             )
 
         release_ver = UBUNTU_RELEASE_VERSION_MAP.get(release)
