@@ -25,6 +25,7 @@ class TestEC2:
     @pytest.mark.parametrize(
         ["release", "image_type", "daily", "expected_name_filter"],
         [
+            # Test GENERIC with LTS release and daily = True
             pytest.param(
                 "focal",
                 ImageType.GENERIC,
@@ -45,7 +46,7 @@ class TestEC2:
                 "jammy",
                 ImageType.MINIMAL,
                 True,
-                "ubuntu/images-testing/hvm-ssd/ubuntu-jammy-daily-*-server-minimal-*",
+                "ubuntu-minimal/images-testing/hvm-ssd/ubuntu-jammy-daily-*-minimal-*",
                 id="minimal-lts-daily",
             ),
             # Test MINIMAL with LTS release and daily = False
@@ -53,24 +54,56 @@ class TestEC2:
                 "noble",
                 ImageType.MINIMAL,
                 False,
-                "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-*-server-minimal-*",
+                "ubuntu-minimal/images/hvm-ssd-gp3/ubuntu-noble-*-minimal-*",
                 id="minimal-lts-non-daily",
             ),
-            # Test PRO with non-LTS release
+            # Test PRO with LTS release
             pytest.param(
                 "jammy",
                 ImageType.PRO,
                 False,
                 "ubuntu-pro-server/images/hvm-ssd/ubuntu-jammy-22.04-*",
-                id="pro-non-lts",
+                id="pro-lts",
             ),
-            # Test PRO_FIPS with non-LTS release
+            # Test PRO_FIPS with LTS release
             pytest.param(
                 "noble",
                 ImageType.PRO_FIPS,
                 False,
                 "ubuntu-pro-fips*/images/hvm-ssd-gp3/ubuntu-noble-24.04-*",
-                id="pro-fips-non-lts",
+                id="pro-fips-lts",
+            ),
+            # Test GENERIC with non-LTS release and daily = False
+            pytest.param(
+                "oracular",
+                ImageType.GENERIC,
+                False,
+                "ubuntu/images/hvm-ssd-gp3/ubuntu-oracular-*-server-*",
+                id="generic-non-lts-non-daily",
+            ),
+            # Test MINIMAL with non-LTS release and daily = False
+            pytest.param(
+                "oracular",
+                ImageType.MINIMAL,
+                False,
+                "ubuntu-minimal/images/hvm-ssd-gp3/ubuntu-oracular-*-minimal-*",
+                id="minimal-non-lts-non-daily",
+            ),
+            # Test GENERIC with non-LTS release and daily = True
+            pytest.param(
+                "oracular",
+                ImageType.GENERIC,
+                True,
+                "ubuntu/images-testing/hvm-ssd-gp3/ubuntu-oracular-daily-*-server-*",
+                id="generic-non-lts-daily",
+            ),
+            # Test MINIMAL with non-LTS release and daily = True
+            pytest.param(
+                "oracular",
+                ImageType.MINIMAL,
+                True,
+                "ubuntu-minimal/images-testing/hvm-ssd-gp3/ubuntu-oracular-daily-*-minimal-*",
+                id="minimal-non-lts-daily",
             ),
         ],
     )
@@ -90,6 +123,17 @@ class TestEC2:
             release=release, image_type=image_type, daily=daily
         )
         assert result == expected_name_filter
+
+    def test_get_name_for_image_type_invalid_image_type(self):
+        """
+        Test the _get_name_for_image_type() method with an invalid ImageType
+        """
+        ec2 = FakeEC2()
+        with pytest.raises(ValueError) as exc_info:
+            ec2._get_name_for_image_type(
+                release="focal", image_type=None, daily=True
+            )
+        assert "Invalid image_type" in str(exc_info.value)
 
     def test_get_owner_for_all_image_types(self):
         """
