@@ -24,11 +24,13 @@ def cloud(request):
         tag="pycl-test", timestamp_suffix=True
     ) as cloud_instance:
         if isinstance(cloud_instance, pycloudlib.EC2):
-            cloud_instance.upload_key(
-                public_key_path=cloud_instance.config["public_key_path"],
-                private_key_path=cloud_instance.config["private_key_path"],
-                name=cloud_instance.tag,
-            )
+            if cloud_instance.tag not in cloud_instance.list_keys():
+                # TODO(GH #431 add delete_keys op to remove keys after test)
+                cloud_instance.upload_key(
+                    public_key_path=cloud_instance.config["public_key_path"],
+                    private_key_path=cloud_instance.config["private_key_path"],
+                    name=cloud_instance.tag,
+                )
 
         yield cloud_instance
 
