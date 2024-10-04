@@ -228,9 +228,9 @@ class BaseInstance(ABC):
         self.execute("sudo echo 'uninitialized' > /etc/machine-id")
         self.execute("sudo rm -rf /var/log/syslog")
 
-    def _run_command(self, command, stdin):
+    def _run_command(self, command, stdin, get_pty=False):
         """Run command in the instance."""
-        return self._ssh(list(command), stdin=stdin)
+        return self._ssh(list(command), stdin=stdin, get_pty=get_pty)
 
     def execute(
         self,
@@ -376,12 +376,13 @@ class BaseInstance(ABC):
             ]
         )
 
-    def _ssh(self, command, stdin=None):
+    def _ssh(self, command, stdin=None, get_pty=False):
         """Run a command via SSH.
 
         Args:
             command: string or list of the command to run
             stdin: optional, values to be passed in
+            get_pty: optional, allocates a pty
 
         Returns:
             tuple of stdout, stderr and the return code
@@ -390,7 +391,7 @@ class BaseInstance(ABC):
         cmd = shell_pack(command)
         client = self._ssh_connect()
         try:
-            fp_in, fp_out, fp_err = client.exec_command(cmd)
+            fp_in, fp_out, fp_err = client.exec_command(cmd, get_pty=get_pty)
         except (ConnectionResetError, NoValidConnectionsError, EOFError) as e:
             raise SSHException from e
         channel = fp_in.channel

@@ -59,10 +59,10 @@ class LXDInstance(BaseInstance):
         """Create string representation for class."""
         return "LXDInstance(name={})".format(self.name)
 
-    def _run_command(self, command, stdin):
+    def _run_command(self, command, stdin, get_pty=False):
         """Run command in the instance."""
         if self.execute_via_ssh:
-            return super()._run_command(command, stdin)
+            return super()._run_command(command, stdin, get_pty=get_pty)
 
         base_cmd = [
             "lxc",
