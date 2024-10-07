@@ -340,7 +340,7 @@ class OCI(BaseCloud):
         self.created_instances.append(instance)
         return instance
 
-    def snapshot(self, instance, clean=True, name=None):
+    def snapshot(self, instance, clean=True, name=None, keep=False):
         """Snapshot an instance and generate an image from it.
 
         Args:
@@ -348,7 +348,7 @@ class OCI(BaseCloud):
             clean: run instance clean method before taking snapshot
             name: (Optional) Name of created image
         Returns:
-            An image object
+            The image id of the snapshot
         """
         if clean:
             instance.clean()
@@ -366,7 +366,18 @@ class OCI(BaseCloud):
             current_data=image_data,
             desired_state="AVAILABLE",
         )
-
-        self.created_images.append(image_data.id)
+        
+        # only add image to created_images list for cleanup if keep is False
+        if not keep:
+            self.created_images.append(image_data.id)
+        else:
+            from pycloudlib.cloud import ImageInfo
+            self.preserved_images.append(
+                ImageInfo(
+                    id=image_data.id,
+                    name=image_data.display_name,
+                )
+            )
+            self._log.info("Keeping image %s [id:%s]", image_data.display_name, image_data.id)
 
         return image_data.id
