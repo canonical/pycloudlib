@@ -456,6 +456,10 @@ class _BaseLXD(BaseCloud, ABC):
                     exceptions.append(e)
         return exceptions
 
+    def version(self):
+        """LXD version."""
+        return subp(["lxd", "--version"]).rstrip()
+
 
 class LXDContainer(_BaseLXD):
     """LXD Containers Cloud Class."""

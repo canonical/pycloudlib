@@ -260,6 +260,10 @@ class BaseCloud(ABC):
         self._log.debug("using SSH key from %s", public_key_path)
         self.key_pair = KeyPair(public_key_path, private_key_path, name)
 
+    def version(self) -> Optional[str]:
+        """Version string of the platform."""
+        return None
+
     def _check_and_set_config(
         self,
         config_file: Optional[ConfigFile],
