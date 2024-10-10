@@ -542,7 +542,7 @@ class GCE(BaseCloud):
             except GoogleAPICallError as e:
                 raise_on_error(e)
             else:
-                if str(response.status) == "Status.DONE":
+                if response.status == compute_v1.types.Operation.Status.DONE:
                     break
             time.sleep(1)
         else:
