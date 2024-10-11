@@ -11,9 +11,7 @@ from pycloudlib.errors import CloudSetupError
 
 logger = logging.getLogger(__name__)
 
-RE_AZURE_IMAGE_ID = (
-    r"(?P<publisher>[^:]+):(?P<offer>[^:]+):(?P<sku>[^:]+)(:(?P<version>.*))?"
-)
+RE_AZURE_IMAGE_ID = r"(?P<publisher>[^:]+):(?P<offer>[^:]+):(?P<sku>[^:]+)(:(?P<version>.*))?"
 
 
 class AzureParams(NamedTuple):
@@ -60,15 +58,11 @@ def get_client(resource, config_dict: dict):
         The client for the resource passed as parameter.
 
     """
-    required_keys = frozenset(
-        {"clientId", "clientSecret", "tenantId", "subscriptionId"}
-    )
+    required_keys = frozenset({"clientId", "clientSecret", "tenantId", "subscriptionId"})
     missing_keys = required_keys.difference(set(config_dict.keys()))
     if missing_keys:
         raise CloudSetupError(
-            "Missing required Azure credentials: {}".format(
-                ", ".join(missing_keys)
-            )
+            "Missing required Azure credentials: {}".format(", ".join(missing_keys))
         )
 
     credential = ClientSecretCredential(

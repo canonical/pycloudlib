@@ -50,18 +50,11 @@ class Qemu(BaseCloud):
         )
         self.image_dir = Path(os.path.expandvars(self.config["image_dir"]))
         if not self.image_dir.exists():
-            raise ValueError(
-                f"QEMU image_dir must be a valid path, not '{self.image_dir}'"
-            )
-        self.working_dir = Path(
-            os.path.expandvars(self.config.get("working_dir", "/tmp"))
-        )
+            raise ValueError(f"QEMU image_dir must be a valid path, not '{self.image_dir}'")
+        self.working_dir = Path(os.path.expandvars(self.config.get("working_dir", "/tmp")))
 
         if not self.working_dir.exists():
-            raise ValueError(
-                "QEMU working_dir must be a valid path, "
-                f"not '{self.working_dir}'"
-            )
+            raise ValueError("QEMU working_dir must be a valid path, " f"not '{self.working_dir}'")
         self.qemu_binary = self.config.get("qemu_binary", "qemu-system-x86_64")
 
         if not all(
@@ -115,9 +108,7 @@ class Qemu(BaseCloud):
         if image_file.exists():
             image_file.unlink()
         else:
-            self._log.debug(
-                "Cannot delete image %s as it does not exist", image_file
-            )
+            self._log.debug("Cannot delete image %s as it does not exist", image_file)
 
     def _download_file(self, url: str, dest: Path):
         """Download a file from a url to a destination.
@@ -160,9 +151,7 @@ class Qemu(BaseCloud):
         """
         resp = requests.get(base_url, timeout=5)
         resp.raise_for_status()
-        match = re.search(
-            r"<title>Ubuntu.*\[(?P<date>[^]]+).*</title>", resp.text
-        )
+        match = re.search(r"<title>Ubuntu.*\[(?P<date>[^]]+).*</title>", resp.text)
         if not match:
             raise PycloudlibError(f"Could not parse url: {base_url}")
         date = match["date"]
@@ -198,9 +187,7 @@ class Qemu(BaseCloud):
             specified release.
 
         """
-        base_url = (
-            f"https://cloud-images.ubuntu.com/releases/{release}/release"
-        )
+        base_url = f"https://cloud-images.ubuntu.com/releases/{release}/release"
         release_number = UBUNTU_RELEASE_VERSION_MAP[release]
         return self._get_latest_image(
             base_url=base_url,
@@ -287,8 +274,7 @@ class Qemu(BaseCloud):
         """
         if not (user_data or meta_data or vendor_data):
             self._log.warning(
-                "Not creating seed iso as there is no user data, meta data, "
-                "or vendor data."
+                "Not creating seed iso as there is no user data, meta data, or vendor data."
             )
             return None
 
@@ -366,9 +352,7 @@ class Qemu(BaseCloud):
         )
 
     def _get_ubuntu_kernel_from_image_dir(self, image: Path) -> Optional[Path]:
-        kernels = list(
-            image.parent.glob("*-server-cloudimg-amd64-vmlinuz-generic")
-        )
+        kernels = list(image.parent.glob("*-server-cloudimg-amd64-vmlinuz-generic"))
         if len(kernels) != 1:
             self._log.warning("Unable to find kernel for image: %s", image)
             return None
@@ -382,10 +366,7 @@ class Qemu(BaseCloud):
         else:
             raise ImageNotFoundError(
                 resource_id=image_id,
-                message=(
-                    f"Could not find '{image_id}' as absolute path "
-                    f"or in '{self.image_dir}'."
-                ),
+                message=(f"Could not find '{image_id}' as absolute path or in '{self.image_dir}'."),
             )
         self._log.debug("Using base image: %s", base_image)
         return base_image
@@ -393,10 +374,7 @@ class Qemu(BaseCloud):
     def _parse_instance_type(self, instance_type: str) -> Tuple[int, int]:
         cpu_mem = re.search(r"^c(?P<cpus>\d+)m(?P<memory>\d+$)", instance_type)
         if not cpu_mem:
-            raise ValueError(
-                "instance_type must be in the form of c#m#, not "
-                f"{instance_type}"
-            )
+            raise ValueError("instance_type must be in the form of c#m#, not " f"{instance_type}")
         return int(cpu_mem["cpus"]), int(cpu_mem["memory"])
 
     def _get_kernel_path(
@@ -470,9 +448,7 @@ class Qemu(BaseCloud):
         cpus, memory = self._parse_instance_type(instance_type=instance_type)
 
         # Next create the dir to contain all of the instance artifacts
-        instance_dir = self._get_available_file(
-            self.parent_dir / Path(image_id).stem
-        )
+        instance_dir = self._get_available_file(self.parent_dir / Path(image_id).stem)
         instance_dir.mkdir()
         self._log.info(
             "Using instance dir '%s' for new instance launched from '%s'",
@@ -483,9 +459,7 @@ class Qemu(BaseCloud):
         # We make a QCOW image from the base image so we can make
         # destructive changes without modifying the original image
         instance_path = instance_dir / "inst.qcow2"
-        self._create_qcow_image(
-            instance_path=instance_path, base_image=base_image
-        )
+        self._create_qcow_image(instance_path=instance_path, base_image=base_image)
 
         ssh_port = get_free_port()
         telnet_port = get_free_port()
@@ -544,12 +518,8 @@ class Qemu(BaseCloud):
         )
 
         if kernel_path:
-            kernel_cmdline = self._update_kernel_cmdline(
-                kernel_cmdline=kernel_cmdline
-            )
-            qemu_args.extend(
-                ["-kernel", str(kernel_path), "-append", kernel_cmdline]
-            )
+            kernel_cmdline = self._update_kernel_cmdline(kernel_cmdline=kernel_cmdline)
+            qemu_args.extend(["-kernel", str(kernel_path), "-append", kernel_cmdline])
 
         if launch_args:
             qemu_args.extend(launch_args)
@@ -588,9 +558,7 @@ class Qemu(BaseCloud):
             try:
                 instance.clean()
             except paramiko.ssh_exception.SSHException as e:
-                self._log.warning(
-                    "Failed to clean instance before snapshot: %s", e
-                )
+                self._log.warning("Failed to clean instance before snapshot: %s", e)
 
         self._log.debug("Shutting down before snapshot")
         instance.shutdown()

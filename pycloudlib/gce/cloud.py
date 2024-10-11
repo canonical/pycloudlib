@@ -74,9 +74,7 @@ class GCE(BaseCloud):
         if credentials_path:
             self.credentials_path = credentials_path
         elif "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
-            self.credentials_path = os.environ[
-                "GOOGLE_APPLICATION_CREDENTIALS"
-            ]
+            self.credentials_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
         elif "credentials_path" in self.config:
             self.credentials_path = os.path.expandvars(
                 os.path.expanduser(self.config["credentials_path"])
@@ -108,15 +106,9 @@ class GCE(BaseCloud):
 
         self._images_client = compute_v1.ImagesClient(credentials=credentials)
         self._disks_client = compute_v1.DisksClient(credentials=credentials)
-        self._instances_client = compute_v1.InstancesClient(
-            credentials=credentials
-        )
-        self._zone_operations_client = compute_v1.ZoneOperationsClient(
-            credentials=credentials
-        )
-        self._global_operations_client = compute_v1.GlobalOperationsClient(
-            credentials=credentials
-        )
+        self._instances_client = compute_v1.InstancesClient(credentials=credentials)
+        self._zone_operations_client = compute_v1.ZoneOperationsClient(credentials=credentials)
+        self._global_operations_client = compute_v1.GlobalOperationsClient(credentials=credentials)
         region = region or self.config.get("region") or "us-west2"
         zone = zone or self.config.get("zone") or "a"
         self.project = project
@@ -131,9 +123,7 @@ class GCE(BaseCloud):
             or getattr(credentials, "service_account_email", None)
         )
 
-    def released_image(
-        self, release, *, image_type: ImageType = ImageType.GENERIC, **kwargs
-    ):
+    def released_image(self, release, *, image_type: ImageType = ImageType.GENERIC, **kwargs):
         """ID of the latest released image for a particular release.
 
         Args:
@@ -175,9 +165,7 @@ class GCE(BaseCloud):
 
         raise ValueError("Invalid image_type: {}".format(image_type.value))
 
-    def _query_image_list(
-        self, release: str, project: str, name_filter: str, arch: str
-    ):
+    def _query_image_list(self, release: str, project: str, name_filter: str, arch: str):
         """Query full list of images.
 
         image list API docs:
@@ -201,9 +189,7 @@ class GCE(BaseCloud):
         Returns:
             list of images matching the given filters
         """
-        filter_string = "(name={}) AND (architecture={})".format(
-            name_filter, arch.upper()
-        )
+        filter_string = "(name={}) AND (architecture={})".format(name_filter, arch.upper())
 
         # SPECIAL CASE
         # Google didn't start including architecture in image descriptions
@@ -228,9 +214,7 @@ class GCE(BaseCloud):
                     max_results=500,
                     page_token=page_token,
                 )
-                image_list_result = self._images_client.list(
-                    image_list_request
-                )
+                image_list_result = self._images_client.list(image_list_request)
             except GoogleAPICallError as e:
                 raise_on_error(e)
             reqs += 1
@@ -240,10 +224,7 @@ class GCE(BaseCloud):
                 break
 
         self._log.debug(
-            (
-                'Fetched entire image list (%i results) matching "%s" in %i'
-                " requests"
-            ),
+            ("Fetched entire image list (%i results) matching '%s' in %i requests"),
             len(image_list),
             filter_string,
             reqs,
@@ -274,26 +255,18 @@ class GCE(BaseCloud):
             release,
         )
         project = self._get_project(image_type=image_type)
-        name_filter = self._get_name_filter(
-            release=release, image_type=image_type
-        )
+        name_filter = self._get_name_filter(release=release, image_type=image_type)
 
-        image_list = self._query_image_list(
-            release, project, name_filter, arch
-        )
+        image_list = self._query_image_list(release, project, name_filter, arch)
 
         if not image_list:
-            msg = (
-                "Could not find {} image for arch: {} and release: {}".format(
-                    image_type.value,
-                    arch,
-                    release,
-                )
+            msg = "Could not find {} image for arch: {} and release: {}".format(
+                image_type.value,
+                arch,
+                release,
             )
             self._log.warning(msg)
-            raise ImageNotFoundError(
-                image_type=image_type.value, arch=arch, release=release
-            )
+            raise ImageNotFoundError(image_type=image_type.value, arch=arch, release=release)
 
         image = sorted(image_list, key=lambda x: x.creation_timestamp)[-1]
         self._log.debug(
@@ -337,9 +310,7 @@ class GCE(BaseCloud):
                 project=self.project,
                 image=api_image_id,
             )
-            operation: ExtendedOperation = self._images_client.delete(
-                delete_image_request
-            )
+            operation: ExtendedOperation = self._images_client.delete(delete_image_request)
             raise_on_error(operation)
         except GoogleAPICallError as e:
             raise_on_error(e)
@@ -392,15 +363,11 @@ class GCE(BaseCloud):
         Raises: ValueError on invalid image_id
         """
         if not image_id:
-            raise ValueError(
-                f"{self._type} launch requires image_id param."
-                f" Found: {image_id}"
-            )
+            raise ValueError(f"{self._type} launch requires image_id param. Found: {image_id}")
         instance_name = "i{}-{}".format(next(self.instance_counter), self.tag)
         config: MutableMapping[str, Any] = {
             "name": instance_name,
-            "machine_type": "zones/%s/machineTypes/%s"
-            % (self.zone, instance_type),
+            "machine_type": "zones/%s/machineTypes/%s" % (self.zone, instance_type),
             "disks": [
                 {
                     "boot": True,
@@ -413,17 +380,14 @@ class GCE(BaseCloud):
             "network_interfaces": [
                 {
                     "network": "global/networks/default",
-                    "access_configs": [
-                        {"type_": "ONE_TO_ONE_NAT", "name": "External NAT"}
-                    ],
+                    "access_configs": [{"type_": "ONE_TO_ONE_NAT", "name": "External NAT"}],
                 }
             ],
             "metadata": {
                 "items": [
                     {
                         "key": "ssh-keys",
-                        "value": "ubuntu:%s"
-                        % self.key_pair.public_key_content,
+                        "value": "ubuntu:%s" % self.key_pair.public_key_content,
                     }
                 ]
             },
@@ -432,9 +396,7 @@ class GCE(BaseCloud):
         config.update(kwargs)
 
         if self.service_account_email:
-            config["service_accounts"] = [
-                {"email": self.service_account_email}
-            ]
+            config["service_accounts"] = [{"email": self.service_account_email}]
 
         if user_data:
             user_metadata = {"key": "user-data", "value": user_data}
@@ -446,9 +408,7 @@ class GCE(BaseCloud):
                 zone=self.zone,
                 instance_resource=config,
             )
-            operation: ExtendedOperation = self._instances_client.insert(
-                insert_instance_request
-            )
+            operation: ExtendedOperation = self._instances_client.insert(insert_instance_request)
             raise_on_error(operation)
         except GoogleAPICallError as e:
             raise_on_error(e)
@@ -463,9 +423,7 @@ class GCE(BaseCloud):
         except GoogleAPICallError as e:
             raise_on_error(e)
 
-        instance = self.get_instance(
-            result.id, name=result.name, username=username
-        )
+        instance = self.get_instance(result.id, name=result.name, username=username)
         self.created_instances.append(instance)
         return instance
 
@@ -488,14 +446,10 @@ class GCE(BaseCloud):
         except GoogleAPICallError as e:
             raise_on_error(e)
 
-        instance_disks = [
-            disk for disk in response.items if disk.name == instance.name
-        ]
+        instance_disks = [disk for disk in response.items if disk.name == instance.name]
 
         if len(instance_disks) > 1:
-            raise PycloudlibError(
-                "Snapshotting an image with multiple disks not supported"
-            )
+            raise PycloudlibError("Snapshotting an image with multiple disks not supported")
 
         instance.shutdown()
 
@@ -509,23 +463,17 @@ class GCE(BaseCloud):
                 project=self.project,
                 image_resource=image_resource,
             )
-            operation: ExtendedOperation = self._images_client.insert(
-                insert_image_request
-            )
+            operation: ExtendedOperation = self._images_client.insert(insert_image_request)
             raise_on_error(operation)
         except GoogleAPICallError as e:
             raise_on_error(e)
         self._wait_for_operation(operation)
 
-        image_id = "projects/{}/global/images/{}".format(
-            self.project, snapshot_name
-        )
+        image_id = "projects/{}/global/images/{}".format(self.project, snapshot_name)
         self.created_images.append(image_id)
         return image_id
 
-    def _wait_for_operation(
-        self, operation, operation_type="global", sleep_seconds=300
-    ):
+    def _wait_for_operation(self, operation, operation_type="global", sleep_seconds=300):
         if operation_type == "zone":
             api = self._zone_operations_client
             request = compute_v1.GetZoneOperationRequest(
@@ -548,7 +496,5 @@ class GCE(BaseCloud):
         else:
             raise PycloudlibError(
                 "Expected DONE state, but found {} after waiting {} seconds. "
-                "Check GCE console for more details. \n".format(
-                    response.status, sleep_seconds
-                )
+                "Check GCE console for more details. \n".format(response.status, sleep_seconds)
             )

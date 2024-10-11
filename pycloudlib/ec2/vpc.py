@@ -38,9 +38,7 @@ class VPC:
 
         """
         logger.debug("Creating VPC named (%s)", name)
-        vpc = cls._create_vpc(
-            resource=resource, name=name, ipv4_cidr=ipv4_cidr
-        )
+        vpc = cls._create_vpc(resource=resource, name=name, ipv4_cidr=ipv4_cidr)
         vpc.wait_until_available()
         vpc.reload()
         gateway = cls._create_internet_gateway(resource, vpc)
@@ -104,12 +102,8 @@ class VPC:
         """
         logger.debug("creating routing table")
         route_table = vpc.create_route_table()
-        route_table.create_route(
-            DestinationCidrBlock="0.0.0.0/0", GatewayId=gateway_id
-        )
-        route_table.create_route(
-            DestinationIpv6CidrBlock="::/0", GatewayId=gateway_id
-        )
+        route_table.create_route(DestinationCidrBlock="0.0.0.0/0", GatewayId=gateway_id)
+        route_table.create_route(DestinationIpv6CidrBlock="::/0", GatewayId=gateway_id)
         route_table.associate_with_subnet(SubnetId=subnet_id)
         return route_table
 
@@ -150,8 +144,7 @@ class VPC:
             kwargs["Ipv6CidrBlock"] = ipv6_cidr[:-2] + "64"
         except ValueError as e:
             logger.warning(
-                "Skipping IPv6 association on vpc."
-                " Could not understand Ipv6CidrBlock: [%s]: %s",
+                "Skipping IPv6 association on vpc. Could not understand Ipv6CidrBlock: [%s]: %s",
                 ipv6_cidr,
                 str(e),
             )
@@ -179,13 +172,9 @@ class VPC:
             VPC resource created from AWS cli
 
         """
-        logger.debug(
-            "creating new vpc named %s with subnet %s", name, ipv4_cidr
-        )
+        logger.debug("creating new vpc named %s with subnet %s", name, ipv4_cidr)
         try:
-            vpc = resource.create_vpc(
-                CidrBlock=ipv4_cidr, AmazonProvidedIpv6CidrBlock=True
-            )
+            vpc = resource.create_vpc(CidrBlock=ipv4_cidr, AmazonProvidedIpv6CidrBlock=True)
         except ClientError as error:
             raise CloudError(error) from error
 

@@ -76,12 +76,8 @@ class TestGetFirst:
         m_iter_pages.return_value = responses
         kwargs = {"a": "a", "b": "b"}
 
-        assert "x" == get_first(
-            m_ibm_operation, resource_name="resources", **kwargs
-        )
-        assert [
-            mock.call(m_ibm_operation, **kwargs)
-        ] == m_iter_pages.call_args_list
+        assert "x" == get_first(m_ibm_operation, resource_name="resources", **kwargs)
+        assert [mock.call(m_ibm_operation, **kwargs)] == m_iter_pages.call_args_list
 
     @mock.patch(M_PATH + "iter_pages")
     def test_one_page_filter(self, m_iter_pages):
@@ -97,9 +93,7 @@ class TestGetFirst:
             filter_fn=lambda resource: resource == "y",
             **kwargs,
         )
-        assert [
-            mock.call(m_ibm_operation, **kwargs)
-        ] == m_iter_pages.call_args_list
+        assert [mock.call(m_ibm_operation, **kwargs)] == m_iter_pages.call_args_list
 
 
 class TestGetAll:
@@ -123,9 +117,7 @@ class TestGetAll:
                 **kwargs,
             )
         )
-        assert [
-            mock.call(m_ibm_operation, **kwargs)
-        ] == m_iter_pages.call_args_list
+        assert [mock.call(m_ibm_operation, **kwargs)] == m_iter_pages.call_args_list
 
     @mock.patch(M_PATH + "iter_pages")
     def test_two_pages_map(self, m_iter_pages):
@@ -146,9 +138,7 @@ class TestGetAll:
                 **kwargs,
             )
         )
-        assert [
-            mock.call(m_ibm_operation, **kwargs)
-        ] == m_iter_pages.call_args_list
+        assert [mock.call(m_ibm_operation, **kwargs)] == m_iter_pages.call_args_list
 
 
 class TestWaitUntil:

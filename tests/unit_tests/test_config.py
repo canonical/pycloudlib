@@ -15,9 +15,7 @@ def test_get_item_override():
     try:
         config["not_there"]
     except KeyError as e:
-        assert str(e) == (
-            "'not_there must be defined in pycloudlib.toml to make this call'"
-        )
+        assert str(e) == ("'not_there must be defined in pycloudlib.toml to make this call'")
 
 
 class TestParseConfig:

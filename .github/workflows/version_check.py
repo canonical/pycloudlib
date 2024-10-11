@@ -28,9 +28,7 @@ if __name__ == "__main__":
         print("Usage: python version_check.py <old_version> <new_version>")
         sys.exit(1)
 
-    result = compare_versions(
-        version.parse(sys.argv[1]), version.parse(sys.argv[2])
-    )
+    result = compare_versions(version.parse(sys.argv[1]), version.parse(sys.argv[2]))
     print(result)
     if not result.startswith("Valid version"):
         sys.exit(1)  # Exit with code 1 to indicate failure

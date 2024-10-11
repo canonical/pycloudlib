@@ -37,9 +37,7 @@ def demo():
     you Azure account
     """
     with pycloudlib.Azure(tag="azure") as client:
-        image_id = client.daily_image(
-            release="jammy", image_type=ImageType.MINIMAL
-        )
+        image_id = client.daily_image(release="jammy", image_type=ImageType.MINIMAL)
 
         pub_key, priv_key = client.create_key_pair(key_name="test_integration")
         pub_path, priv_path = save_keys(
@@ -68,9 +66,7 @@ def demo():
 def demo_pro():
     """Show example of launchig a Ubuntu PRO image through Azure."""
     with pycloudlib.Azure(tag="azure") as client:
-        image_id = client.daily_image(
-            release="focal", image_type=ImageType.PRO
-        )
+        image_id = client.daily_image(release="focal", image_type=ImageType.PRO)
 
         pub_key, priv_key = client.create_key_pair(key_name="test_pro")
         pub_path, priv_path = save_keys(
@@ -93,9 +89,7 @@ def demo_pro():
 def demo_pro_fips():
     """Show example of launchig a Ubuntu PRO FIPS image through Azure."""
     with pycloudlib.Azure(tag="azure") as client:
-        image_id = client.daily_image(
-            release="focal", image_type=ImageType.PRO_FIPS
-        )
+        image_id = client.daily_image(release="focal", image_type=ImageType.PRO_FIPS)
 
         pub_key, priv_key = client.create_key_pair(key_name="test_pro_fips")
         pub_path, priv_path = save_keys(

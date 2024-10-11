@@ -16,9 +16,7 @@ class EC2Instance(BaseInstance):
 
     _type = "ec2"
 
-    def __init__(
-        self, key_pair, client, instance, *, username: Optional[str] = None
-    ):
+    def __init__(self, key_pair, client, instance, *, username: Optional[str] = None):
         """Set up instance.
 
         Args:
@@ -63,9 +61,7 @@ class EC2Instance(BaseInstance):
         self._instance.reload()
         public_ips = []
         nic_ids = [nic.id for nic in self._instance.network_interfaces]
-        nics_resp = self._client.describe_network_interfaces(
-            NetworkInterfaceIds=nic_ids
-        )
+        nics_resp = self._client.describe_network_interfaces(NetworkInterfaceIds=nic_ids)
         _check_response(nics_resp)
         for association in self._find_nic_associations(nics_resp):
             public_ip = association.get("PublicIp")
@@ -131,17 +127,12 @@ class EC2Instance(BaseInstance):
             )
             _check_response(assignment_resp)
         if ipv4_public_ip_count > 0:
-            nics_resp = self._client.describe_network_interfaces(
-                NetworkInterfaceIds=[interface_id]
-            )
+            nics_resp = self._client.describe_network_interfaces(NetworkInterfaceIds=[interface_id])
             _check_response(nics_resp)
             priv_ips = [nics_resp["NetworkInterfaces"][0]["PrivateIpAddress"]]
             if ipv4_address_count > 1:
                 priv_ips.extend(
-                    (
-                        x["PrivateIpAddress"]
-                        for x in assignment_resp["AssignedPrivateIpAddresses"]
-                    )
+                    (x["PrivateIpAddress"] for x in assignment_resp["AssignedPrivateIpAddresses"])
                 )
             for i in range(ipv4_public_ip_count):
                 allocation = self._client.allocate_address(Domain="vpc")
@@ -379,9 +370,7 @@ class EC2Instance(BaseInstance):
 
         """
         args = {
-            "Groups": [
-                group["GroupId"] for group in self._instance.security_groups
-            ],
+            "Groups": [group["GroupId"] for group in self._instance.security_groups],
             "SubnetId": self._instance.subnet_id,
         }
         if ipv6_address_count:
@@ -405,10 +394,7 @@ class EC2Instance(BaseInstance):
             integer to use as index for NIC
 
         """
-        used_indexes = [
-            nic.attachment["DeviceIndex"]
-            for nic in self._instance.network_interfaces
-        ]
+        used_indexes = [nic.attachment["DeviceIndex"] for nic in self._instance.network_interfaces]
         for possible_index in range(16):
             if possible_index not in used_indexes:
                 return possible_index
@@ -482,23 +468,18 @@ class EC2Instance(BaseInstance):
         )
         for association in self._find_nic_associations(nics_resp):
             try:
-                self._client.disassociate_address(
-                    AssociationId=association["AssociationId"]
-                )
+                self._client.disassociate_address(AssociationId=association["AssociationId"])
             except botocore.exceptions.ClientError as ex:
                 self._log.debug(
-                    "Error disassociating Public IP from NIC with IP"
-                    " %s: %s",
+                    "Error disassociating Public IP from NIC with IP %s: %s",
                     private_ip,
                     str(ex),
                 )
             try:
-                self._client.release_address(
-                    AllocationId=association["AllocationId"]
-                )
+                self._client.release_address(AllocationId=association["AllocationId"])
             except botocore.exceptions.ClientError as ex:
                 self._log.debug(
-                    "Error deleting Public IP from NIC with IP" " %s: %s",
+                    "Error deleting Public IP from NIC with IP %s: %s",
                     private_ip,
                     str(ex),
                 )
@@ -519,15 +500,11 @@ class EC2Instance(BaseInstance):
         # Get the NIC from the IP
         nic = self._get_nic_matching_ip(ip_address)
         if not nic:
-            self._log.debug(
-                "Not deleting NIC because no NIC with IP {} found."
-            )
+            self._log.debug("Not deleting NIC because no NIC with IP {} found.")
             return
 
         # Detach from the instance
-        self._client.detach_network_interface(
-            AttachmentId=nic.attachment["AttachmentId"]
-        )
+        self._client.detach_network_interface(AttachmentId=nic.attachment["AttachmentId"])
 
         # Wait for detach
         for _ in range(60):

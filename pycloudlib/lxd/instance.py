@@ -375,9 +375,7 @@ class LXDInstance(BaseInstance):
         Args:
             snapshot_name: Name of snapshot to restore from
         """
-        self._log.debug(
-            "restoring %s from snapshot %s", self.name, snapshot_name
-        )
+        self._log.debug("restoring %s from snapshot %s", self.name, snapshot_name)
         subp(["lxc", "restore", self.name, snapshot_name])
 
     def shutdown(self, wait=True, force=False, **kwargs):
@@ -519,11 +517,7 @@ class LXDInstance(BaseInstance):
         for _ in range(600):
             try:
                 processes = int(
-                    subp(
-                        "lxc list --columns N {} --format csv".format(
-                            self.name
-                        ).split()
-                    )
+                    subp("lxc list --columns N {} --format csv".format(self.name).split())
                 )
             except ValueError:
                 pass

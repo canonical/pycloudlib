@@ -35,9 +35,7 @@ def qemu(tmp_path: Path):
     image_dir.mkdir()
     dest_dir = tmp_path / "dest"
     dest_dir.mkdir()
-    config_path.write_text(
-        BASIC_CONFIG.format(src=str(image_dir), dest=str(dest_dir))
-    )
+    config_path.write_text(BASIC_CONFIG.format(src=str(image_dir), dest=str(dest_dir)))
     cloud = Qemu(tag="test", config_file=config_path)
     out = namedtuple("Qemu", "cloud image_dir dest_dir")
     yield out(cloud, image_dir, dest_dir)
@@ -57,9 +55,7 @@ def test_invalid_srcdir(tmp_path: Path):
 def test_invalid_destdir(tmp_path: Path):
     """Test that Qemu raises an error when working_dir is invalid."""
     config_path = tmp_path / "config"
-    config_path.write_text(
-        "[qemu]\nimage_dir = '/tmp'\nworking_dir = '/does/not/exist'"
-    )
+    config_path.write_text("[qemu]\nimage_dir = '/tmp'\nworking_dir = '/does/not/exist'")
     with pytest.raises(
         ValueError,
         match=("QEMU working_dir must be a valid path, not '/does/not/exist'"),
@@ -93,11 +89,9 @@ def test_unparseable_release_page(qemu):
     ):
         with pytest.raises(
             PycloudlibError,
-            match=("Could not parse url: " "https://nonexistent"),
+            match=("Could not parse url: https://nonexistent"),
         ):
-            qemu.cloud._get_latest_image(
-                "https://nonexistent", "none", "none.img"
-            )
+            qemu.cloud._get_latest_image("https://nonexistent", "none", "none.img")
 
 
 @mock.patch(
@@ -130,9 +124,9 @@ def test_seed_iso_no_data(tmp_path: Path, qemu):
 def test_seed_iso_only_vendordata(m_subp, qemu):
     """Test that _create_seed_iso works when only vendordata is passed."""
     tmp_path = qemu.dest_dir
-    assert str(
-        qemu.cloud._create_seed_iso(tmp_path, None, None, "vendor")
-    ) == str(tmp_path / "seed.iso")
+    assert str(qemu.cloud._create_seed_iso(tmp_path, None, None, "vendor")) == str(
+        tmp_path / "seed.iso"
+    )
     assert Path(tmp_path, "user-data").exists()
     assert Path(tmp_path, "meta-data").exists()
     assert Path(tmp_path, "vendor-data").exists()
@@ -157,9 +151,7 @@ def test_seed_iso_only_vendordata(m_subp, qemu):
 
 def test_no_kernel_found(qemu, caplog):
     """Test that _get_kernel_path raises an error when no kernel is found."""
-    with pytest.raises(
-        PycloudlibError, match="Could not find kernel for image_id: myid"
-    ):
+    with pytest.raises(PycloudlibError, match="Could not find kernel for image_id: myid"):
         qemu.cloud._get_kernel_path(
             kernel_path=None,
             kernel_cmdline="test",
@@ -199,9 +191,6 @@ def test_base_image(qemu):
     assert str(qemu.cloud._find_base_image(str(image_path))) == str(image_path)
     with pytest.raises(
         ImageNotFoundError,
-        match=(
-            "Could not find 'no.img' as absolute path or in "
-            f"'{qemu.image_dir}'"
-        ),
+        match=("Could not find 'no.img' as absolute path or in " f"'{qemu.image_dir}'"),
     ):
         qemu.cloud._find_base_image("no.img")

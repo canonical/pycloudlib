@@ -104,9 +104,7 @@ def launch_and_demo_all_lifecycle_features(
                 instance,
                 note="Example snapshot created by pycloudlib",
             )
-            print(
-                f"Succesfully created snapshot {ibm_classic.tag}-snapshot with ID: {snapshot_id}"
-            )
+            print(f"Succesfully created snapshot {ibm_classic.tag}-snapshot with ID: {snapshot_id}")
 
             print("Example Completed!")
         except Exception as e:

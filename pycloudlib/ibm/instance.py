@@ -66,10 +66,7 @@ class _Subnet:
         subnet = _get_first(
             client.list_subnets,
             resource_name="subnets",
-            filter_fn=(
-                lambda subnet: subnet["vpc"]["id"] == vpc_id
-                and subnet["name"] == name
-            ),
+            filter_fn=(lambda subnet: subnet["vpc"]["id"] == vpc_id and subnet["name"] == name),
         )
         if subnet is None:
             raise IBMException(f"Subnet not found: {name}")
@@ -111,10 +108,7 @@ class _Subnet:
                 raise
             return False
 
-        msg = (
-            f"Subnet not terminated after {sleep_seconds} seconds. "
-            "Check IBM VPC console."
-        )
+        msg = f"Subnet not terminated after {sleep_seconds} seconds. Check IBM VPC console."
 
         _wait_until(
             _check_fn,
@@ -164,14 +158,10 @@ class VPC:
         default Security Group.
         """
         resource_group = {"id": resource_group_id}
-        vpc = client.create_vpc(
-            name=name, resource_group=resource_group
-        ).get_result()
+        vpc = client.create_vpc(name=name, resource_group=resource_group).get_result()
 
         # Allow SSH access
-        default_sg = client.get_vpc_default_security_group(
-            vpc["id"]
-        ).get_result()
+        default_sg = client.get_vpc_default_security_group(vpc["id"]).get_result()
         rule_proto = {
             "direction": "inbound",
             "ip_version": "ipv4",
@@ -180,9 +170,7 @@ class VPC:
             "port_min": 22,
             "protocol": "tcp",
         }
-        client.create_security_group_rule(
-            default_sg["id"], rule_proto
-        ).get_result()
+        client.create_security_group_rule(default_sg["id"], rule_proto).get_result()
 
         subnet = _Subnet.create(
             client,
@@ -335,8 +323,7 @@ class _IBMInstanceType(Enum):
             return cls.BARE_METAL_SERVER
         if "host" in instance_type:
             logger.warning(
-                "%s instance_type looks like a Dedicated Host,"
-                " which is not supported.",
+                "%s instance_type looks like a Dedicated Host, which is not supported.",
                 instance_type,
             )
         return cls.VSI
@@ -347,9 +334,7 @@ class _IBMInstanceType(Enum):
         instance_type = instance["profile"]["name"]
         return cls.from_instance_type(instance_type)
 
-    def create_instance(
-        self, client: VpcV1, *args, **kwargs
-    ) -> DetailedResponse:
+    def create_instance(self, client: VpcV1, *args, **kwargs) -> DetailedResponse:
         """Create instance."""
         if self == self.VSI:
             return client.create_instance(*args, **kwargs)
@@ -365,9 +350,7 @@ class _IBMInstanceType(Enum):
             return client.list_bare_metal_servers(**kwargs)
         raise NotImplementedError(f"Implement me for: {self}")
 
-    def delete_instance(
-        self, client: VpcV1, *args, **kwargs
-    ) -> DetailedResponse:
+    def delete_instance(self, client: VpcV1, *args, **kwargs) -> DetailedResponse:
         """Delete instance."""
         if self == self.VSI:
             return client.delete_instance(*args, **kwargs)
@@ -375,9 +358,7 @@ class _IBMInstanceType(Enum):
             return client.delete_bare_metal_server(*args, **kwargs)
         raise NotImplementedError(f"Implement me for: {self}")
 
-    def get_instance(
-        self, client: VpcV1, instance_id: str, **kwargs
-    ) -> DetailedResponse:
+    def get_instance(self, client: VpcV1, instance_id: str, **kwargs) -> DetailedResponse:
         """Get instance."""
         if self == self.VSI:
             return client.get_instance(instance_id, **kwargs)
@@ -401,9 +382,7 @@ class _IBMInstanceType(Enum):
             return client.create_instance_action(id, action.value, force=force)
         if self == self.BARE_METAL_SERVER:
             if action == _Action.STOP:
-                return client.stop_bare_metal_server(
-                    id, type="hard" if force else "soft"
-                )
+                return client.stop_bare_metal_server(id, type="hard" if force else "soft")
             if action == _Action.START:
                 return client.start_bare_metal_server(id)
             if action == _Action.REBOOT:
@@ -416,15 +395,9 @@ class _IBMInstanceType(Enum):
     ) -> DetailedResponse:
         """List Floating IPs associated to a nic."""
         if self == self.VSI:
-            return client.list_instance_network_interface_floating_ips(
-                *args, **kwargs
-            )
+            return client.list_instance_network_interface_floating_ips(*args, **kwargs)
         if self == self.BARE_METAL_SERVER:
-            return (
-                client.list_bare_metal_server_network_interface_floating_ips(
-                    *args, *kwargs
-                )
-            )
+            return client.list_bare_metal_server_network_interface_floating_ips(*args, *kwargs)
         raise NotImplementedError(f"Implement me for: {self}")
 
     def add_instance_network_interface_floating_ip(
@@ -466,12 +439,8 @@ class IBMInstance(BaseInstance):
 
         # mount methods that depend on `_IBMInstanceType`:
         self._ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
-        self._delete_instance = partial(
-            self._ibm_instance_type.delete_instance, self._client
-        )
-        self._get_instance = partial(
-            self._ibm_instance_type.get_instance, self._client
-        )
+        self._delete_instance = partial(self._ibm_instance_type.delete_instance, self._client)
+        self._get_instance = partial(self._ibm_instance_type.get_instance, self._client)
         self._execute_instance_action = partial(
             self._ibm_instance_type.execute_instance_action,
             self._client,
@@ -556,9 +525,7 @@ class IBMInstance(BaseInstance):
             )
         )
         if not floating_ips:
-            raise IBMException(
-                f"No floating IPs found matching substring {name_includes}"
-            )
+            raise IBMException(f"No floating IPs found matching substring {name_includes}")
         # filter out floating ips that are already associated with an instance
         floating_ips = [ip for ip in floating_ips if "target" not in ip]
         if not floating_ips:
@@ -632,14 +599,10 @@ class IBMInstance(BaseInstance):
         ).get_result()
         # sleep 1s to let cloud update then check to make sure that floating IP successfully attached
         time.sleep(1)
-        self._floating_ip = self._discover_floating_ip(
-            self._client, self._instance
-        )
+        self._floating_ip = self._discover_floating_ip(self._client, self._instance)
         return self._floating_ip is not None
 
-    def _attach_floating_ip_until_success(
-        self, floating_ip_substring: str
-    ) -> dict:
+    def _attach_floating_ip_until_success(self, floating_ip_substring: str) -> dict:
         """
         Attempt to attach floating ip until able to successfully attach one.
 
@@ -669,18 +632,14 @@ class IBMInstance(BaseInstance):
                 "Attempting to attach floating ip: %s",
                 target_floating_ip["name"],
             )
-            floating_ip_is_attached = self._attach_floating_ip(
-                floating_ip=target_floating_ip
-            )
+            floating_ip_is_attached = self._attach_floating_ip(floating_ip=target_floating_ip)
             if not floating_ip_is_attached:
                 self._log.info(
                     "Failed to attach floating ip: %s. Will try again.",
                     target_floating_ip["name"],
                 )
             if tries == 10:
-                raise IBMException(
-                    "Unexpectedly failed to attach floating ip after 10 tries."
-                )
+                raise IBMException("Unexpectedly failed to attach floating ip after 10 tries.")
         self._log.info(
             "Successfully attached floating ip: %s",
             self._floating_ip["name"],
@@ -700,9 +659,7 @@ class IBMInstance(BaseInstance):
         If `floating_ip` is not given, it will try to discover an associated
         Floating Ip.
         """
-        floating_ip = kwargs.pop(
-            "floating_ip", None
-        ) or cls._discover_floating_ip(client, instance)
+        floating_ip = kwargs.pop("floating_ip", None) or cls._discover_floating_ip(client, instance)
         return cls(
             *args,
             client=client,
@@ -724,9 +681,7 @@ class IBMInstance(BaseInstance):
         """Find an instance by ID."""
         instance = _IBMInstanceType.VSI.get_instance(client, instance_id)
         if not instance:
-            instance = _IBMInstanceType.BARE_METAL_SERVER.get_instance(
-                client, instance_id
-            )
+            instance = _IBMInstanceType.BARE_METAL_SERVER.get_instance(client, instance_id)
 
         if not instance:
             raise IBMException(f"Instance not found: {instance_id}")
@@ -796,9 +751,7 @@ class IBMInstance(BaseInstance):
         else:
             raise NotImplementedError(f"Implement me for: {ibm_instance_type}")
 
-        raw_instance = ibm_instance_type.create_instance(
-            client, **kwargs
-        ).get_result()
+        raw_instance = ibm_instance_type.create_instance(client, **kwargs).get_result()
         return raw_instance
 
     @staticmethod
@@ -807,13 +760,11 @@ class IBMInstance(BaseInstance):
         nic_id = instance["primary_network_interface"]["id"]
 
         ibm_instance_type = _IBMInstanceType.from_raw_instance(instance)
-        floating_ips = (
-            ibm_instance_type.list_instance_network_interface_floating_ips(
-                client,
-                instance["id"],
-                network_interface_id=nic_id,
-            ).get_result()["floating_ips"]
-        )
+        floating_ips = ibm_instance_type.list_instance_network_interface_floating_ips(
+            client,
+            instance["id"],
+            network_interface_id=nic_id,
+        ).get_result()["floating_ips"]
 
         return floating_ips[0] if floating_ips else None
 
@@ -826,15 +777,11 @@ class IBMInstance(BaseInstance):
     def ip(self):
         """Return IP address of instance."""
         if self._floating_ip is None:
-            self._floating_ip = self._discover_floating_ip(
-                self._client, self._refresh_instance()
-            )
+            self._floating_ip = self._discover_floating_ip(self._client, self._refresh_instance())
         if self._floating_ip is not None:
             return self._floating_ip["address"]
 
-        self._log.warning(
-            "The instance Instance %s has no IP available", self.id
-        )
+        self._log.warning("The instance Instance %s has no IP available", self.id)
         return None
 
     @property
@@ -946,10 +893,7 @@ class IBMInstance(BaseInstance):
             IBMException: If the instance failed to start due to other reasons.
         """
         if self._instance["status"] == _Status.FAILED.value:
-            if any(
-                "capacity" in reason["code"]
-                for reason in self._instance["status_reasons"]
-            ):
+            if any("capacity" in reason["code"] for reason in self._instance["status_reasons"]):
                 raise IBMCapacityException(
                     f"Out of capacity! Instance {self.id} failed to start: "
                     f"{self._instance['status_reasons'][0]['message']}"
@@ -981,10 +925,7 @@ class IBMInstance(BaseInstance):
                 raise
             return False
 
-        msg = (
-            f"Instance not terminated after {sleep_seconds} seconds. "
-            "Check IBM VPC console."
-        )
+        msg = f"Instance not terminated after {sleep_seconds} seconds. Check IBM VPC console."
 
         terminated = _wait_until(
             _check_fn,

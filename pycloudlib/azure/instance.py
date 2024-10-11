@@ -62,9 +62,7 @@ class AzureInstance(BaseInstance):
         self._instance = instance
         self.boot_timeout = 300
         self._status: VMInstanceStatus = status
-        self._boot_diagnostics_log = (
-            self._get_boot_diagnostics() if get_boot_diagnostics else None
-        )
+        self._boot_diagnostics_log = self._get_boot_diagnostics() if get_boot_diagnostics else None
 
     def wait_for_delete(self):
         """Wait for instance to be deleted."""
@@ -90,9 +88,7 @@ class AzureInstance(BaseInstance):
     @property
     def image_id(self):
         """Return the image_id from which this instance was created."""
-        storage_profile = (
-            self._instance["vm"].as_dict().get("storage_profile", {})
-        )
+        storage_profile = self._instance["vm"].as_dict().get("storage_profile", {})
         image_ref = storage_profile.get("image_reference", {})
 
         if image_ref:
@@ -190,9 +186,7 @@ class AzureInstance(BaseInstance):
             time.sleep(BOOT_DIAGNOSTICS_URI_DELAY)
             response = requests.get(diagnostics.serial_console_log_blob_uri)
         except ResourceExistsError:
-            self._log.warning(
-                "Boot diagnostics not enabled, so none is collected."
-            )
+            self._log.warning("Boot diagnostics not enabled, so none is collected.")
             return None
         return response.text
 
@@ -213,9 +207,7 @@ class AzureInstance(BaseInstance):
 
     def _wait_for_instance_start(self, **kwargs):
         for _ in range(120):
-            view = self._client.virtual_machines.instance_view(
-                self._instance["rg_name"], self.name
-            )
+            view = self._client.virtual_machines.instance_view(self._instance["rg_name"], self.name)
             status = view.statuses[1].display_status
             if status.lower() == "vm running":
                 return True
@@ -242,11 +234,7 @@ class AzureInstance(BaseInstance):
             if wait:
                 poller.wait(timeout=300)
                 if not poller.done():
-                    return [
-                        PycloudlibTimeoutError(
-                            "Resource not deleted after 300 seconds"
-                        )
-                    ]
+                    return [PycloudlibTimeoutError("Resource not deleted after 300 seconds")]
             self._status = VMInstanceStatus.DELETED
             self._instance = None
         except Exception as e:
@@ -266,9 +254,7 @@ class AzureInstance(BaseInstance):
         """
         # pylint: disable=too-many-locals
         # get subnet id and network security group id of primary nic
-        default_nic_id = (
-            self._instance["vm"].network_profile.network_interfaces[0].id
-        )
+        default_nic_id = self._instance["vm"].network_profile.network_interfaces[0].id
         all_nics = list(self._network_client.network_interfaces.list_all())
         default_nic = [nic for nic in all_nics if nic.id == default_nic_id]
         if len(default_nic) == 0:
@@ -294,10 +280,8 @@ class AzureInstance(BaseInstance):
             "tags": None,
         }
         nic_name = f"{self.name}-nic-{us}"
-        nic_poller = (
-            self._network_client.network_interfaces.begin_create_or_update(
-                self._instance["rg_name"], nic_name, default_config
-            )
+        nic_poller = self._network_client.network_interfaces.begin_create_or_update(
+            self._instance["rg_name"], nic_name, default_config
         )
         created_nic = nic_poller.result()
         nic_details = dict(id=created_nic.id, primary=False)
@@ -311,13 +295,8 @@ class AzureInstance(BaseInstance):
         ip_address: private ip address of the NIC
         """
         # Get details of the NICs attached to the VM.
-        vm_nics_ids = [
-            nic.id
-            for nic in self._instance["vm"].network_profile.network_interfaces
-        ]
-        all_nics: List[NetworkInterface] = list(
-            self._network_client.network_interfaces.list_all()
-        )
+        vm_nics_ids = [nic.id for nic in self._instance["vm"].network_profile.network_interfaces]
+        all_nics: List[NetworkInterface] = list(self._network_client.network_interfaces.list_all())
         vm_nics = [nic for nic in all_nics if nic.id in vm_nics_ids]
         primary_nic = [nic for nic in vm_nics if nic.primary][0]
         nic_params = []
@@ -329,16 +308,12 @@ class AzureInstance(BaseInstance):
             else:
                 nic_params.append({"id": vm_nic.id, "primary": vm_nic.primary})
         if not nic_to_remove:
-            raise PycloudlibError(
-                f"Did not find NIC with private ip address: {ip_address}"
-            )
+            raise PycloudlibError(f"Did not find NIC with private ip address: {ip_address}")
         # if primary nic is removed, then make the next NIC as primary
         if nic_to_remove.primary:
             primary_nic = None
             for nic_param in nic_params:
-                primary_nics = [
-                    nic for nic in vm_nics if nic.id == nic_param["id"]
-                ]
+                primary_nics = [nic for nic in vm_nics if nic.id == nic_param["id"]]
                 if len(primary_nics) > 0:
                     primary_nic = primary_nics[0]
                     nic_param["primary"] = True
@@ -367,9 +342,7 @@ class AzureInstance(BaseInstance):
         # Deleting will be async, no need to wait
         all_ips = list(self._network_client.public_ip_addresses.list_all())
         params = self._instance["vm"].as_dict()
-        net_params = {
-            "network_profile": {"network_interfaces": new_nic_params}
-        }
+        net_params = {"network_profile": {"network_interfaces": new_nic_params}}
         update_nested(params, net_params)
         poll = self._client.virtual_machines.begin_create_or_update(
             self._instance["rg_name"], self.name, params
@@ -379,8 +352,7 @@ class AzureInstance(BaseInstance):
         self._instance["ip_address"] = [
             ip_addr.ip_address
             for ip_addr in all_ips
-            if ip_addr.id
-            == primary_nic.ip_configurations[0].public_ip_address.id  # type: ignore
+            if ip_addr.id == primary_nic.ip_configurations[0].public_ip_address.id  # type: ignore
         ][0]
         if do_start:
             self.start()
@@ -397,9 +369,7 @@ class AzureInstance(BaseInstance):
         params = self._instance["vm"].as_dict()
         vm_attached_nics = params["network_profile"]["network_interfaces"]
         vm_attached_nics.extend(nics)
-        net_params = {
-            "network_profile": {"network_interfaces": vm_attached_nics}
-        }
+        net_params = {"network_profile": {"network_interfaces": vm_attached_nics}}
         update_nested(params, net_params)
         poll = self._client.virtual_machines.begin_create_or_update(
             self._instance["rg_name"], self.name, params
@@ -419,12 +389,10 @@ class AzureInstance(BaseInstance):
             "tags": None,
         }
 
-        ip_poller = (
-            self._network_client.public_ip_addresses.begin_create_or_update(
-                self._instance["rg_name"],
-                ip_name,
-                parameters,
-            )
+        ip_poller = self._network_client.public_ip_addresses.begin_create_or_update(
+            self._instance["rg_name"],
+            ip_name,
+            parameters,
         )
 
         return ip_poller.result()

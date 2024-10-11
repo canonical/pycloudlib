@@ -51,10 +51,7 @@ def test_add_rules_valid_input(
         protocol=protocol,
     )
 
-    assert (
-        mock_ibmclassic._network_manager.add_securitygroup_rule.call_count
-        == expected_call_count
-    )
+    assert mock_ibmclassic._network_manager.add_securitygroup_rule.call_count == expected_call_count
 
 
 def test_add_rules_invalid_direction(mock_ibmclassic):
@@ -68,9 +65,7 @@ def test_get_image_id_from_name(mock_ibmclassic):
     mock_ibmclassic._image_manager.list_private_images.return_value = [
         {"globalIdentifier": "image-id-1234"},
     ]
-    assert (
-        mock_ibmclassic.get_image_id_from_name("image-name") == "image-id-1234"
-    )
+    assert mock_ibmclassic.get_image_id_from_name("image-name") == "image-id-1234"
 
 
 def test_get_datacenter(mock_ibmclassic):

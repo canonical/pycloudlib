@@ -27,9 +27,7 @@ class TestIBMInstance:
         ),
     )
     @mock.patch(M_PATH + "VpcV1", autospec=True)
-    def test_type_from_raw_instance(
-        self, client, raw_instance, inst_id, zone_id, inst_type
-    ):
+    def test_type_from_raw_instance(self, client, raw_instance, inst_id, zone_id, inst_type):
         """Factory function inits the appropriate IBMInstanceType."""
         inst = IBMInstance.from_raw_instance(
             key_pair=None,
@@ -55,11 +53,7 @@ class TestIBMInstance:
             get_result=mock.Mock(
                 side_effect=[
                     {"floating_ips": []},
-                    {
-                        "floating_ips": [
-                            {"id": "floatingid1", "name": "floatingname"}
-                        ]
-                    },
+                    {"floating_ips": [{"id": "floatingid1", "name": "floatingname"}]},
                 ]
             )
         )

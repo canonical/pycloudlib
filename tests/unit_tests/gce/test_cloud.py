@@ -26,9 +26,7 @@ def common_mocks(tmpdir):
     """Mock all known side-effects of GCE.__init__"""
     cfg_file = tmpdir.join("pyproject.toml")
     cfg_file.write("[gce]\n")
-    with mock.patch(
-        MPATH + "subp", return_value=Result("my-project", "", 0)
-    ), mock.patch(
+    with mock.patch(MPATH + "subp", return_value=Result("my-project", "", 0)), mock.patch(
         MPATH + "compute_v1.ImagesClient",
         return_value="fake_images_client",
     ), mock.patch(
@@ -238,9 +236,7 @@ class TestGCE:
         with mock.patch.object(gce, "_images_client") as m_images:
             m_images.list.side_effect = api_side_effects
 
-            qil = gce._query_image_list(
-                release, "project-name", "name-filter", arch
-            )
+            qil = gce._query_image_list(release, "project-name", "name-filter", arch)
             assert expected_image_list == qil
             assert m_images.list.call_args_list == expected_filter_calls
 
@@ -274,12 +270,8 @@ class TestGCE:
         m_query_image_list,
         gce,
     ):
-        image = gce.daily_image(
-            "jammy", arch="x86_64", image_type=ImageType.GENERIC
-        )
-        assert m_get_project.call_args_list == [
-            mock.call(image_type=ImageType.GENERIC)
-        ]
+        image = gce.daily_image("jammy", arch="x86_64", image_type=ImageType.GENERIC)
+        assert m_get_project.call_args_list == [mock.call(image_type=ImageType.GENERIC)]
         assert m_get_name_filter.call_args_list == [
             mock.call(release="jammy", image_type=ImageType.GENERIC)
         ]
@@ -314,9 +306,5 @@ class TestGCE:
             ),
         ],
     )
-    def test_get_name_filter(
-        self, release, image_type, expected_name_filter, gce
-    ):
-        assert (
-            gce._get_name_filter(release, image_type) == expected_name_filter
-        )
+    def test_get_name_filter(self, release, image_type, expected_name_filter, gce):
+        assert gce._get_name_filter(release, image_type) == expected_name_filter
