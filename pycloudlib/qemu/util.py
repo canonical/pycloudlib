@@ -22,8 +22,6 @@ def get_free_port():
                 if e.errno == errno.EADDRINUSE:
                     continue
                 raise
-        raise CloudSetupError(
-            f"Could not find open port in {next_port}-{next_port + 100} range"
-        )
+        raise CloudSetupError(f"Could not find open port in {next_port}-{next_port + 100} range")
     finally:
         s.close()

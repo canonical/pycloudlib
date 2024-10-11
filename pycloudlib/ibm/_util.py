@@ -30,9 +30,7 @@ def iter_pages(
         yield detailed_response
 
 
-def iter_resources(
-    op, *, resource_name: str, filter_fn=None, map_fn=None, **kwargs
-) -> Iterator:
+def iter_resources(op, *, resource_name: str, filter_fn=None, map_fn=None, **kwargs) -> Iterator:
     """Iterate over the resources, optionally mapped and or filtered."""
     filter_fn = filter_fn or (lambda _: True)
     map_fn = map_fn or (lambda x: x)
@@ -51,11 +49,7 @@ def get_first(
 ) -> Optional[dict]:
     """Get first resource filtered by `filter_fn`."""
     try:
-        return next(
-            iter_resources(
-                op, resource_name=resource_name, filter_fn=filter_fn, **kwargs
-            )
-        )
+        return next(iter_resources(op, resource_name=resource_name, filter_fn=filter_fn, **kwargs))
     except StopIteration:
         return None
 

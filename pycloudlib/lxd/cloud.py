@@ -67,9 +67,7 @@ class _BaseLXD(BaseCloud, ABC):
             force: Force the profile creation if it already exists
         """
         profile_yaml = subp(["lxc", "profile", "list", "--format", "yaml"])
-        profile_list = [
-            profile["name"] for profile in yaml.safe_load(profile_yaml)
-        ]
+        profile_list = [profile["name"] for profile in yaml.safe_load(profile_yaml)]
 
         if profile_name in profile_list and not force:
             msg = f"The profile named {profile_name} already exists"
@@ -96,9 +94,7 @@ class _BaseLXD(BaseCloud, ABC):
         inst = self.get_instance(instance_name)
         inst.delete(wait)
 
-    def get_instance(
-        self, instance_id, *, username: Optional[str] = None, **kwargs
-    ):
+    def get_instance(self, instance_id, *, username: Optional[str] = None, **kwargs):
         """Get an existing instance.
 
         Args:
@@ -109,9 +105,7 @@ class _BaseLXD(BaseCloud, ABC):
             The existing instance as a LXD instance object
 
         """
-        return self._lxd_instance_cls(
-            instance_id, key_pair=self.key_pair, username=username
-        )
+        return self._lxd_instance_cls(instance_id, key_pair=self.key_pair, username=username)
 
     def _normalize_image_id(self, image_id: str) -> str:
         if ":" not in image_id:
@@ -159,9 +153,7 @@ class _BaseLXD(BaseCloud, ABC):
             cmd.append(name)
 
         if self.key_pair:
-            metadata = "public-keys: {}".format(
-                self.key_pair.public_key_content
-            )
+            metadata = "public-keys: {}".format(self.key_pair.public_key_content)
             config_dict["user.meta-data"] = metadata
 
         if ephemeral:
@@ -308,10 +300,7 @@ class _BaseLXD(BaseCloud, ABC):
         Raises: ValueError on missing image_id
         """
         if not image_id:
-            raise ValueError(
-                f"{self._type} launch requires image_id param."
-                f" Found: {image_id}"
-            )
+            raise ValueError(f"{self._type} launch requires image_id param. Found: {image_id}")
         instance = self.init(
             name=name or f"{self.tag}-{next(self._instance_counter)}",
             image_id=image_id,
@@ -348,9 +337,7 @@ class _BaseLXD(BaseCloud, ABC):
             string, LXD fingerprint of latest image
 
         """
-        self._log.debug(
-            "finding released Ubuntu image [%s] for %s", image_type, release
-        )
+        self._log.debug("finding released Ubuntu image [%s] for %s", image_type, release)
         return _images.find_last_fingerprint(
             daily=False,
             release=release,
@@ -377,9 +364,7 @@ class _BaseLXD(BaseCloud, ABC):
             string, LXD fingerprint of latest image
 
         """
-        self._log.debug(
-            "finding daily Ubuntu image [%s] for %s", image_type, release
-        )
+        self._log.debug("finding daily Ubuntu image [%s] for %s", image_type, release)
         return _images.find_last_fingerprint(
             daily=True,
             release=release,
@@ -398,9 +383,7 @@ class _BaseLXD(BaseCloud, ABC):
             string, serial of latest image
 
         """
-        self._log.debug(
-            "finding image serial for LXD Ubuntu image %s", image_id
-        )
+        self._log.debug("finding image serial for LXD Ubuntu image %s", image_id)
         return _images.find_image_serial(image_id)
 
     def delete_image(self, image_id, **kwargs):

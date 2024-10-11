@@ -43,9 +43,7 @@ class Openstack(BaseCloud):
             network: Name of the network to use (from openstack network list)
 
         """  # noqa: E501
-        super().__init__(
-            tag, timestamp_suffix, config_file, required_values=[network]
-        )
+        super().__init__(tag, timestamp_suffix, config_file, required_values=[network])
 
         self.network = network or self.config["network"]
         self._openstack_keypair: Optional[KeyPair] = None
@@ -135,10 +133,7 @@ class Openstack(BaseCloud):
         Raises: ValueError on invalid image_id
         """
         if not image_id:
-            raise ValueError(
-                f"{self._type} launch requires image_id param."
-                f" Found: {image_id}"
-            )
+            raise ValueError(f"{self._type} launch requires image_id param. Found: {image_id}")
         network_id = self._get_network_id()
         networks = [{"uuid": network_id}]
         if not self._openstack_keypair:

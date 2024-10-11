@@ -49,9 +49,7 @@ def test_ibm_launch(ibm_cloud: IBM):
     """
     time_id = time.time_ns()
     image_id = ibm_cloud.released_image("noble")
-    floating_ip_substring = (
-        ibm_cloud._floating_ip_substring or "default-floating-ip"
-    )
+    floating_ip_substring = ibm_cloud._floating_ip_substring or "default-floating-ip"
     unique_instance_name = f"integration-test-launch-instance-{time_id}"
     # create ssh_keys for use
     manage_ssh_key(ibm_cloud, f"integration-test-key-{time_id}")

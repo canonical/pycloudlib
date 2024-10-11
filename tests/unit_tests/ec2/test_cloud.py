@@ -119,9 +119,7 @@ class TestEC2:
         combinations of release, image_type, and daily
         """
         ec2 = FakeEC2()
-        result = ec2._get_name_for_image_type(
-            release=release, image_type=image_type, daily=daily
-        )
+        result = ec2._get_name_for_image_type(release=release, image_type=image_type, daily=daily)
         assert result == expected_name_filter
 
     def test_get_name_for_image_type_invalid_image_type(self):
@@ -130,9 +128,7 @@ class TestEC2:
         """
         ec2 = FakeEC2()
         with pytest.raises(ValueError) as exc_info:
-            ec2._get_name_for_image_type(
-                release="focal", image_type=None, daily=True
-            )
+            ec2._get_name_for_image_type(release="focal", image_type=None, daily=True)
         assert "Invalid image_type" in str(exc_info.value)
 
     def test_get_owner_for_all_image_types(self):
@@ -152,7 +148,4 @@ class TestEC2:
         # if not, then the test will fail because a new ImageType was added
         for image_type in ImageType:
             assert image_type in expected_project_per_image_type
-            assert (
-                ec2._get_owner(image_type)
-                == expected_project_per_image_type[image_type]
-            )
+            assert ec2._get_owner(image_type) == expected_project_per_image_type[image_type]

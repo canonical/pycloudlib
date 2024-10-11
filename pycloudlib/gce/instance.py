@@ -42,8 +42,7 @@ class GceInstance(BaseInstance):
         """
         if project is None or zone is None:
             raise ValueError(
-                "kwargs 'project' and 'zone' are required. "
-                "Project: {}, Zone: {}".format(project, zone)
+                f"kwargs 'project' and 'zone' are required. Project: {project}, Zone: {zone}"
             )
         super().__init__(key_pair, username=username)
         self.instance_id = instance_id
@@ -52,9 +51,7 @@ class GceInstance(BaseInstance):
         self.zone = zone
         self._ip = None
         credentials = get_credentials(credentials_path)
-        self._instances_client = compute_v1.InstancesClient(
-            credentials=credentials
-        )
+        self._instances_client = compute_v1.InstancesClient(credentials=credentials)
 
     def __repr__(self):
         """Create string representation of class."""
@@ -119,9 +116,7 @@ class GceInstance(BaseInstance):
                 zone=self.zone,
                 instance=str(self.instance_id),
             )
-            response: ExtendedOperation = self._instances_client.delete(
-                delete_instance_request
-            )
+            response: ExtendedOperation = self._instances_client.delete(delete_instance_request)
             raise_on_error(response)
             if wait:
                 self.wait_for_delete()
@@ -148,9 +143,7 @@ class GceInstance(BaseInstance):
                 zone=self.zone,
                 instance=str(self.instance_id),
             )
-            operation: ExtendedOperation = self._instances_client.stop(
-                stop_instance_request
-            )
+            operation: ExtendedOperation = self._instances_client.stop(stop_instance_request)
             raise_on_error(operation)
         except GoogleAPICallError as e:
             raise_on_error(e)
@@ -169,9 +162,7 @@ class GceInstance(BaseInstance):
                 zone=self.zone,
                 instance=str(self.instance_id),
             )
-            operation: ExtendedOperation = self._instances_client.start(
-                start_instance_request
-            )
+            operation: ExtendedOperation = self._instances_client.start(start_instance_request)
             raise_on_error(operation)
         except GoogleAPICallError as e:
             raise_on_error(e)

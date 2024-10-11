@@ -1,4 +1,5 @@
-"""Integration tests for Qemu class.""" ""
+"""Integration tests for Qemu class."""
+
 import pytest
 import yaml
 
@@ -87,9 +88,7 @@ def test_kernel_cli():
         )
         instance.wait()
         assert "testhostname" == instance.execute("hostname")
-        assert "myinstanceid" == instance.execute(
-            "cloud-init query instance-id"
-        )
+        assert "myinstanceid" == instance.execute("cloud-init query instance-id")
 
 
 V2_CONFIG = """\
@@ -115,9 +114,7 @@ class TestQemu:
                 image_id=image,
                 user_data=SNAPSHOT_CONFIG % "1",
                 meta_data="instance-id: iid-local01\nlocal-hostname: cloudimg",
-                vendor_data=(
-                    "#cloud-config\nruncmd:\n - echo '2' > /var/tmp/two"
-                ),
+                vendor_data=("#cloud-config\nruncmd:\n - echo '2' > /var/tmp/two"),
                 network_config=V2_CONFIG,
             )
             instance.wait()
@@ -128,9 +125,7 @@ class TestQemu:
         assert instance.execute("cat /var/tmp/message") == "1"
         assert instance.execute("cat /var/tmp/two") == "2"
         assert instance.execute("hostname") == "cloudimg"
-        remote_netplan = instance.execute(
-            "cat /etc/netplan/50-cloud-init.yaml"
-        )
+        remote_netplan = instance.execute("cat /etc/netplan/50-cloud-init.yaml")
         remote_yaml = yaml.load(remote_netplan, Loader=yaml.SafeLoader)
         local_yaml = yaml.load(V2_CONFIG, Loader=yaml.SafeLoader)
         assert local_yaml == remote_yaml

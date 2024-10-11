@@ -77,18 +77,14 @@ class OciInstance(BaseInstance):
                 compartment_id=self.compartment_id,
                 instance_id=self.instance_data.id,
             ).data[0]
-            vnic_info = self.network_client.get_vnic(
-                vnic_attachment.vnic_id
-            ).data
+            vnic_info = self.network_client.get_vnic(vnic_attachment.vnic_id).data
             # if not public IP, check for ipv6
             if vnic_info.public_ip is None:
                 if vnic_info.ipv6_addresses:
                     self._ip = vnic_info.ipv6_addresses[0]
                     self._log.info("Using ipv6 address: %s", self._ip)
                 else:
-                    raise PycloudlibError(
-                        "No public ipv4 address or ipv6 address found"
-                    )
+                    raise PycloudlibError("No public ipv4 address or ipv6 address found")
             else:
                 self._ip = vnic_info.public_ip
                 self._log.info("Using ipv4 address: %s", self._ip)
@@ -134,17 +130,13 @@ class OciInstance(BaseInstance):
         last_exception = None
         for _ in range(30):
             try:
-                self.compute_client.instance_action(
-                    self.instance_data.id, "RESET"
-                )
+                self.compute_client.instance_action(self.instance_data.id, "RESET")
                 return
             except oci.exceptions.ServiceError as e:
                 last_exception = e
                 if last_exception.status != 409:
                     raise
-                self._log.debug(
-                    "Received 409 attempting to RESET instance. Retrying"
-                )
+                self._log.debug("Received 409 attempting to RESET instance. Retrying")
                 sleep(0.5)
         if last_exception:
             raise last_exception
@@ -170,9 +162,7 @@ class OciInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def _wait_for_instance_start(
-        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
-    ):
+    def _wait_for_instance_start(self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs):
         """Wait for instance to be up."""
         wait_till_ready(
             func=self.compute_client.get_instance,
@@ -181,9 +171,7 @@ class OciInstance(BaseInstance):
             func_kwargs=func_kwargs,
         )
 
-    def wait_for_delete(
-        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
-    ):
+    def wait_for_delete(self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs):
         """Wait for instance to be deleted."""
         wait_till_ready(
             func=self.compute_client.get_instance,
@@ -192,9 +180,7 @@ class OciInstance(BaseInstance):
             func_kwargs=func_kwargs,
         )
 
-    def wait_for_stop(
-        self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs
-    ):
+    def wait_for_stop(self, *, func_kwargs: Optional[Dict[str, str]] = None, **kwargs):
         """Wait for instance stop."""
         wait_till_ready(
             func=self.compute_client.get_instance,
@@ -223,17 +209,13 @@ class OciInstance(BaseInstance):
             create_vnic_details=create_vnic_details,
             instance_id=self.instance_id,
         )
-        vnic_attachment_data = self.compute_client.attach_vnic(
-            attach_vnic_details
-        ).data
+        vnic_attachment_data = self.compute_client.attach_vnic(attach_vnic_details).data
         vnic_attachment_data = wait_till_ready(
             func=self.compute_client.get_vnic_attachment,
             current_data=vnic_attachment_data,
             desired_state=vnic_attachment_data.LIFECYCLE_STATE_ATTACHED,
         )
-        vnic_data = self.network_client.get_vnic(
-            vnic_attachment_data.vnic_id
-        ).data
+        vnic_data = self.network_client.get_vnic(vnic_attachment_data.vnic_id).data
         return vnic_data.private_ip
 
     def remove_network_interface(self, ip_address: str):
@@ -250,9 +232,7 @@ class OciInstance(BaseInstance):
             instance_id=self.instance_id,
         )
         for vnic_attachment in vnic_attachments:
-            vnic_data = self.network_client.get_vnic(
-                vnic_attachment.vnic_id
-            ).data
+            vnic_data = self.network_client.get_vnic(vnic_attachment.vnic_id).data
             if vnic_data.private_ip == ip_address:
                 try:
                     self.compute_client.detach_vnic(vnic_attachment.id)
@@ -263,6 +243,4 @@ class OciInstance(BaseInstance):
                         " cleanup."
                     )
                 return
-        raise PycloudlibError(
-            f"Network interface with ip_address={ip_address} did not detach"
-        )
+        raise PycloudlibError(f"Network interface with ip_address={ip_address} did not detach")

@@ -16,15 +16,11 @@ from pycloudlib.azure.security_types import (
 class TestSecurityType:
     """Tests covering Azure Security Types."""
 
-    @pytest.mark.parametrize(
-        "vm_params", ({}, {"key1": "val1", "key2": "val2"})
-    )
+    @pytest.mark.parametrize("vm_params", ({}, {"key1": "val1", "key2": "val2"}))
     def test_trusted_launch_security_type(self, vm_params):
         """Test Standard type does not change vm_params."""
         orig_vm_params = deepcopy(vm_params)
-        configure_security_types_vm_params(
-            AzureSecurityType.STANDARD, vm_params
-        )
+        configure_security_types_vm_params(AzureSecurityType.STANDARD, vm_params)
         assert vm_params == orig_vm_params
 
     @pytest.mark.parametrize(
@@ -42,16 +38,13 @@ class TestSecurityType:
     def test_trusted_security_type(self, vm_params):
         """Test trusted launch type changes vm_params."""
         orig_vm_params = deepcopy(vm_params)
-        configure_security_types_vm_params(
-            AzureSecurityType.TRUSTED_LAUNCH, vm_params
-        )
+        configure_security_types_vm_params(AzureSecurityType.TRUSTED_LAUNCH, vm_params)
         assert (
-            vm_params["security_profile"]["security_type"]
-            == AzureSecurityType.TRUSTED_LAUNCH.value
+            vm_params["security_profile"]["security_type"] == AzureSecurityType.TRUSTED_LAUNCH.value
         )
-        assert vm_params.get("security_profile", {}).get(
-            "random_key", {}
-        ) == orig_vm_params.get("security_profile", {}).get("random_key", {})
+        assert vm_params.get("security_profile", {}).get("random_key", {}) == orig_vm_params.get(
+            "security_profile", {}
+        ).get("random_key", {})
 
     @pytest.mark.parametrize(
         "vm_params,sec_type_params,disk_enc",
@@ -81,9 +74,7 @@ class TestSecurityType:
             ),
         ),
     )
-    def test_confidential_vm_security_type(
-        self, vm_params, sec_type_params, disk_enc
-    ):
+    def test_confidential_vm_security_type(self, vm_params, sec_type_params, disk_enc):
         """Test confidential_vm type changes vm_params."""
         orig_vm_params = deepcopy(vm_params)
         configure_security_types_vm_params(
@@ -95,12 +86,10 @@ class TestSecurityType:
             vm_params["security_profile"]["security_type"]
             == AzureSecurityType.CONFIDENTIAL_VM.value
         )
-        assert vm_params.get("random_key", {}) == orig_vm_params.get(
-            "random_key", {}
-        )
+        assert vm_params.get("random_key", {}) == orig_vm_params.get("random_key", {})
         assert (
-            vm_params["storage_profile"]["os_disk"]["managed_disk"][
-                "security_profile"
-            ]["security_encryption_type"]
+            vm_params["storage_profile"]["os_disk"]["managed_disk"]["security_profile"][
+                "security_encryption_type"
+            ]
             == disk_enc.value
         )

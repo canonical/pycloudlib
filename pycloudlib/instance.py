@@ -76,9 +76,7 @@ class BaseInstance(ABC):
         Returns:
             string with the boot UUID
         """
-        result = self.execute(
-            "cat /proc/sys/kernel/random/boot_id", no_log=True
-        )
+        result = self.execute("cat /proc/sys/kernel/random/boot_id", no_log=True)
         if result.failed:
             raise OSError(
                 f"Failed to get boot_id. Return code: {result.return_code}, "
@@ -120,9 +118,7 @@ class BaseInstance(ABC):
         except (SSHException, OSError):
             # Case 2: wait=True, but the instance is unreachable.
             # The best we can do is to send a reboot signal and wait.
-            self._log.debug(
-                "Instance seems down; will attempt restart and wait."
-            )
+            self._log.debug("Instance seems down; will attempt restart and wait.")
             self._do_restart()
             self.wait()
             return
@@ -425,9 +421,7 @@ class BaseInstance(ABC):
         # password protected keyfile. The filename is passed directly
         # when connecting
         try:
-            paramiko.RSAKey.from_private_key_file(
-                self.key_pair.private_key_path
-            )
+            paramiko.RSAKey.from_private_key_file(self.key_pair.private_key_path)
         except PasswordRequiredException:
             self._log.warning(
                 "The specified key (%s) requires a passphrase. If you have not"
@@ -462,10 +456,7 @@ class BaseInstance(ABC):
 
     def _sftp_connect(self):
         """Connect to instance via SFTP."""
-        if (
-            self._sftp_client
-            and self._sftp_client.get_channel().get_transport().is_active()
-        ):
+        if self._sftp_client and self._sftp_client.get_channel().get_transport().is_active():
             return self._sftp_client
 
         logging.getLogger("paramiko").setLevel(logging.INFO)
@@ -516,8 +507,7 @@ class BaseInstance(ABC):
             time.sleep(1)
 
         raise PycloudlibTimeoutError(
-            f"Instance can't be reached after {timeout} minutes. "
-            "Failed to obtain new boot id",
+            f"Instance can't be reached after {timeout} minutes. Failed to obtain new boot id",
         )
 
     def _wait_for_cloudinit(self):
