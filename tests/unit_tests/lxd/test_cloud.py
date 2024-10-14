@@ -23,6 +23,7 @@ def does_not_raise():
     yield
 
 
+@pytest.mark.mock_ssh_keys
 class TestLaunch:
     """Tests covering pycloudlib.lxd.cloud.launch method."""
 
@@ -80,6 +81,7 @@ class TestLaunch:
             assert inst.start.call_count == 0
 
 
+@pytest.mark.mock_ssh_keys
 class TestProfileCreation:
     """Tests covering pycloudlib.lxd.cloud.create_profile method."""
 
@@ -139,6 +141,7 @@ class TestProfileCreation:
         ]
 
 
+@pytest.mark.mock_ssh_keys
 class TestReleaseImage:
     @pytest.mark.parametrize(
         "cloud_cls,release,arch,image_type,expected_kwargs",
@@ -198,6 +201,7 @@ class TestReleaseImage:
         find_last_fingerprint.assert_called_once_with(**expected_kwargs)
 
 
+@pytest.mark.mock_ssh_keys
 class TestDailyImage:
     @pytest.mark.parametrize(
         "cloud_cls,release,arch,image_type,expected_kwargs",
