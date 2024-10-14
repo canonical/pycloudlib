@@ -6,7 +6,6 @@ import oci
 import pytest
 import toml
 
-from pycloudlib.config import Config
 from pycloudlib.errors import (
     InstanceNotFoundError,
     PycloudlibException,
@@ -16,14 +15,13 @@ from pycloudlib.oci.instance import OciInstance
 
 
 @pytest.fixture
-def oci_cloud():
+def oci_cloud(tmp_path):
     """
     Fixture for OCI Cloud class.
-    
+
     This fixture mocks the oci.config.validate_config function to not raise an error. It also
     mocks the oci.core.ComputeClient and oci.core.VirtualNetworkClient classes to return mock
-    instances of the clients. The fixture also mocks the pycloudlib.config.parse_config function
-    to return a Config object with the default values from the pycloudlib.toml.template file.
+    instances of the clients.
     """
     oci_config = {
         "user": "ocid1.user.oc1..example",
@@ -32,6 +30,8 @@ def oci_cloud():
         "tenancy": "ocid1.tenancy.oc1..example",
         "region": "us-phoenix-1",
     }
+    pycloudlib_config = tmp_path / "pyproject.toml"
+    pycloudlib_config.write_text("[oci]\n")
 
     with mock.patch(
         "pycloudlib.oci.cloud.oci.config.validate_config",
@@ -40,11 +40,7 @@ def oci_cloud():
         "pycloudlib.oci.cloud.oci.core.ComputeClient"
     ) as mock_compute_client_class, mock.patch(
         "pycloudlib.oci.cloud.oci.core.VirtualNetworkClient"
-    ) as mock_network_client_class, mock.patch(
-        "pycloudlib.config.parse_config"
-    ) as mock_parse_config:
-        # mock loading the config file by just reading in the template, which we know will exist
-        mock_parse_config.return_value = toml.load("pycloudlib.toml.template", _dict=Config)
+    ) as mock_network_client_class:
         # Instantiate mocked clients
         mock_compute_client = mock.Mock()
         mock_network_client = mock.Mock()
@@ -55,6 +51,7 @@ def oci_cloud():
         oci_cloud = OCI(
             "test-instance",
             timestamp_suffix=True,
+            config_file=pycloudlib_config,
             availability_domain="PHX-AD-1",
             compartment_id="test-compartment-id",
             region="us-phoenix-1",
@@ -70,23 +67,38 @@ def oci_cloud():
         yield oci_cloud
 
 
+OCI_PYCLOUDLIB_CONFIG = """\
+[oci]
+availability_domain = "PYCL-AD-1"
+compartment_id = "pycloudlib-compartment-id"
+region = "pycl-pheonix-1"
+"""
+
+
+@pytest.mark.mock_ssh_keys
 class TestOciInit:
     """Tests for OCI Cloud __init__."""
 
     def test_init_valid(self, oci_cloud):
-        """Test __init__ with valid parameters."""
-        # Ensure that oci.config.from_file is mocked with a valid configuration
+        """Test __init__ with valid parameters matches .oci/config over pycloudlib.toml."""
         assert oci_cloud.availability_domain == "PHX-AD-1"
         assert oci_cloud.compartment_id == "test-compartment-id"
         assert oci_cloud.region == "us-phoenix-1"
 
-    def test_init_invalid_config(self):
-        """Test __init__ with invalid OCI configuration."""
+    def test_init_invalid_config(self, tmp_path):
+        """Test __init__ with invalid OCI configuration raises ValueError."""
+        pycloudlib_config = tmp_path / "pyproject.toml"
+        pycloudlib_config.write_text(OCI_PYCLOUDLIB_CONFIG)
         with mock.patch("oci.config.from_file", side_effect=oci.exceptions.InvalidConfig):
             with pytest.raises(ValueError, match="Config dict is invalid"):
-                OCI(tag="test-instance", config_dict={"invalid": "config"})
+                OCI(
+                    tag="test-instance",
+                    config_file=pycloudlib_config,
+                    config_dict={"invalid": "config"},
+                )
 
 
+@pytest.mark.mock_ssh_keys
 class TestOciImages:
     """Tests for OCI Cloud image-related functions."""
 
@@ -154,38 +166,20 @@ class TestOciImages:
         oci_cloud.compute_client.create_image.assert_called_once()
 
 
+@pytest.mark.mock_ssh_keys
 class TestOciInstances:
     """Tests for OCI Cloud instance-related functions."""
 
-    @mock.patch("oci.config.from_file")
-    def test_get_instance(self, mock_from_file, oci_cloud):
+    def test_get_instance(self, oci_cloud):
         """Test get_instance method with valid instance."""
-        valid_config = {
-            "user": "ocid1.user.oc1..example",
-            "fingerprint": "mock-fingerprint",
-            "key_file": "/path/to/key",
-            "tenancy": "ocid1.tenancy.oc1..example",
-            "region": "us-phoenix-1",
-        }
-        # Mock oci.config.from_file to return the valid configuration
-        mock_from_file.return_value = valid_config
 
         oci_cloud.compute_client.get_instance.return_value = mock.Mock()
         instance = oci_cloud.get_instance("test-instance-id", username="opc")
         assert isinstance(instance, OciInstance)
         oci_cloud.compute_client.get_instance.assert_called_once_with("test-instance-id")
 
-    @mock.patch("oci.config.from_file")
-    def test_get_instance_not_found(self, mock_from_file, oci_cloud):
+    def test_get_instance_not_found(self, oci_cloud):
         """Test get_instance raises InstanceNotFoundError when instance does not exist."""
-        valid_config = {
-            "user": "ocid1.user.oc1..example",
-            "fingerprint": "mock-fingerprint",
-            "key_file": "/path/to/key",
-            "tenancy": "ocid1.tenancy.oc1..example",
-            "region": "us-phoenix-1",
-        }
-        mock_from_file.return_value = valid_config
 
         oci_cloud.compute_client.get_instance.side_effect = oci.exceptions.ServiceError(
             status=404,
@@ -201,8 +195,7 @@ class TestOciInstances:
     def test_launch_instance(self, mock_wait_till_ready, oci_cloud):
         """Test launch method with valid inputs."""
         # mock the key pair
-        oci_cloud.key_pair = mock.Mock()
-        oci_cloud.key_pair.public_key_content = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC"
+        oci_cloud.key_pair = mock.Mock(public_key_config="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC")
         oci_cloud.compute_client.launch_instance.return_value = mock.Mock(
             data=mock.Mock(id="instance-id")
         )
