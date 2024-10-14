@@ -46,6 +46,7 @@ class CloudSubclass(BaseCloud):
         """Skeletal list_keys."""
 
 
+@pytest.mark.mock_ssh_keys
 class TestBaseCloud:
     """Tests covering BaseCloud intialization."""
 
@@ -82,8 +83,16 @@ class TestBaseCloud:
         mycloud = CloudSubclass(config_file=StringIO(CONFIG), **args)
         assert expected_tag == mycloud.tag
 
+    @pytest.mark.dont_mock_ssh_keys
     @mock.patch(MPATH + "getpass.getuser", return_value="root")
-    def test_init_sets_key_pair_based_on_getuser(self, _m_getuser):
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_rsa" in x)
+    def test_init_sets_key_pair_based_on_getuser(
+        self,
+        _m_getuser,
+        _m_expanduser,
+        _m_exists,
+    ):
         """
         The default key_pair for the cloud is based on the current user.
 
@@ -96,7 +105,39 @@ class TestBaseCloud:
         assert mycloud.key_pair.private_key_path == ("/root/.ssh/id_rsa")
         assert mycloud.key_pair.public_key_path == ("/root/.ssh/id_rsa.pub")
 
-    def test_init_sets_key_pair_from_config(self):
+    @pytest.mark.dont_mock_ssh_keys
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_ed25519" in x)
+    @mock.patch(MPATH + "getpass.getuser", return_value="root")
+    def test_init_can_use_id_ed25519_key(
+        self,
+        _m_getuser,
+        _m_expanduser,
+        _m_exists,
+    ):
+        """
+        Validates that key_pair uses the id_ed25519 key if id_rsa doesn't exist
+
+        To do this, we mock the os.path.exists function to return True ONLY
+        for the id_ed25519 key to simulate the absence of the id_rsa key.
+
+        """
+        mycloud = CloudSubclass(
+            tag="tag",
+            timestamp_suffix=False,
+            config_file=StringIO(CONFIG),
+        )
+
+        id_ed25519_path = "/root/.ssh/id_ed25519.pub"
+
+        assert mycloud.key_pair.name == "root"
+        assert mycloud.key_pair.public_key_path == id_ed25519_path
+        assert mycloud.key_pair.private_key_path == id_ed25519_path.replace(".pub", "")
+
+    @pytest.mark.dont_mock_ssh_keys
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_rsa" in x)
+    def test_init_sets_key_pair_from_config(self, _m_expanduser, _m_exists):
         """The key_pair is set from the config file."""
         mycloud = CloudSubclass(
             tag="tag",
@@ -117,7 +158,10 @@ class TestBaseCloud:
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
         assert mycloud.key_pair.private_key_path == "/home/asdf/.ssh/my_key"
 
-    def test_missing_private_key_in_ssh_config(self):
+    @pytest.mark.dont_mock_ssh_keys
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", side_effect=lambda x: "/.ssh/id_rsa" in x)
+    def test_missing_private_key_in_ssh_config(self, _m_expanduser, _m_exists):
         """The key_pair assumes the private key name."""
         mycloud = CloudSubclass(
             tag="tag",

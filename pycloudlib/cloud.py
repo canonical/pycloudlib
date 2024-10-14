@@ -13,7 +13,11 @@ from typing import Any, List, Optional, Sequence
 import paramiko
 
 from pycloudlib.config import ConfigFile, parse_config
-from pycloudlib.errors import CleanupError, InvalidTagNameError
+from pycloudlib.errors import (
+    CleanupError,
+    InvalidTagNameError,
+    PycloudlibError,
+)
 from pycloudlib.instance import BaseInstance
 from pycloudlib.key import KeyPair
 from pycloudlib.util import (
@@ -59,17 +63,10 @@ class BaseCloud(ABC):
         self._log = logging.getLogger("{}.{}".format(__name__, self.__class__.__name__))
         self._check_and_set_config(config_file, required_values)
 
-        user = getpass.getuser()
-        self.key_pair = KeyPair(
-            public_key_path=os.path.expandvars(
-                self.config.get("public_key_path", f"~{user}/.ssh/id_rsa.pub")
-            ),
-            private_key_path=os.path.expandvars(self.config.get("private_key_path", "")),
-            name=self.config.get("key_name", user),
-        )
-
         self.tag = get_timestamped_tag(tag) if timestamp_suffix else tag
         self._validate_tag(self.tag)
+
+        self.key_pair = self._get_ssh_keys()
 
     def __enter__(self):
         """Enter context manager for this class."""
@@ -312,3 +309,34 @@ class BaseCloud(ABC):
 
         if rules_failed:
             raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
+
+    def _get_ssh_keys(self) -> KeyPair:
+        user = getpass.getuser()
+        # check if id_rsa or id_ed25519 keys exist in the user's .ssh directory
+        possible_default_keys = [
+            os.path.expanduser("~/.ssh/id_rsa.pub"),
+            os.path.expanduser("~/.ssh/id_ed25519.pub"),
+        ]
+        public_key_path: Optional[str] = os.path.expanduser(self.config.get("public_key_path", ""))
+        if not public_key_path:
+            for pubkey in possible_default_keys:
+                if os.path.exists(pubkey):
+                    self._log.info("No public key path provided, using: %s", pubkey)
+                    public_key_path = pubkey
+                    break
+            if not public_key_path:
+                raise PycloudlibError(
+                    "No public key path provided and no key found in default locations: "
+                    "'~/.ssh/id_rsa.pub' or '~/.ssh/id_ed25519.pub'"
+                )
+        if not os.path.exists(os.path.expanduser(public_key_path)):
+            raise PycloudlibError(f"Provided public key path '{public_key_path}' does not exist")
+        if public_key_path not in possible_default_keys:
+            self._log.info("Using provided public key path: '%s'", public_key_path)
+        private_key_path = self.config.get("private_key_path", "")
+
+        return KeyPair(
+            public_key_path=public_key_path,
+            private_key_path=private_key_path,
+            name=self.config.get("key_name", user),
+        )

@@ -26,6 +26,7 @@ compute_client_mock = mock.MagicMock()
 
 # Disable this one because we're intentionally testing a protected member
 # pylint: disable=protected-access
+@pytest.mark.mock_ssh_keys
 class TestCreateNetworkInterfaceClient:
     """Tests covering _create_network_interface_client method."""
 
@@ -126,6 +127,7 @@ class TestCreateNetworkInterfaceClient:
         assert expected_calls == network_group_mock.begin_create_or_update.call_args_list
 
 
+@pytest.mark.mock_ssh_keys
 @mock.patch(
     "pycloudlib.azure.util.get_client",
     side_effect=[

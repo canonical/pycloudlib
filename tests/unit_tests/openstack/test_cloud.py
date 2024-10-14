@@ -16,6 +16,7 @@ network = ""
 """
 
 
+@pytest.mark.mock_ssh_keys
 @mock.patch(
     "pycloudlib.key.KeyPair.public_key_content",
     new_callable=mock.PropertyMock,

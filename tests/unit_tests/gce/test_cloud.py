@@ -51,6 +51,7 @@ def gce(request, common_mocks, tmpdir):
 
 
 # pylint: disable=protected-access,missing-function-docstring
+@pytest.mark.mock_ssh_keys
 class TestGCE:
     """General GCE testing."""
 
