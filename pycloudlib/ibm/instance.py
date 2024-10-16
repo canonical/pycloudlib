@@ -926,7 +926,7 @@ class IBMInstance(BaseInstance):
             side_effect_fn=self._check_instance_failed_status,
         )
 
-    def wait_for_delete(self, sleep_seconds=30, raise_on_fail=False):
+    def wait_for_delete(self, sleep_seconds=300, raise_on_fail=False):
         """Wait for instance to be deleted."""
 
         def _check_fn():
