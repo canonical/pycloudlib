@@ -629,7 +629,7 @@ class IBMInstance(BaseInstance):
         """
         self._log.info(
             "Will attempt to attach floating ip with name containing: %s"
-            "until successful or all floating ips are in use.",
+            " until successful or all floating ips are in use.",
             floating_ip_substring,
         )
 
