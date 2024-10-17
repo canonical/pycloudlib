@@ -28,7 +28,7 @@ region = ""  # in ~/.aws/config
 # If 'aws configure sso' has been run, 'profile' should be the only credentials needed
 profile = ""  # in ~/.aws/config
 
-# With modern SSO, these should no longer be necessary.
+# If profile is given, these are not necessary.
 # They can be found in ~/.aws/credentials or ~/.aws/config
 # access_key_id = ""  # in ~/.aws/credentials
 # secret_access_key = ""  # in ~/.aws/credentials

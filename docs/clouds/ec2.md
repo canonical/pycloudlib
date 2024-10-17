@@ -4,7 +4,8 @@ The following page documents the AWS EC2 cloud integration in pycloudlib.
 
 ## Credentials
 
-To access EC2 requires users to have an access key id and secret access key. These should be set in pycloudlib.toml.
+To access EC2 requires users to have either an access key id and secret access key or a profile using SSO.
+These should be set in pycloudlib.toml.
 
 ### AWS Dotfile (Deprecated)
 
@@ -25,13 +26,14 @@ region = us-west-2
 
 ### Passed Directly (Deprecated)
 
-The credential and region information can also be provided directly when initializing the EC2 object:
+The credential, region,and profile information can also be provided directly when initializing the EC2 object:
 
 ```python
 ec2 = pycloudlib.EC2(
     access_key_id='KEY_VALUE',
     secret_access_key='KEY_VALUE',
-    region='us-west-2'
+    region='us-west-2',
+    profile="work",
 )
 ```
 
