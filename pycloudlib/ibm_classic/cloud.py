@@ -81,6 +81,8 @@ class IBMClassic(BaseCloud):
             ) from e
         except SoftLayer.SoftLayerAPIError as e:
             raise IBMClassicException(f"Error deleting image {image_id}") from e
+        else:
+            self._record_image_deletion(image_id)
 
     def released_image(self, release, *, disk_size: str = "25G", **kwargs):
         """ID (globalIdentifier) of the latest released image for a particular release.

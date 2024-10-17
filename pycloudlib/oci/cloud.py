@@ -126,6 +126,7 @@ class OCI(BaseCloud):
             image_id: string, id of the image to delete
         """
         self.compute_client.delete_image(image_id, **kwargs)
+        self._record_image_deletion(image_id)
 
     def released_image(self, release, operating_system="Canonical Ubuntu"):
         """Get the released image.

@@ -107,6 +107,7 @@ class Qemu(BaseCloud):
         image_file = Path(image_id)
         if image_file.exists():
             image_file.unlink()
+            self._record_image_deletion(image_id)
         else:
             self._log.debug("Cannot delete image %s as it does not exist", image_file)
 

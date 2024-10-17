@@ -627,7 +627,7 @@ class Azure(BaseCloud):
         if delete_poller.status() == "Succeeded":
             if image_id in self.registered_images:
                 del self.registered_images[image_id]
-                self._log.debug("Image %s was deleted", image_id)
+                self._record_image_deletion(image_id)
         else:
             self._log.debug(
                 "Error deleting %s. Status: %d",

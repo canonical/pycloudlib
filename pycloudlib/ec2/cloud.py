@@ -291,6 +291,8 @@ class EC2(BaseCloud):
         self._log.debug("removing custom snapshot %s", snapshot_id)
         self.client.delete_snapshot(SnapshotId=snapshot_id)
 
+        self._record_image_deletion(image_id)
+
     def delete_key(self, name):
         """Delete an uploaded key.
 

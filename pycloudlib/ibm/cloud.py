@@ -13,7 +13,7 @@ from ibm_vpc.vpc_v1 import Image, ListImagesEnums
 
 from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
-from pycloudlib.errors import InvalidTagNameError
+from pycloudlib.errors import InvalidTagNameError, ResourceNotFoundError, ResourceType
 from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
@@ -130,7 +130,9 @@ class IBM(BaseCloud):
             self._client.delete_image(image_id).get_result()
         except ApiException as e:
             if "does not exist" not in str(e):
-                raise
+                raise ResourceNotFoundError(ResourceType.IMAGE, image_id) from e
+        else:
+            self._record_image_deletion(image_id)
 
     def released_image(self, release, *, arch: str = "amd64", **kwargs):
         """ID of the latest released image for a particular release.

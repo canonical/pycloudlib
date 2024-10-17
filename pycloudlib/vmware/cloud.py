@@ -100,6 +100,8 @@ class VMWare(BaseCloud):
         except subprocess.CalledProcessError as e:
             if "not found" not in str(e):
                 raise
+        else:
+            self._record_image_deletion(image_id)
 
     def daily_image(self, release: str, **kwargs):
         """Return released_image for VMWare.

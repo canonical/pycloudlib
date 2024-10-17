@@ -56,6 +56,7 @@ class Openstack(BaseCloud):
             image_id: string, id of the image to delete
         """
         self.conn.delete_image(image_id, wait=True)
+        self._record_image_deletion(image_id)
 
     def released_image(self, release, **kwargs):
         """Not supported for openstack."""

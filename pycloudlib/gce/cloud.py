@@ -314,6 +314,7 @@ class GCE(BaseCloud):
             raise_on_error(operation)
         except GoogleAPICallError as e:
             raise_on_error(e)
+        self._record_image_deletion(image_id)
 
     def get_instance(
         self,
