@@ -52,3 +52,12 @@ extend-select = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
+
+[tool.pytest.ini_options]
+markers = [
+    "mock_ssh_keys: mock the base cloud _get_ssh_keys method to avoid checking for ssh keys",
+    "dont_mock_ssh_keys: if a class or method is marked with this, it will override the mock_ssh_keys marker",
+    "ci: run test as part of continuous integration on PRs using GitHub Actions",
+    "main_check: run test as part of continuous integration after branch has merged to main using GitHub Actions",
+]
+testpaths = ["tests/unit_tests"]
