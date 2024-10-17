@@ -1,6 +1,7 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
+import dataclasses
 import enum
 import getpass
 import io
@@ -36,6 +37,32 @@ class ImageType(enum.Enum):
     MINIMAL = "minimal"
     PRO = "Pro"
     PRO_FIPS = "Pro FIPS"
+
+
+@dataclasses.dataclass
+class ImageInfo:
+    """Dataclass that represents an image on any given cloud."""
+
+    id: str
+    name: str
+
+    def __str__(self):
+        """Return a human readable string representation of the image."""
+        return f"{self.name} [id: {self.id}]"
+
+    def __repr__(self):
+        """Return a string representation of the image."""
+        return f"ImageInfo(id={self.id}, name={self.name})"
+
+    def __eq__(self, other):
+        """Check if two ImageInfo objects are equal."""
+        if not isinstance(other, ImageInfo):
+            return False
+        return self.id == other.id
+
+    def __dict__(self):
+        """Return a dictionary representation of the image."""
+        return {"id": self.id, "name": self.name}
 
 
 class BaseCloud(ABC):
@@ -371,3 +398,67 @@ class BaseCloud(ABC):
             private_key_path=private_key_path,
             name=name,
         )
+
+    # all actual "Clouds" and not just substrates like LXD and QEMU should support this method
+    def upload_local_file_to_cloud_storage(
+        self,
+        *,
+        local_file_path: str,
+        storage_name: str,
+        remote_file_name: Optional[str] = None,
+    ) -> str:
+        """
+        Upload a file to a storage destination on the Cloud.
+
+        Args:
+            local_file_path: The local file path of the image to upload.
+            storage_name: The name of the storage destination on the Cloud to upload the file to.
+            remote_file_name: The name of the file in the storage destination. If not provided,
+            the base name of the local file path will be used.
+
+        Returns:
+            str: URL of the uploaded file in the storage destination.
+        """
+        raise NotImplementedError
+
+    # most clouds except for like lxd should support this method
+    def create_image_from_local_file(
+        self,
+        *,
+        local_file_path: str,
+        image_name: str,
+        intermediary_storage_name: str,
+    ):
+        """
+        Upload local image file to storage on the Cloud and then create a custom image from it.
+
+        Args:
+            local_file_path: The local file path of the image to upload.
+            image_name: The name to upload the image as and to register.
+            intermediary_storage_name: The intermediary storage destination on the Cloud to upload
+            the file to before creating the image.
+
+        Returns:
+            ImageInfo: Information about the created image.
+        """
+        raise NotImplementedError
+
+    # not all clouds will support this method - depends on how image creation is handled
+    def _create_image_from_cloud_storage(
+        self,
+        *,
+        image_name: str,
+        remote_image_file_url: str,
+        image_description: Optional[str] = None,
+    ) -> ImageInfo:
+        """
+        Register a custom image in the Cloud from a file in Cloud storage using its url.
+
+        Ideally, this url would be returned from the upload_local_file_to_cloud_storage method.
+
+        Args:
+            image_name: The name the image will be created with.
+            remote_image_file_url: The URL of the image file in the Cloud storage.
+            image_description: (Optional) A description of the image.
+        """
+        raise NotImplementedError
