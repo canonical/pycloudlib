@@ -39,8 +39,9 @@ class TestIBMInstance:
         assert zone_id == inst.zone
         assert inst_type == inst._ibm_instance_type
 
+    @mock.patch("time.sleep")  # bypass the time.sleep call in _attach_floating_ip()
     @mock.patch(M_PATH + "VpcV1", autospec=True)
-    def test_attach_floating_ip(self, client, caplog):
+    def test_attach_floating_ip(self, m_sleep, client, caplog):
         """
         retry attach_floating_ip until VpcV1 lists non-empty floating_ips."""
 
@@ -49,27 +50,47 @@ class TestIBMInstance:
             client=client,
             instance=SAMPLE_RAW_INSTANCE,
         )
+
+        fi_name = "ci-ip-match-5"
+        fi_id = "floatingid1"
+
+        # make sure nic ID is set as expected since it is essential for the test
+        assert inst._nic_id == "nic1"
+
         metal_floating_ips = mock.Mock(
             get_result=mock.Mock(
                 side_effect=[
-                    {"floating_ips": []},
-                    {"floating_ips": [{"id": "floatingid1", "name": "floatingname"}]},
+                    {  # there's no target
+                        "name": "different-floating-ip",
+                        "id": "different-id",
+                    },
+                    {  # there's a target, but its a different instance's nic
+                        "target": {"id": "not-nic1", "name": "wrong_nic"},
+                        "name": "different-floating-ip",
+                        "id": "different-id",
+                    },
+                    {  # target is this instance's nic (correct)
+                        "target": {"id": "nic1", "name": "correct-nic"},
+                        "name": fi_name,
+                        "id": fi_id,
+                    },
                 ]
             )
         )
         with mock.patch.object(
             client,
-            "list_bare_metal_server_network_interface_floating_ips",
+            "get_floating_ip",
             return_value=metal_floating_ips,
         ), mock.patch.object(
             inst,
             "_choose_from_existing_floating_ips",
-            return_value={"name": "ci-ip-match-5", "id": "floatingid1"},
+            return_value={"name": fi_name, "id": fi_id},
         ):
             inst.attach_floating_ip(floating_ip_substring="ci-ip-match")
-        for expected_log in [
-            "Failed to attach floating ip: ci-ip-match-5.",
-            "Successfully attached floating ip: floatingname",
-        ]:
-            assert expected_log in caplog.text
-        assert 2 == metal_floating_ips.get_result.call_count
+
+        assert 1 == caplog.text.count(f"Successfully attached floating ip: {fi_name}")
+        assert 2 == caplog.text.count(f"Failed to attach floating ip: {fi_name}")
+        assert 3 == metal_floating_ips.get_result.call_count
+
+        assert inst._floating_ip["id"] == fi_id
+        assert inst._floating_ip["name"] == fi_name

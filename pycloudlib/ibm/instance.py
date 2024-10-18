@@ -597,10 +597,22 @@ class IBMInstance(BaseInstance):
             instance_id=self._instance["id"],
             network_interface_id=nic_id,
         ).get_result()
-        # sleep 1s to let cloud update then check to make sure that floating IP successfully attached
-        time.sleep(1)
-        self._floating_ip = self._discover_floating_ip(self._client, self._instance)
-        return self._floating_ip is not None
+        # sleep 3s to let cloud update and resolve any race conditions with other instances
+        # when two instances try to attach the same floating IP simultaneously, a race condition
+        # occurs where IBM itself doesn't know which instance has the floating IP until after a few
+        # seconds have passed and it settles/resolves which instance actually has the floating IP.
+        # 3 Seconds is a good balance between reliability and speed. Should be sufficient in over
+        # 90% of cases. (Previously was 1 second, and that would fail about a third of the time)
+        self._log.debug("Sleeping 3s before retrieving floating ip status.")
+        time.sleep(3)
+        fetched_floating_ip = self._client.get_floating_ip(floating_ip["id"]).get_result()
+        if (
+            fetched_floating_ip.get("target", {}).get("id") == self._nic_id
+            and floating_ip["id"] == fetched_floating_ip["id"]
+        ):
+            self._floating_ip = fetched_floating_ip
+            return True
+        return False
 
     def _attach_floating_ip_until_success(self, floating_ip_substring: str) -> dict:
         """
@@ -615,15 +627,14 @@ class IBMInstance(BaseInstance):
         Raises:
             IBMException: If failed to attach floating IP after 10 tries
         """
-        floating_ip_is_attached = None
         self._log.info(
             "Will attempt to attach floating ip with name containing: %s"
-            "until successful or all floating ips are in use.",
+            " until successful or all floating ips are in use.",
             floating_ip_substring,
         )
 
         tries = 0
-        while not floating_ip_is_attached:
+        while True:
             tries += 1
             target_floating_ip = self._choose_from_existing_floating_ips(
                 name_includes=floating_ip_substring,
@@ -632,18 +643,20 @@ class IBMInstance(BaseInstance):
                 "Attempting to attach floating ip: %s",
                 target_floating_ip["name"],
             )
-            floating_ip_is_attached = self._attach_floating_ip(floating_ip=target_floating_ip)
-            if not floating_ip_is_attached:
+            self._attach_floating_ip(floating_ip=target_floating_ip)
+            if not self._floating_ip:
                 self._log.info(
                     "Failed to attach floating ip: %s. Will try again.",
                     target_floating_ip["name"],
                 )
+            else:
+                self._log.info(
+                    "Successfully attached floating ip: %s",
+                    self._floating_ip["name"],
+                )
+                return self._floating_ip
             if tries == 10:
-                raise IBMException("Unexpectedly failed to attach floating ip after 10 tries.")
-        self._log.info(
-            "Successfully attached floating ip: %s",
-            self._floating_ip["name"],
-        )
+                raise IBMException("Failed to attach floating ip after 10 tries.")
 
     @classmethod
     def from_existing(
@@ -913,7 +926,7 @@ class IBMInstance(BaseInstance):
             side_effect_fn=self._check_instance_failed_status,
         )
 
-    def wait_for_delete(self, sleep_seconds=30, raise_on_fail=False):
+    def wait_for_delete(self, sleep_seconds=300, raise_on_fail=False):
         """Wait for instance to be deleted."""
 
         def _check_fn():
