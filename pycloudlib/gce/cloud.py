@@ -14,9 +14,9 @@ from typing import Any, MutableMapping, Optional
 
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.extended_operation import ExtendedOperation
-from google.cloud import compute_v1
+from google.cloud import compute_v1, storage
 
-from pycloudlib.cloud import BaseCloud, ImageType
+from pycloudlib.cloud import BaseCloud, ImageInfo, ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     CloudSetupError,
@@ -109,6 +109,7 @@ class GCE(BaseCloud):
         self._instances_client = compute_v1.InstancesClient(credentials=credentials)
         self._zone_operations_client = compute_v1.ZoneOperationsClient(credentials=credentials)
         self._global_operations_client = compute_v1.GlobalOperationsClient(credentials=credentials)
+        self._storage_client = storage.Client(credentials=credentials)
         region = region or self.config.get("region") or "us-west2"
         zone = zone or self.config.get("zone") or "a"
         self.project = project
@@ -498,3 +499,149 @@ class GCE(BaseCloud):
                 "Expected DONE state, but found {} after waiting {} seconds. "
                 "Check GCE console for more details. \n".format(response.status, sleep_seconds)
             )
+
+    def upload_local_file_to_cloud_storage(
+        self,
+        *,
+        local_file_path: str,
+        storage_name: str,
+        remote_file_name: Optional[str] = None,
+    ):
+        """
+        Upload a file to a storage destination on the Cloud.
+
+        Args:
+            local_file_path: The local file path of the image to upload.
+            storage_name: The name of the storage destination on the Cloud to upload the file to.
+            remote_file_name: The name of the file in the storage destination. If not provided,
+            the base name of the local file path will be used.
+
+        Returns:
+            str: URL of the uploaded file in the storage destination.
+        """
+        if not remote_file_name:
+            remote_file_name = os.path.basename(local_file_path)
+
+        bucket = self._storage_client.bucket(storage_name)
+        blob = bucket.blob(remote_file_name)
+
+        # Check if the file already exists in the destination bucket
+        if blob.exists():
+            self._log.info(
+                f"File '{remote_file_name}' already exists in bucket '{storage_name}', "
+                "skipping upload."
+            )
+        else:
+            self._log.info(
+                f"Uploading {local_file_path} to {remote_file_name} in bucket {storage_name}..."
+            )
+            blob.upload_from_filename(local_file_path)
+            self._log.info(f"File {local_file_path} uploaded successfully to {remote_file_name}.")
+
+        return f"http://storage.googleapis.com/{storage_name}/{remote_file_name}"
+
+    def create_image_from_local_file(
+        self,
+        *,
+        local_file_path: str,
+        image_name: str,
+        intermediary_storage_name: str,
+        description: Optional[str] = None,
+    ) -> ImageInfo:
+        """
+        Upload local image file to storage on the Cloud and then create a custom image from it.
+
+        Args:
+            local_file_path: The local file path of the image to upload.
+            image_name: The name to upload the image as and to register.
+            intermediary_storage_name: The intermediary storage destination on the Cloud to upload
+            the file to before creating the image.
+
+        Returns:
+            ImageInfo: Information about the created image.
+        """
+        # Upload the image to GCS
+        remote_file_name = f"{image_name}.tar.gz"
+        self._log.info(
+            "Uploading image '%s' to '%s' as '%s'",
+            image_name,
+            intermediary_storage_name,
+            remote_file_name,
+        )
+        gcs_image_path = self.upload_local_file_to_cloud_storage(
+            local_file_path=local_file_path,
+            storage_name=intermediary_storage_name,
+            remote_file_name=remote_file_name,
+        )
+        # Register the custom image from GCS
+        return self._create_image_from_cloud_storage(
+            image_name=image_name,
+            remote_image_file_url=gcs_image_path,
+        )
+
+    def _create_image_from_cloud_storage(
+        self,
+        *,
+        image_name: str,
+        remote_image_file_url: str,
+        image_description: Optional[str] = None,
+        image_family: Optional[str] = None,
+    ) -> ImageInfo:
+        """
+        Register a custom image in GCE from a file in GCE's Cloud storage using its url.
+
+        Ideally, this url would be returned from the upload_local_file_to_cloud_storage method.
+
+        Args:
+            image_name: The name the image will be created with.
+            remote_image_file_url: The URL of the image file in the Cloud storage.
+            image_description: (Optional) A description of the image.
+            image_family: (Optional) The family name of the image.
+
+        Returns:
+            ImageInfo: Information about the created image.
+        """
+        image_body = compute_v1.Image(
+            name=image_name,
+            raw_disk=compute_v1.RawDisk(source=remote_image_file_url),
+            description=image_description,
+            architecture="x86_64",
+        )
+        if image_family:
+            image_body.family = image_family
+
+        self._log.info(
+            "Attempting to register custom image '%s' from GCS path '%s'...",
+            image_name,
+            remote_image_file_url,
+        )
+
+        try:
+            operation = self._images_client.insert(
+                project=self.project,
+                image_resource=image_body,
+            )
+            self._wait_for_operation(operation)
+            self._log.info(f"Custom image '{image_name}' registered successfully.")
+
+        except Exception as e:
+            self._log.error(f"Failed to create custom image from GCS: {e}")
+            raise e
+
+        return ImageInfo(
+            id=f"projects/{self.project}/global/images/{image_name}",
+            name=image_name,
+        )
+
+    def _wait_for_operation(self, operation: ExtendedOperation):
+        """
+        Wait for a GCE operation to complete.
+
+        Args:
+            operation: The operation to wait for.
+        """
+        self._log.debug("Waiting for operation to complete...")
+        while not operation.done():
+            self._log.debug("Operation is still in progress...")
+            time.sleep(5)
+        self._log.debug("Operation completed.")
