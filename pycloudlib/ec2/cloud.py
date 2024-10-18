@@ -11,11 +11,7 @@ from pycloudlib.config import ConfigFile
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
-from pycloudlib.errors import (
-    CloudSetupError,
-    ImageNotFoundError,
-    PycloudlibError,
-)
+from pycloudlib.errors import CloudSetupError, ImageNotFoundError, PycloudlibError
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 
 # Images before mantic don't have gp3 disk type
@@ -36,6 +32,7 @@ class EC2(BaseCloud):
         access_key_id: Optional[str] = None,
         secret_access_key: Optional[str] = None,
         region: Optional[str] = None,
+        profile: Optional[str] = None,
     ):
         """Initialize the connection to EC2.
 
@@ -50,6 +47,7 @@ class EC2(BaseCloud):
             access_key_id: user's access key ID
             secret_access_key: user's secret access key
             region: region to login to
+            profile: profile to use from ~/.aws/config
         """
         super().__init__(
             tag,
@@ -59,11 +57,16 @@ class EC2(BaseCloud):
         )
         self._log.debug("logging into EC2")
 
+        access_key_id = access_key_id or self.config.get("access_key_id")
+        secret_access_key = secret_access_key or self.config.get("secret_access_key")
+        region = region or self.config.get("region")
+        profile = profile or self.config.get("profile")
         try:
             session = _get_session(
-                access_key_id or self.config.get("access_key_id"),
-                secret_access_key or self.config.get("secret_access_key"),
-                region or self.config.get("region"),
+                access_key_id=access_key_id,
+                secret_access_key=secret_access_key,
+                region=region,
+                profile=profile,
             )
             self.client = session.client("ec2")
             self.resource = session.resource("ec2")

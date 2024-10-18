@@ -24,10 +24,15 @@ tenant_id = ""
 # key_name = ""  # Defaults to your username if not set
 
 [ec2]
-# Most values can be found in ~/.aws/credentials or ~/.aws/config
-access_key_id = ""  # in ~/.aws/credentials
-secret_access_key = ""  # in ~/.aws/credentials
 region = ""  # in ~/.aws/config
+# If 'aws configure sso' has been run, 'profile' should be the only credentials needed
+profile = ""  # in ~/.aws/config
+
+# If profile is given, these are not necessary.
+# They can be found in ~/.aws/credentials or ~/.aws/config
+# access_key_id = ""  # in ~/.aws/credentials
+# secret_access_key = ""  # in ~/.aws/credentials
+
 # public_key_path = "/root/id_rsa.pub"
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # can be found with `aws ec2 describe-key-pairs`
@@ -72,7 +77,7 @@ config_path = "~/.oci/config"
 availability_domain = ""  # Likely in ~/.oci/oci_cli_rc
 compartment_id = ""  # Likely in ~/.oci/oci_cli_rc
 # region = "us-phoenix-1"  # will use region from oci config file if not specified
-# profile = "DEFAULT" # will use default profile from oci config file if not specified 
+# profile = "DEFAULT" # will use default profile from oci config file if not specified
 # public_key_path = "~/.ssh/id_rsa.pub"
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # Defaults to your username if not set
