@@ -15,6 +15,7 @@ from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     CloudSetupError,
     InstanceNotFoundError,
+    InvalidTagNameError,
     PycloudlibException,
 )
 from pycloudlib.oci.instance import OciInstance
@@ -343,3 +344,27 @@ class OCI(BaseCloud):
         self.created_images.append(image_data.id)
 
         return image_data.id
+
+    @staticmethod
+    def _validate_tag(tag: str):
+        """
+        Ensure that this tag is a valid name for cloud resources.
+
+        Rules:
+        - Must be between 1 and 255 characters long, after stripping whitespace
+
+        :param tag: tag to validate
+
+        :raises InvalidTagNameError: if the tag is invalid
+        """
+        tag = tag.strip()
+
+        rules_failed = []
+        # must be between 1 and 255 characters long
+        if len(tag) < 1 or len(tag) > 255:
+            rules_failed.append(
+                "Must be between 1 and 255 characters long, after stripping whitespace"
+            )
+
+        if rules_failed:
+            raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
