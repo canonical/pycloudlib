@@ -199,6 +199,7 @@ class TestBaseCloud:
             ("x" * 63, []),
             ("x", []),
             ("t a_g", [rule4]),
+            ("t.a.g", [rule4]),
         ],
     )
     def test_validate_tag(self, tag: str, rules_failed: List[str]):
