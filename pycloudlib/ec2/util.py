@@ -44,7 +44,9 @@ def _decode_console_output_as_bytes(parsed, **kwargs):
     parsed["OutputBytes"] = base64.b64decode(orig)
 
 
-def _get_session(access_key_id, secret_access_key, region):
+def _get_session(
+    access_key_id=None, secret_access_key=None, region=None, profile=None
+) -> boto3.Session:
     """Get EC2 session.
 
     Args:
@@ -67,4 +69,5 @@ def _get_session(access_key_id, secret_access_key, region):
         aws_access_key_id=access_key_id,
         aws_secret_access_key=secret_access_key,
         region_name=region,
+        profile_name=profile,
     )
