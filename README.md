@@ -1,6 +1,8 @@
 # pycloudlib
 
-[![Build Status](https://travis-ci.com/canonical/pycloudlib.svg?branch=master)](https://travis-ci.com/canonical/pycloudlib)
+[![Pycloudlib CI](https://github.com/canonical/pycloudlib/actions/workflows/ci.yaml/badge.svg)](https://github.com/canonical/pycloudlib/actions/workflows/ci.yaml)
+
+[![Tag and Publish Release](https://github.com/canonical/pycloudlib/actions/workflows/tag_and_publish.yaml/badge.svg)](https://github.com/canonical/pycloudlib/actions/workflows/tag_and_publish.yaml)
 
 Python library to launch, interact, and snapshot cloud instances
 
