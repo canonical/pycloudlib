@@ -34,6 +34,7 @@ rule5 = "Must start with a letter"
         ("x" * 63, []),
         ("x", []),
         ("1t a_g-", [rule3, rule4, rule5]),
+        ("t.a.g", [rule4]),
     ],
 )
 def test_validate_tag(tag: str, rules_failed: List[str]):

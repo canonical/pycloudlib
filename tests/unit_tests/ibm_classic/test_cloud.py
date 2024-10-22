@@ -114,6 +114,7 @@ rule5 = "Must not contain only numbers"
         ("t a_g", [rule4]),
         ("123456", [rule5]),
         ("123.456-789", []),
+        ("t.a.g", []),
     ],
 )
 def test_validate_tag(tag: str, rules_failed: List[str]):
