@@ -1,5 +1,6 @@
 """Tests for pycloudlib's OCI Cloud class."""
 
+from typing import List
 from unittest import mock
 
 import oci
@@ -8,6 +9,7 @@ import toml
 
 from pycloudlib.errors import (
     InstanceNotFoundError,
+    InvalidTagNameError,
     PycloudlibException,
 )
 from pycloudlib.oci.cloud import OCI
@@ -213,3 +215,46 @@ class TestOciInstances:
         """Test launch method raises ValueError when no image_id is provided."""
         with pytest.raises(ValueError, match="launch requires image_id param"):
             oci_cloud.launch(None)
+
+
+@pytest.mark.mock_ssh_keys
+class TestBaseCloudOverrides:
+    rule1 = "Must be between 1 and 255 characters long"
+    rule2 = "Must not have leading or trailing whitespace"
+
+    @pytest.mark.parametrize(
+        "tag, rules_failed",
+        [
+            ("tag123", []),
+            ("TAG", []),
+            ("TAG-", []),
+            ("-tag_", []),
+            ("-", []),
+            ("x" * 64, []),
+            ("", [rule1]),
+            (" ", [rule2]),
+            (" X", [rule2]),
+            ("X ", [rule2]),
+            (" X ", [rule2]),
+            ("x" * 63, []),
+            ("x", []),
+            ("t a_g", []),
+            ("t.a.g", []),
+            ("X" * 255, []),
+            ("X" * 256, [rule1]),
+            ("!@#$%^&*()", []),
+        ],
+    )
+    def test_validate_tag(self, oci_cloud, tag: str, rules_failed: List[str]):
+        """
+        Test Oracle's implementation of the _validate_tag method.
+        """
+        if len(rules_failed) == 0:
+            # test that no exception is raised
+            oci_cloud._validate_tag(tag)
+        else:
+            with pytest.raises(InvalidTagNameError) as exc_info:
+                oci_cloud._validate_tag(tag)
+            assert tag in str(exc_info.value)
+            for rule in rules_failed:
+                assert rule in str(exc_info.value)
