@@ -259,7 +259,7 @@ class AzureInstance(BaseInstance):
         default_nic = [nic for nic in all_nics if nic.id == default_nic_id]
         if len(default_nic) == 0:
             raise PycloudlibError("Could not get the first/default NIC")
-        default_nic = default_nic[0]
+        default_nic = default_nic[0]  # type: ignore
         subnet_id = default_nic.ip_configurations[0].subnet.id  # type: ignore
         nsg_id = default_nic.network_security_group.id  # type: ignore
 
@@ -280,7 +280,7 @@ class AzureInstance(BaseInstance):
             "tags": None,
         }
         nic_name = f"{self.name}-nic-{us}"
-        nic_poller = self._network_client.network_interfaces.begin_create_or_update(
+        nic_poller = self._network_client.network_interfaces.begin_create_or_update(  # type: ignore
             self._instance["rg_name"], nic_name, default_config
         )
         created_nic = nic_poller.result()
@@ -324,7 +324,8 @@ class AzureInstance(BaseInstance):
         self._remove_nic_from_vm(nic_params, primary_nic)
         # delete the removed NIC
         self._network_client.network_interfaces.begin_delete(
-            self._instance["rg_name"], nic_to_remove.name
+            self._instance["rg_name"],
+            nic_to_remove.name,  # type: ignore
         )
 
     def _remove_nic_from_vm(
