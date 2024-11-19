@@ -36,6 +36,7 @@ UBUNTU_DAILY_IMAGES = {
     "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
     "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
+    "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
@@ -44,6 +45,7 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",
     "oracular": "Canonical:ubuntu-24_10-daily:minimal:latest",
+    "plucky": "Canonical:ubuntu-25_04-daily:minimal:latest",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
@@ -69,6 +71,7 @@ UBUNTU_RELEASE_IMAGES = {
     "noble": "Canonical:ubuntu-24_04-lts:server:latest",
     # TODO(20241031: drop -daily once release is published)
     "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
+    "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
 }
 
 UBUNTU_CVM_IMAGES = {
