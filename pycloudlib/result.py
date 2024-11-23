@@ -24,6 +24,11 @@ class Result(str):  # pylint: disable=too-many-ancestors
         """Boolean behavior."""
         return self.ok
 
+    def __str__(self):
+        return "rc: '{}'\nstdout: '{}'\nstderr: '{}'".format(
+            self.return_code, self.return_code, self.stderr
+        )
+
     @property
     def failed(self):
         """Return boolean if result was failure."""
