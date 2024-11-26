@@ -1,7 +1,6 @@
 # pycloudlib
 
-[![Pycloudlib CI](https://github.com/canonical/pycloudlib/actions/workflows/ci.yaml/badge.svg)](https://github.com/canonical/pycloudlib/actions/workflows/ci.yaml)
-
+[![Pycloudlib Post Merge Check](https://github.com/canonical/pycloudlib/actions/workflows/main_check.yaml/badge.svg)](https://github.com/canonical/pycloudlib/actions/workflows/main_check.yaml)
 [![Tag and Publish Release](https://github.com/canonical/pycloudlib/actions/workflows/tag_and_publish.yaml/badge.svg)](https://github.com/canonical/pycloudlib/actions/workflows/tag_and_publish.yaml)
 
 Python library to launch, interact, and snapshot cloud instances
