@@ -156,3 +156,18 @@ class InvalidTagNameError(PycloudlibException):
     def __str__(self) -> str:
         """Return string representation of the error."""
         return f"Tag '{self.tag}' failed the following rules: {', '.join(self.rules_failed)}"
+
+
+class UnsetSSHKeyError(PycloudlibException):
+    """Raised when a SSH key is unset and no default key can be found."""
+
+    def __str__(self) -> str:
+        """Return string representation of the error."""
+        return (
+            "No public key content available for unset key pair. This error occurs when no SSH "
+            "key is provided in the pycloudlib.toml file and no default keys can be found on "
+            "the system. If you wish to provide custom SSH keys at runtime, you can do so by "
+            "calling the `use_key` method on the `Cloud` class. If you wish to use default SSH "
+            "keys, make sure they are present on the system and that they are located in the "
+            "default locations."
+        )
