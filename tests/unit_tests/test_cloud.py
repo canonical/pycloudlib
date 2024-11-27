@@ -1,14 +1,15 @@
 """Tests related to pycloudlib.cloud module."""
 
 from io import StringIO
+import logging
 from textwrap import dedent
-from typing import List
+from typing import List, Optional
 
 import mock
 import pytest
 
 from pycloudlib.cloud import BaseCloud
-from pycloudlib.errors import InvalidTagNameError
+from pycloudlib.errors import InvalidTagNameError, UnsetSSHKeyError
 
 # mock module path
 MPATH = "pycloudlib.cloud."
@@ -180,6 +181,30 @@ class TestBaseCloud:
         assert mycloud.key_pair.name == "some_name"
         assert mycloud.key_pair.public_key_path == "/home/asdf/.ssh/id_rsa.pub"
         assert mycloud.key_pair.private_key_path == "/home/asdf/.ssh/id_rsa"
+
+    @pytest.mark.dont_mock_ssh_keys
+    @mock.patch("os.path.expanduser", side_effect=lambda x: x.replace("~", "/root"))
+    @mock.patch("os.path.exists", return_value=False)
+    def test_init_raises_error_when_no_ssh_keys_found(
+        self,
+        _m_expanduser,
+        _m_exists,
+        caplog,
+    ):
+        """
+        Test that an error is raised when no SSH keys can be found.
+
+        This test verifies that an error is raised when no SSH keys can be found in the default
+        locations and no public key path is provided in the config file.
+        """
+        # set log level to Warning to ensure warning gets logged
+        caplog.set_level(logging.WARNING)
+        with pytest.raises(UnsetSSHKeyError) as exc_info:
+            cloud = CloudSubclass(tag="tag", timestamp_suffix=False, config_file=StringIO(CONFIG))
+            # now we try to access the public key content to trigger the exception
+            cloud.key_pair.public_key_content
+        assert "No public key path provided and no key found in default locations" in caplog.text
+        assert "No public key content available for unset key pair." in str(exc_info.value)
 
     rule1 = "All letters must be lowercase"
     rule2 = "Must be between 1 and 63 characters long"

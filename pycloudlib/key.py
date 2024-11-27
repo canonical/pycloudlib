@@ -2,12 +2,20 @@
 """Base Key Class."""
 
 import os
+from typing import Optional
+
+from pycloudlib.errors import UnsetSSHKeyError
 
 
 class KeyPair:
     """Key Class."""
 
-    def __init__(self, public_key_path, private_key_path=None, name=None):
+    def __init__(
+        self,
+        public_key_path: Optional[str],
+        private_key_path: Optional[str] = None,
+        name: Optional[str] = None,
+    ):
         """Initialize key class to generate key or reuse existing key.
 
         The public key path is given then the key is stored and the
@@ -21,11 +29,15 @@ class KeyPair:
         """
         self.name = name
         self.public_key_path = public_key_path
-        if private_key_path:
-            self.private_key_path = private_key_path
-        else:
-            self.private_key_path = self.public_key_path.replace(".pub", "")
 
+        # don't set private key path if public key path is None (ssh key is unset)
+        if self.public_key_path is None:
+            self.private_key_path = None
+            return
+
+        self.private_key_path = private_key_path or self.public_key_path.replace(".pub", "")
+
+        # Expand user paths after setting private key path
         self.public_key_path = os.path.expanduser(self.public_key_path)
         self.private_key_path = os.path.expanduser(self.private_key_path)
 
@@ -40,7 +52,8 @@ class KeyPair:
         """Read the contents of the public key.
 
         Returns:
-            output of public key
-
+            str: The public key content
         """
+        if self.public_key_path is None:
+            raise UnsetSSHKeyError()
         return open(self.public_key_path, encoding="utf-8").read()

@@ -66,7 +66,11 @@ class BaseCloud(ABC):
         self.tag = get_timestamped_tag(tag) if timestamp_suffix else tag
         self._validate_tag(self.tag)
 
-        self.key_pair = self._get_ssh_keys()
+        self.key_pair = self._get_ssh_keys(
+            public_key_path=self.config.get("public_key_path", ""),
+            private_key_path=self.config.get("private_key_path", ""),
+            name=self.config.get("key_name", getpass.getuser()),
+        )
 
     def __enter__(self):
         """Enter context manager for this class."""
@@ -251,7 +255,11 @@ class BaseCloud(ABC):
             name: name to reference key by
         """
         self._log.debug("using SSH key from %s", public_key_path)
-        self.key_pair = KeyPair(public_key_path, private_key_path, name)
+        self.key_pair = self._get_ssh_keys(
+            public_key_path=public_key_path,
+            private_key_path=private_key_path,
+            name=name,
+        )
 
     def _check_and_set_config(
         self,
@@ -310,14 +318,37 @@ class BaseCloud(ABC):
         if rules_failed:
             raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
 
-    def _get_ssh_keys(self) -> KeyPair:
-        user = getpass.getuser()
-        # check if id_rsa or id_ed25519 keys exist in the user's .ssh directory
+    def _get_ssh_keys(
+        self,
+        public_key_path: Optional[str] = None,
+        private_key_path: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> KeyPair:
+        """Retrieve SSH key pair paths.
+
+        This method attempts to retrieve the paths to the public and private SSH keys.
+        If no public key path is provided, it will look for default keys in the user's
+        `~/.ssh` directory. If no keys are found, it logs a warning and returns a KeyPair
+        with None values.
+
+        Args:
+            public_key_path (Optional[str]): The path to the public SSH key. If not provided,
+                the method will search for default keys.
+            private_key_path (Optional[str]): The path to the private SSH key. Defaults to None.
+            name (Optional[str]): An optional name for the key pair. Defaults to None.
+
+        Returns:
+            KeyPair: An instance of KeyPair containing the paths to the public and private keys,
+            and the optional name.
+
+        Raises:
+            PycloudlibError: If the provided public key path does not exist.
+        """
         possible_default_keys = [
             os.path.expanduser("~/.ssh/id_rsa.pub"),
             os.path.expanduser("~/.ssh/id_ed25519.pub"),
         ]
-        public_key_path: Optional[str] = os.path.expanduser(self.config.get("public_key_path", ""))
+        public_key_path = os.path.expanduser(public_key_path or "")
         if not public_key_path:
             for pubkey in possible_default_keys:
                 if os.path.exists(pubkey):
@@ -325,18 +356,19 @@ class BaseCloud(ABC):
                     public_key_path = pubkey
                     break
             if not public_key_path:
-                raise PycloudlibError(
+                self._log.warning(
                     "No public key path provided and no key found in default locations: "
-                    "'~/.ssh/id_rsa.pub' or '~/.ssh/id_ed25519.pub'"
+                    "'~/.ssh/id_rsa.pub' or '~/.ssh/id_ed25519.pub'. SSH key authentication will "
+                    "not be possible unless a key is later provided with the 'use_key' method."
                 )
+                return KeyPair(None, None, None)
         if not os.path.exists(os.path.expanduser(public_key_path)):
             raise PycloudlibError(f"Provided public key path '{public_key_path}' does not exist")
         if public_key_path not in possible_default_keys:
             self._log.info("Using provided public key path: '%s'", public_key_path)
-        private_key_path = self.config.get("private_key_path", "")
 
         return KeyPair(
             public_key_path=public_key_path,
             private_key_path=private_key_path,
-            name=self.config.get("key_name", user),
+            name=name,
         )
