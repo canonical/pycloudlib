@@ -8,7 +8,7 @@ import logging
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, MutableMapping, Optional, Sequence
 
 import paramiko
 
@@ -61,7 +61,7 @@ class BaseCloud(ABC):
         self.created_images: List[str] = []
 
         self._log = logging.getLogger("{}.{}".format(__name__, self.__class__.__name__))
-        self._check_and_set_config(config_file, required_values)
+        self.config = self._check_and_get_config(config_file, required_values)
 
         self.tag = get_timestamped_tag(tag) if timestamp_suffix else tag
         self._validate_tag(self.tag)
@@ -261,11 +261,11 @@ class BaseCloud(ABC):
             name=name,
         )
 
-    def _check_and_set_config(
+    def _check_and_get_config(
         self,
         config_file: Optional[ConfigFile],
         required_values: _RequiredValues,
-    ):
+    ) -> MutableMapping[str, Any]:
         """Set pycloudlib configuration.
 
         Checks if values required to launch a cloud instance are present.
@@ -282,9 +282,8 @@ class BaseCloud(ABC):
         # of them were provided, config file is loaded and the values that
         # were passed in work as overrides
         if required_values and all(v is not None for v in required_values):
-            self.config = {}
-        else:
-            self.config = parse_config(config_file)[self._type]
+            return {}
+        return parse_config(config_file)[self._type]
 
     @staticmethod
     def _validate_tag(tag: str):
