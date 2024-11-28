@@ -108,6 +108,8 @@ def test_public_api(cloud: BaseCloud):
         # Not sure there's a great way to test this other than not raising
         cloud.image_serial(image_id)
 
+    version = cloud.version()
+    assert  isinstance(version, str) or version is None
     with cloud.launch(image_id=image_id, user_data=cloud_config) as instance:
         instance.wait()
         exercise_instance(instance)

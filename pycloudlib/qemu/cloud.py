@@ -628,3 +628,12 @@ class Qemu(BaseCloud):
             exceptions.append(e)
 
         return exceptions
+
+    def version(self):
+        """Qemu version."""
+        return (
+            subprocess.run(self.qemu_binary, capture_output=True)
+            .stdout.decode()
+            .splitlines()
+            .pop(0)
+        )

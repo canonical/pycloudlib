@@ -261,6 +261,10 @@ class BaseCloud(ABC):
             name=name,
         )
 
+    def version(self) -> Optional[str]:
+        """Version string of the platform."""
+        return None
+
     def _check_and_set_config(
         self,
         config_file: Optional[ConfigFile],
