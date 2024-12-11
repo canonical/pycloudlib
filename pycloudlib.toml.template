@@ -78,6 +78,7 @@ availability_domain = ""  # Likely in ~/.oci/oci_cli_rc
 compartment_id = ""  # Likely in ~/.oci/oci_cli_rc
 # region = "us-phoenix-1"  # will use region from oci config file if not specified
 # profile = "DEFAULT" # will use default profile from oci config file if not specified
+# vcn_name = "" # Exact name of the VCN to use. If not provided, the newest VCN in the given compartment will be used.
 # public_key_path = "~/.ssh/id_rsa.pub"
 # private_key_path = ""  # Defaults to 'public_key_path' without the '.pub'
 # key_name = ""  # Defaults to your username if not set
