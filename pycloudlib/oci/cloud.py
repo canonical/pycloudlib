@@ -10,7 +10,7 @@ from typing import Optional, cast
 
 import oci
 
-from pycloudlib.cloud import BaseCloud
+from pycloudlib.cloud import BaseCloud, ImageInfo
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     CloudSetupError,
@@ -367,3 +367,171 @@ class OCI(BaseCloud):
 
         if rules_failed:
             raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
+
+    # all actual "Clouds" and not just substrates like LXD and QEMU should support this method
+    def upload_local_file_to_cloud_storage(
+        self,
+        *,
+        local_file_path: str,
+        storage_name: str,
+        remote_file_name: Optional[str] = None,
+        overwrite_existing: bool = False,
+    ) -> str:
+        """
+        Upload a file to a storage destination on the Cloud.
+
+        Args:
+            local_file_path: The local file path of the image to upload.
+            storage_name: The name of the storage destination on the Cloud to upload the file to.
+            remote_file_name: The name of the file in the storage destination. If not provided,
+            the base name of the local file path will be used.
+
+        Returns:
+            str: URL of the uploaded file in the storage destination.
+        """
+        object_storage_client = oci.object_storage.ObjectStorageClient(self.oci_config)
+        namespace = object_storage_client.get_namespace().data
+        bucket_name = storage_name
+        remote_file_name = remote_file_name or os.path.basename(local_file_path)
+
+        # if remote file name is missing the extension, add it from the local file path
+        if not remote_file_name.endswith(ext:="."+local_file_path.split('.')[-1]):
+            remote_file_name += ext
+
+        # check if object already exists in the bucket
+        try:
+            object_storage_client.get_object(
+                namespace,
+                bucket_name,
+                remote_file_name
+            )
+            if overwrite_existing:
+                self._log.warning(
+                    f"Object {remote_file_name} already exists in the bucket {bucket_name}. "
+                    "Overwriting it."
+                )
+            else:
+                self._log.info(
+                    "Skipping upload as the object already exists in the bucket."
+                )
+                return f"https://objectstorage.{self.region}.oraclecloud.com/n/{namespace}/b/{bucket_name}/o/{remote_file_name}"
+        except oci.exceptions.ServiceError as e:
+            if e.status != 404:
+                raise e
+
+        with open(local_file_path, 'rb') as file:
+            object_storage_client.put_object(
+                namespace,
+                bucket_name,
+                remote_file_name,
+                file
+            )
+
+        return f"https://objectstorage.{self.region}.oraclecloud.com/n/{namespace}/b/{bucket_name}/o/{remote_file_name}"
+
+    def create_image_from_local_file(
+        self,
+        *,
+        local_file_path: str,
+        image_name: str,
+        intermediary_storage_name: str,
+        suite: str,
+    ) -> ImageInfo:
+        """
+        Upload local image file to storage on the Cloud and then create a custom image from it.
+
+        Args:
+            local_file_path: The local file path of the image to upload.
+            image_name: The name to upload the image as and to register.
+            intermediary_storage_name: The intermediary storage destination on the Cloud to upload
+            the file to before creating the image.
+            suite: The suite of the image to create. I.e. "noble", "jammy", or "focal".
+
+        Returns:
+            ImageInfo: Information about the created image.
+        """
+        remote_file_url = self.upload_local_file_to_cloud_storage(
+            local_file_path=local_file_path,
+            storage_name=intermediary_storage_name,
+            remote_file_name=image_name,
+        )
+        return self._create_image_from_cloud_storage(
+            image_name=image_name,
+            remote_image_file_url=remote_file_url,
+            suite=suite,
+        )
+    
+    def parse_remote_object_url(self, remote_object_url: str) -> tuple[str, str, str]:
+        """
+        Parse the remote object URL to extract the namespace, bucket name, and object name.
+
+        Args:
+            remote_object_url: The URL of the object in the Cloud storage.
+
+        Returns:
+            tuple[str, str, str]: The namespace, bucket name, and object name.
+        """
+        if not remote_object_url.startswith("https://objectstorage"):
+            raise ValueError("Invalid URL. Expected a URL from the Oracle Cloud object storage.")
+        parts = remote_object_url.split("/")
+        # find the "n/", "b/", and "o/" parts of the URL
+        namespace_index = parts.index("n") + 1
+        bucket_index = parts.index("b") + 1
+        object_index = parts.index("o") + 1
+        return parts[namespace_index], parts[bucket_index], parts[object_index]
+
+    def _create_image_from_cloud_storage(
+        self,
+        *,
+        image_name: str,
+        remote_image_file_url: str,
+        suite: str,
+        image_description: Optional[str] = None,
+    ) -> ImageInfo:
+        """
+        Register a custom image in the Cloud from a file in Cloud storage using its url.
+
+        Ideally, this url would be returned from the upload_local_file_to_cloud_storage method.
+
+        Args:
+            image_name: The name the image will be created with.
+            remote_image_file_url: The URL of the image file in the Cloud storage.
+            image_description: (Optional) A description of the image.
+        """
+        suites = {
+            "plucky": "25.10",
+            "oracular": "24.10",
+            "noble": "24.04",
+            "jammy": "22.04",
+            "focal": "20.04",
+        }
+        if suite not in suites:
+            raise ValueError(f"Invalid suite. Expected one of {list(suites.keys())}. Found: {suite}")
+        # parse object name and bucket name from the url
+        object_namespace, bucket_name, object_name = self.parse_remote_object_url(remote_image_file_url)
+        self._log.debug(f"Bucket name: {bucket_name}, Object name: {object_name}, Object namespace: {object_namespace}")
+        image_details = oci.core.models.CreateImageDetails(
+            compartment_id=self.compartment_id,
+            display_name=image_name,
+            image_source_details=oci.core.models.ImageSourceViaObjectStorageTupleDetails(
+                source_type="objectStorageTuple",
+                bucket_name=bucket_name,
+                object_name=object_name,
+                namespace_name=object_namespace,
+                operating_system="Canonical Ubuntu",
+                operating_system_version=suites[suite],
+            ),
+            launch_mode="PARAVIRTUALIZED",
+            freeform_tags={"Description": image_description} if image_description else None
+        )
+
+        image_data = self.compute_client.create_image(image_details).data
+        image_data = wait_till_ready(
+            func=self.compute_client.get_image,
+            current_data=image_data,
+            desired_state="AVAILABLE",
+            sleep_seconds=30*60, # 30 minutes since image creation can take a while
+        )
+
+        return ImageInfo(id=image_data.id, name=image_data.display_name)
+
