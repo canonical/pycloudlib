@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Dict, Optional
 
 from oci.retry import DEFAULT_RETRY_STRATEGY  # pylint: disable=E0611,E0401
 
-from pycloudlib.errors import PycloudlibError
+from pycloudlib.errors import PycloudlibError, PycloudlibTimeoutError
 
 if TYPE_CHECKING:
     import oci
@@ -33,6 +33,8 @@ def wait_till_ready(
         func_kwargs: Dictionary with keyword arguments to pass to the function
     Returns:
         The updated version of the current_data
+    Raises:
+        PycloudlibTimeoutError: If the desired state is not reached in time
     """
     if func_kwargs is None:
         func_kwargs = {}
@@ -42,7 +44,7 @@ def wait_till_ready(
         if current_data.lifecycle_state == desired_state:
             return current_data
         time.sleep(1)
-    raise PycloudlibError(
+    raise PycloudlibTimeoutError(
         "Expected {} state, but found {} after waiting {} seconds. "
         "Check OCI console for more details".format(
             desired_state, current_data.lifecycle_state, sleep_seconds
