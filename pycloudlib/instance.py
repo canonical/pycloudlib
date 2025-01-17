@@ -26,6 +26,7 @@ class BaseInstance(ABC):
     """Base instance object."""
 
     _type = "base"
+    ready_timeout = 10  # Time to wait for instance to be ready after provisioning (in minutes)
 
     def __init__(self, key_pair, username: Optional[str] = None):
         """Set up instance."""
@@ -160,10 +161,23 @@ class BaseInstance(ABC):
         detecting when an instance has started through their API.
         """
 
-    def wait(self, **kwargs):
-        """Wait for instance to be up and cloud-init to be complete."""
+    def wait(
+        self,
+        ready_timeout: Optional[int] = None,
+        **kwargs,
+    ):
+        """
+        Wait for instance to be up and cloud-init to be complete.
+
+        Args:
+            ready_timeout (int): maximum time to wait for the instance to be ready for ssh after
+                instance provisioning is complete
+
+        Raises:
+            PycloudlibTimeoutError: If the instance is not ready after the timeout
+        """
         self._wait_for_instance_start(**kwargs)
-        self._wait_for_execute()
+        self._wait_for_execute(timeout=ready_timeout)
         self._wait_for_cloudinit()
 
     def wait_for_restart(self, old_boot_id):
@@ -478,7 +492,7 @@ class BaseInstance(ABC):
         self._tmp_count += 1
         return path
 
-    def _wait_for_execute(self, old_boot_id=None, timeout: int = 40):
+    def _wait_for_execute(self, old_boot_id=None, timeout: Optional[int] = None):
         """
         Wait until we can execute a command in the instance.
 
@@ -492,9 +506,7 @@ class BaseInstance(ABC):
         """
         self._log.info("_wait_for_execute to complete")
 
-        # Wait 40 minutes before failing. AWS EC2 metal instances can take
-        # over 20 minutes to start or restart, so we shouldn't lower
-        # this timeout
+        timeout = timeout or self.ready_timeout
         start = time.time()
         end = start + timeout * 60
         while time.time() < end:
