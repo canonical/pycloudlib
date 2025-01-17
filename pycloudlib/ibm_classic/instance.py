@@ -285,13 +285,6 @@ class IBMClassicInstance(BaseInstance):
         logger.info("Instance %s started", self.name)
         self._instance = self._vs_manager.get_instance(self.id)
 
-    def wait(self, **kwargs):
-        """Wait for instance to be up and cloud-init to be complete."""
-        logger.info("Waiting for instance %s to be ready", self.name)
-        self._wait_for_instance_start(**kwargs)
-        self._wait_for_execute(timeout=180)
-        self._wait_for_cloudinit()
-
     def wait_for_restart(self, old_boot_id):
         """Wait for instance to be restarted and cloud-init to be complete.
 

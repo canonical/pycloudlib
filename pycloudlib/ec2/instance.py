@@ -15,6 +15,7 @@ class EC2Instance(BaseInstance):
     """EC2 backed instance."""
 
     _type = "ec2"
+    ready_timeout = 40  # To keep backwards compatibility (will lower soon)
 
     def __init__(self, key_pair, client, instance, *, username: Optional[str] = None):
         """Set up instance.
