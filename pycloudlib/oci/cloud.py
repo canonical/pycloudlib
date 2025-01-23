@@ -68,7 +68,7 @@ class OCI(BaseCloud):
             tag,
             timestamp_suffix,
             config_file,
-            required_values=[availability_domain, compartment_id],
+            required_values=[availability_domain, compartment_id, vcn_name],
         )
 
         self.availability_domain = availability_domain or self.config["availability_domain"]
@@ -114,7 +114,7 @@ class OCI(BaseCloud):
         self.oci_config["region"] = region or self.config.get("region") or self.oci_config["region"]
         self.region = self.oci_config["region"]
 
-        self.vcn_name = vcn_name
+        self.vcn_name = vcn_name or self.config.get("vcn_name")
         self.fault_domain = fault_domain
         self._log.debug("Logging into OCI")
         self.compute_client = oci.core.ComputeClient(self.oci_config)  # noqa: E501
