@@ -1,5 +1,6 @@
 """Tests for pycloudlib's OCI Cloud class."""
 
+from textwrap import dedent
 from typing import List
 from unittest import mock
 
@@ -17,14 +18,7 @@ from pycloudlib.oci.instance import OciInstance
 
 
 @pytest.fixture
-def oci_cloud(tmp_path):
-    """
-    Fixture for OCI Cloud class.
-
-    This fixture mocks the oci.config.validate_config function to not raise an error. It also
-    mocks the oci.core.ComputeClient and oci.core.VirtualNetworkClient classes to return mock
-    instances of the clients.
-    """
+def oci_mock():
     oci_config = {
         "user": "ocid1.user.oc1..example",
         "fingerprint": "mock-fingerprint",
@@ -32,8 +26,6 @@ def oci_cloud(tmp_path):
         "tenancy": "ocid1.tenancy.oc1..example",
         "region": "us-phoenix-1",
     }
-    pycloudlib_config = tmp_path / "pyproject.toml"
-    pycloudlib_config.write_text("[oci]\n")
 
     with mock.patch(
         "pycloudlib.oci.cloud.oci.config.validate_config",
@@ -49,24 +41,41 @@ def oci_cloud(tmp_path):
         mock_compute_client_class.return_value = mock_compute_client
         mock_network_client_class.return_value = mock_network_client
 
-        # Create instance
-        oci_cloud = OCI(
-            "test-instance",
-            timestamp_suffix=True,
-            config_file=pycloudlib_config,
-            availability_domain="PHX-AD-1",
-            compartment_id="test-compartment-id",
-            region="us-phoenix-1",
-            config_dict=oci_config,
-        )
+        yield mock_compute_client, mock_network_client, oci_config
 
-        oci_cloud._log = mock.MagicMock()
 
-        # Assign the mocked clients to the instance
-        oci_cloud.compute_client = mock_compute_client
-        oci_cloud.network_client = mock_network_client
+@pytest.fixture
+def oci_cloud(oci_mock, tmp_path):
+    """
+    Fixture for OCI Cloud class.
 
-        yield oci_cloud
+    This fixture mocks the oci.config.validate_config function to not raise an error. It also
+    mocks the oci.core.ComputeClient and oci.core.VirtualNetworkClient classes to return mock
+    instances of the clients.
+    """
+    pycloudlib_config = tmp_path / "pyproject.toml"
+    pycloudlib_config.write_text("[oci]\n")
+
+    mock_compute_client, mock_network_client, oci_config = oci_mock
+
+    # Create instance
+    oci_cloud = OCI(
+        "test-instance",
+        timestamp_suffix=True,
+        config_file=pycloudlib_config,
+        availability_domain="PHX-AD-1",
+        compartment_id="test-compartment-id",
+        region="us-phoenix-1",
+        config_dict=oci_config,
+    )
+
+    oci_cloud._log = mock.MagicMock()
+
+    # Assign the mocked clients to the instance
+    oci_cloud.compute_client = mock_compute_client
+    oci_cloud.network_client = mock_network_client
+
+    yield oci_cloud
 
 
 OCI_PYCLOUDLIB_CONFIG = """\
@@ -98,6 +107,46 @@ class TestOciInit:
                     config_file=pycloudlib_config,
                     config_dict={"invalid": "config"},
                 )
+
+    @pytest.mark.parametrize(
+        ["vcn_name"],
+        [
+            pytest.param(
+                "test-vcn",
+                id="VCN entry provided",
+            ),
+            pytest.param(
+                None,
+                id="No VCN entry provided",
+            ),
+        ],
+    )
+    def test_config_toml(self, tmp_path, vcn_name, oci_mock):
+        config_toml = dedent("""\
+            [oci]
+            availability_domain = "PYCL-AD-1"
+            compartment_id = "pycloudlib-compartment-id"
+            region = "pycl-pheonix-1"
+        """)
+
+        if vcn_name:
+            config_toml += 'vcn_name = "test-vcn"\n'
+
+        pycloudlib_config = tmp_path / "pyproject.toml"
+        pycloudlib_config.write_text(config_toml)
+
+        _, _, oci_config = oci_mock
+
+        test_inst = OCI(
+            tag="test-instance",
+            config_file=pycloudlib_config,
+            config_dict=oci_config,
+        )
+
+        assert test_inst.availability_domain == "PYCL-AD-1"
+        assert test_inst.compartment_id == "pycloudlib-compartment-id"
+        assert test_inst.region == "pycl-pheonix-1"
+        assert test_inst.vcn_name == vcn_name
 
 
 @pytest.mark.mock_ssh_keys
