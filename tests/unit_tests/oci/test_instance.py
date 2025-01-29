@@ -172,6 +172,8 @@ class TestOciInstanceVnicOperations:
 
             # Mock list_subnets to return an iterable of subnets
             subnet_mock = mock.Mock()
+            subnet_mock.prohibit_internet_ingress = False
+            subnet_mock.availability_domain = "Uocm:PHX-AD-1"
             subnet_mock.id = "subnet-id"
             oci_instance.network_client.list_subnets.return_value = mock.Mock(data=[subnet_mock])
 
