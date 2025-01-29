@@ -88,9 +88,12 @@ def get_subnet_id(
             raise PycloudlibError(f"Unable to determine vcn name: {vcn_name}")
         if len(vcns) > 1:
             raise PycloudlibError(f"Found multiple vcns with name: {vcn_name}")
-        vcn_id = vcns[0].id
     else:  # if no vcn_name specified, use most recently created vcn
-        vcn_id = network_client.list_vcns(compartment_id, retry_strategy=retry_strategy).data[0].id
+        vcns = network_client.list_vcns(compartment_id, retry_strategy=retry_strategy).data
+        if len(vcns) == 0:
+            raise PycloudlibError("No VCNs found in compartment")
+    vcn_id = vcns[0].id
+    chosen_vcn_name = vcns[0].display_name
 
     subnets = network_client.list_subnets(
         compartment_id, vcn_id=vcn_id, retry_strategy=retry_strategy
@@ -98,14 +101,22 @@ def get_subnet_id(
     subnet_id = None
     for subnet in subnets:
         if subnet.prohibit_internet_ingress:  # skip subnet if it's private
-            log.debug("Ignoring private subnet: %s", subnet.id)
+            log.debug(
+                "Ignoring private subnet: %s [id: %s]",
+                subnet.display_name,
+                subnet.id,
+            )
             continue
-        log.debug("Using public subnet: %s", subnet.id)
-        if subnet.availability_domain == availability_domain:
-            subnet_id = subnet.id
-            break
-    else:
-        subnet_id = subnets[0].id
+        if subnet.availability_domain and subnet.availability_domain != availability_domain:
+            log.debug(
+                "Ignoring public subnet in different availability domain: %s [id: %s]",
+                subnet.display_name,
+                subnet.id,
+            )
+            continue
+        log.info("Using public subnet: %s [id: %s]", subnet.display_name, subnet.id)
+        subnet_id = subnet.id
+        break
     if not subnet_id:
-        raise PycloudlibError(f"Unable to determine subnet id for domain: {availability_domain}")
+        raise PycloudlibError(f"Unable to find suitable subnet in VCN {chosen_vcn_name}")
     return subnet_id
