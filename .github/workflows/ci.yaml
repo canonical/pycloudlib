@@ -8,43 +8,40 @@ concurrency:
 
 jobs:
   tox-defaults:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run tox
         run: tox
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build rtd docs
         run: tox -e docs
   integration-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
         run: |
           sudo apt-get update -q
           sudo apt-get install -qy distro-info tox
           sudo snap install lxd
-      - name: Initialize LXD
+      - name: Git checkout
+        uses: actions/checkout@v3
+      - name: Setup LXD
+        uses: canonical/setup-lxd@v0.1.2
+      - name: Setup pycloudlib config and ssh key
         run: |
           ssh-keygen -P "" -q -f ~/.ssh/id_rsa
           mkdir -p ~/.config
           echo "[lxd]" > ~/.config/pycloudlib.toml
-          sudo adduser $USER lxd
-          # Jammy GH Action runners have docker installed, which edits iptables
-          # in a way that is incompatible with lxd.
-          # https://linuxcontainers.org/lxd/docs/master/howto/network_bridge_firewalld/#prevent-issues-with-lxd-and-docker
-          sudo iptables -I DOCKER-USER -j ACCEPT
-          sudo lxd init --auto
-      - name: Git checkout
-        uses: actions/checkout@v3
       - name: Run CI integration tests
-        run: sg lxd -c 'tox -e integration-tests-ci'
+        run: |
+          tox -e integration-tests-ci
