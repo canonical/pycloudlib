@@ -253,14 +253,14 @@ def _get_local_ubuntu_arch() -> str:
     the GNU autotools, and it's complex. Let's keep it simple here, mapping
     only what is relevant for Ubuntu.
     """
-    arch_map = dict(
-        i686="i386",
-        x86_64="amd64",
-        aarch64="arm64",
-        ppc="powerpc",
-        ppc64el="ppc64el",
-        ppcle="powerpcel",
-    )
+    arch_map = {
+        "i686": "i386",
+        "x86_64": "amd64",
+        "aarch64": "arm64",
+        "ppc": "powerpc",
+        "ppc64el": "ppc64el",
+        "ppcle": "powerpcel",
+    }
 
     local_arch = platform.machine()
     local_ubuntu_arch = arch_map.get(local_arch, local_arch)

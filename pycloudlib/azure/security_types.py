@@ -34,6 +34,7 @@ def configure_security_types_vm_params(
         os_disk_encryption: AzureCVMOSDiskEncryption, the os disk
                             encryption used for the vm
     """
+    param_update = {}
     if security_type == AzureSecurityType.STANDARD:
         return
     if security_type == AzureSecurityType.TRUSTED_LAUNCH:

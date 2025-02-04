@@ -507,7 +507,13 @@ class Azure(BaseCloud):
             A dict containing the parameters to provision a virtual machine.
 
         """
-        nics = [dict(id=nic_id, primary=(i == 0)) for (i, nic_id) in enumerate(nic_ids)]
+        nics = [
+            {
+                "id": nic_id,
+                "properties": {"primary": i == 0},
+            }
+            for i, nic_id in enumerate(nic_ids)
+        ]
         vm_parameters = {
             "location": self.location,
             "hardware_profile": {"vm_size": instance_type},

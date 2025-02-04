@@ -184,9 +184,12 @@ class AzureInstance(BaseInstance):
             )
             # Azure has a 60 secs delay for the boot diagnostics to be active.
             time.sleep(BOOT_DIAGNOSTICS_URI_DELAY)
-            response = requests.get(diagnostics.serial_console_log_blob_uri)
+            response = requests.get(diagnostics.serial_console_log_blob_uri, timeout=10)
         except ResourceExistsError:
             self._log.warning("Boot diagnostics not enabled, so none is collected.")
+            return None
+        except requests.exceptions.Timeout as e:
+            self._log.error("Request timed out while getting boot diagnostics logs: %s", e)
             return None
         return response.text
 
@@ -268,15 +271,15 @@ class AzureInstance(BaseInstance):
         ip_address_obj = self._create_ip_address()
         ip_config_name = f"{self.name}-{us}-ip-config"
 
-        ip_config = dict(
-            name=ip_config_name,
-            subnet=dict(id=subnet_id),
-            public_ip_address=dict(id=ip_address_obj.id),
-        )
+        ip_config = {
+            "name": ip_config_name,
+            "subnet": {"id": subnet_id},
+            "public_ip_address": {"id": ip_address_obj.id},
+        }
         default_config = {
             "location": self.location,
             "ip_configurations": [ip_config],
-            "network_security_group": dict(id=nsg_id),
+            "network_security_group": {"id": nsg_id},
             "tags": None,
         }
         nic_name = f"{self.name}-nic-{us}"
@@ -284,7 +287,7 @@ class AzureInstance(BaseInstance):
             self._instance["rg_name"], nic_name, default_config
         )
         created_nic = nic_poller.result()
-        nic_details = dict(id=created_nic.id, primary=False)
+        nic_details = {"id": created_nic.id, "primary": False}
         self._attach_nic_to_vm([nic_details])
         return created_nic.ip_configurations[0].private_ip_address
 
