@@ -1,6 +1,7 @@
 from typing import List
 import mock
 import pytest
+import logging
 
 from pycloudlib.errors import InvalidTagNameError
 from pycloudlib.ibm_classic.cloud import IBMClassic
@@ -41,8 +42,16 @@ def mock_ibmclassic():
     ],
 )
 def test_add_rules_valid_input(
-    mock_ibmclassic, directions, ipv6, port, protocol, expected_call_count
+    mock_ibmclassic,
+    directions,
+    ipv6,
+    port,
+    protocol,
+    expected_call_count,
+    caplog,
 ):
+    mock_ibmclassic._log = logging.getLogger("ibm_classic_logger")
+    caplog.set_level(logging.DEBUG)
     mock_ibmclassic._add_rules_to_security_group(
         group_id="sg-1234",
         directions=directions,
@@ -51,6 +60,21 @@ def test_add_rules_valid_input(
         protocol=protocol,
     )
 
+    expected_log_messages = []
+    ethertypes = ["IPv4", "IPv6"] if ipv6 else ["IPv4"]
+
+    for direction in directions:
+        for ethertype in ethertypes:
+            expected_log_messages.append(
+                f"Added rule allowing {ethertype} {direction} traffic on port {port} to security group sg-1234",
+            )
+
+    for expected_log in expected_log_messages:
+        assert any(
+            expected_log in message for message in caplog.messages
+        ), f"Expected log not found: {expected_log}"
+
+    caplog.clear()
     assert mock_ibmclassic._network_manager.add_securitygroup_rule.call_count == expected_call_count
 
 
