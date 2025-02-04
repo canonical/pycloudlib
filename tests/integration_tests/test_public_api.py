@@ -114,13 +114,10 @@ def test_public_api(cloud: BaseCloud):
         instance.clean()
         instance.execute("sudo rm /var/tmp/example.txt")
         snapshot_id = cloud.snapshot(instance)
-        instance.delete()  # Remove me
 
     instance_from_snapshot = cloud.launch(image_id=snapshot_id, user_data=cloud_config)
     instance_from_snapshot.wait()
     exercise_instance(instance_from_snapshot)
-
-    cloud.delete_image(snapshot_id)  # Remove me
 
     latest_devel_release = sorted(
         UBUNTU_RELEASE_VERSION_MAP.items(),
