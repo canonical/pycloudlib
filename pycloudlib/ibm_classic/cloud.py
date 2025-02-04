@@ -445,7 +445,7 @@ class IBMClassic(BaseCloud):
                     port_max=port,
                 )
                 self._log.debug(
-                    "Added rule allowing %s %s traffic on port %sto security group %s",
+                    "Added rule allowing %s %s traffic on port %s to security group %s",
                     ethertype,
                     direction,
                     port,
