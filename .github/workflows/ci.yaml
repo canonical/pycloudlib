@@ -44,4 +44,4 @@ jobs:
           echo "[lxd]" > ~/.config/pycloudlib.toml
       - name: Run CI integration tests
         run: |
-          tox -e integration-tests-ci
+          tox -e integration-tests-ci -- --color=yes tests/integration_tests/
