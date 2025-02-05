@@ -148,6 +148,26 @@ class TestOciInit:
         assert test_inst.region == "pycl-pheonix-1"
         assert test_inst.vcn_name == vcn_name
 
+    def test_loading_from_env_vars(self, monkeypatch, oci_mock, tmp_path):
+        oci_config = oci_mock[2]
+        oci_config["key_file"] = None
+
+        # create fake config file
+        oci_config_file = tmp_path / "oci_config"
+        oci_config_file.write_text(toml.dumps(oci_config))
+
+        monkeypatch.setenv("PYCLOUDLIB_OCI_CONFIG_FILE_PATH", str(tmp_path / "oci_config"))
+        monkeypatch.setenv("PYCLOUDLIB_OCI_KEY_FILE_PATH", "/PATH_FROM_ENV/TO/KEY")
+
+        pycloudlib_config = tmp_path / "pyproject.toml"
+        pycloudlib_config.write_text(OCI_PYCLOUDLIB_CONFIG)
+
+        config_with_key_file = oci_config.copy()
+        config_with_key_file["key_file"] = "/path/to/key"
+        test_inst = OCI(tag="test-instance", config_file=pycloudlib_config)
+
+        assert test_inst.oci_config["key_file"] == "/PATH_FROM_ENV/TO/KEY"
+
 
 @pytest.mark.mock_ssh_keys
 class TestOciImages:
