@@ -2,9 +2,11 @@
 """Utilities for OCI images and instances."""
 
 import logging
+import os
 import time
 from typing import TYPE_CHECKING, Dict, Optional
 
+import toml
 from oci.retry import DEFAULT_RETRY_STRATEGY  # pylint: disable=E0611,E0401
 
 from pycloudlib.errors import PycloudlibError, PycloudlibTimeoutError
@@ -120,3 +122,75 @@ def get_subnet_id(
     if not subnet_id:
         raise PycloudlibError(f"Unable to find suitable subnet in VCN {chosen_vcn_name}")
     return subnet_id
+
+
+def _load_and_preprocess_oci_toml_file(toml_file_contents: str) -> Dict[str, str]:
+    """
+    Read in the OCI config file from the given path and preprocess it.
+
+    This includes removing the profile name if it exists, and ensuring all entries are quoted toml
+    strings if they are not already quoted.
+
+    Args:
+        toml_file_contents (str): The contents of the OCI config file as a string.
+
+    Returns:
+        oci_config: A dictionary containing the OCI config file.
+
+    Raises:
+        toml.TomlDecodeError: If the OCI config file cannot be decoded as a TOML file.
+        TypeError: If the OCI config file cannot be decoded as a TOML file.
+    """
+    toml_file_contents = toml_file_contents.strip()
+    # if the file starts with "[", remove it so there is no profile name
+    if toml_file_contents.startswith("["):
+        toml_file_contents = toml_file_contents[toml_file_contents.find("\n") + 1 :]
+    # make sure all entries are quoted toml strings if not already quoted
+    for line in toml_file_contents.splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip()
+            if not value.startswith('"') and not value.startswith("'"):
+                toml_file_contents = toml_file_contents.replace(
+                    f"{key}={value}", f'{key}="{value}"'
+                )
+    return toml.loads(toml_file_contents)
+
+
+def parse_oci_config_from_env_vars() -> Optional[Dict[str, str]]:
+    """Read in OCI config file from environment variables and return as a config dict.
+
+    If $PYCLOUDLIB_OCI_CONFIG_FILE_PATH is set, reads in the OCI config file from this path.
+    If $PYCLOUDLIB_OCI_KEY_FILE_PATH is set, replaces or adds the key_file path to the config dict.
+
+    Returns:
+        oci_config: A dictionary containing the OCI config file, or None if the environment
+            variable $PYCLOUDLIB_OCI_CONFIG_FILE_PATH is not set.
+
+    Raises:
+        PycloudlibError: If the OCI config file cannot be loaded from the path given by the
+            $PYCLOUDLIB_OCI_CONFIG_FILE_PATH environment variable.
+    """
+    config_path_from_env = os.getenv("PYCLOUDLIB_OCI_CONFIG_FILE_PATH")
+    if not config_path_from_env:
+        return None
+    # Read in the OCI config file
+    with open(config_path_from_env, encoding="utf-8") as f:
+        try:
+            oci_config = _load_and_preprocess_oci_toml_file(f.read())
+        except (toml.TomlDecodeError, TypeError, ValueError, UnicodeDecodeError) as e:
+            raise PycloudlibError(
+                f"Failed to load OCI config dict from path '{config_path_from_env}' given by "
+                f"$PYCLOUDLIB_OCI_CONFIG_FILE_PATH: {e}"
+            ) from e
+        log.info("Using OCI config file from environment variable $PYCLOUDLIB_OCI_CONFIG_FILE_PATH")
+
+    # If OCI_KEY_FILE_PATH is set, replace or add the key_file path to the config dict
+    key_file_path = os.getenv("PYCLOUDLIB_OCI_KEY_FILE_PATH")
+    if key_file_path:
+        log.info("Using OCI key file path from environment variable $PYCLOUDLIB_OCI_KEY_FILE_PATH")
+        if "key_file" in oci_config:
+            log.info("Replacing existing key_file path in OCI config")
+        oci_config["key_file"] = key_file_path
+    return oci_config

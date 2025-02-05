@@ -19,7 +19,7 @@ from pycloudlib.errors import (
     PycloudlibException,
 )
 from pycloudlib.oci.instance import OciInstance
-from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
+from pycloudlib.oci.utils import get_subnet_id, parse_oci_config_from_env_vars, wait_till_ready
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
 
@@ -90,6 +90,7 @@ class OCI(BaseCloud):
             compartment_id = cast(str, json.loads(result.stdout)["data"]["id"])
         self.compartment_id = compartment_id
 
+        config_dict = config_dict or parse_oci_config_from_env_vars()
         if config_dict:
             try:
                 oci.config.validate_config(config_dict)
