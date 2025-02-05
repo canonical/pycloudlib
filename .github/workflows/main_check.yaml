@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  # TEMPORARY: Remove this after letting this action run once on the PR
+  pull_request:
+    branches:
+      - main
 
 jobs:
   post-merge-tests:
