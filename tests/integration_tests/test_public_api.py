@@ -1,4 +1,6 @@
 import ipaddress
+import logging
+import random
 from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -16,22 +18,33 @@ runcmd:
   - echo 'hello' >> /var/tmp/example.txt
 """
 
+logger = logging.getLogger(__name__)
+
+# prevent boto libraries from spamming the console
+logging.getLogger("botocore").setLevel(logging.INFO)
+logging.getLogger("boto3").setLevel(logging.INFO)
+
+
+def _random_tag():
+    """
+    Create tag for cloud instance with 10 random characters in the end.
+
+    This is needed when running tests in parallel to avoid tag conflicts.
+
+    Returns:
+        str: tag for cloud instance
+    """
+    return f"pycl-test-{"".join(random.choices('abcdefghijklmnopqrstuvwxyz', k=10))}"
+
 
 @pytest.fixture
 def cloud(request):
     cloud_instance: BaseCloud
-    with request.param(tag="pycl-test", timestamp_suffix=True) as cloud_instance:
-        if isinstance(cloud_instance, pycloudlib.EC2):
-            # if key has already been uploaded, skip uploading it again.
-            # this is because the cloud instance is shared between tests and
-            # so the cloud does not clean up and remove the key between tests
-            if cloud_instance.tag not in cloud_instance.list_keys():
-                cloud_instance.upload_key(
-                    public_key_path=cloud_instance.config["public_key_path"],
-                    private_key_path=cloud_instance.config["private_key_path"],
-                    name=cloud_instance.tag,
-                )
-
+    with request.param(
+        tag=_random_tag(),  # add random tag to avoid conflicts when running tests in parallel
+        timestamp_suffix=True,
+    ) as cloud_instance:
+        logger.info("Cloud tag: %s", cloud_instance.tag)
         yield cloud_instance
 
 
