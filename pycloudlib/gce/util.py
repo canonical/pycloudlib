@@ -13,7 +13,7 @@ from pycloudlib.gce.errors import GceException
 def raise_on_error(response):
     """Look for errors in response and raise if found."""
     if isinstance(response, GoogleAPICallError):
-        raise GceException(f"Received error(s)!\nErrors: {response.error_message}")
+        raise GceException(f"Received error(s)!\nErrors: {response.message}")
     if isinstance(response, ExtendedOperation):
         if response.error_code != 0:
             raise GceException(f"Received error(s)!\nErrors: {response.error_message}")
