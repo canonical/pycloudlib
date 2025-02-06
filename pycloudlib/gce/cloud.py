@@ -16,7 +16,8 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.extended_operation import ExtendedOperation
 from google.cloud import compute_v1
 
-from pycloudlib.cloud import BaseCloud, ImageType
+from pycloudlib.cloud import BaseCloud
+from pycloudlib.types import ImageType
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     CloudSetupError,
@@ -314,6 +315,7 @@ class GCE(BaseCloud):
             raise_on_error(operation)
         except GoogleAPICallError as e:
             raise_on_error(e)
+        self._record_image_deletion(image_id)
 
     def get_instance(
         self,
@@ -427,12 +429,13 @@ class GCE(BaseCloud):
         self.created_instances.append(instance)
         return instance
 
-    def snapshot(self, instance: GceInstance, clean=True, **kwargs):
+    def snapshot(self, instance: GceInstance, *, clean=True, keep=False, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -470,7 +473,11 @@ class GCE(BaseCloud):
         self._wait_for_operation(operation)
 
         image_id = "projects/{}/global/images/{}".format(self.project, snapshot_name)
-        self.created_images.append(image_id)
+        self._store_snapshot_info(
+            snapshot_name=snapshot_name,
+            snapshot_id=image_id,
+            keep_snapshot=keep,
+        )
         return image_id
 
     def _wait_for_operation(self, operation, operation_type="global", sleep_seconds=300):

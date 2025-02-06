@@ -6,7 +6,7 @@ import logging
 import os
 
 import pycloudlib
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 
 
 def manage_ssh_key(gce):

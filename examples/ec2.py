@@ -6,7 +6,7 @@ import logging
 import os
 
 import pycloudlib
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 
 
 def hot_add(ec2, daily):
