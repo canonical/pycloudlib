@@ -9,7 +9,7 @@ import oci
 
 from pycloudlib.errors import PycloudlibError
 from pycloudlib.instance import BaseInstance
-from pycloudlib.oci.utils import get_subnet_id, wait_till_ready
+from pycloudlib.oci.utils import get_subnet_id, get_subnet_id_by_name, wait_till_ready
 
 
 class OciInstance(BaseInstance):
@@ -68,15 +68,24 @@ class OciInstance(BaseInstance):
     def name(self):
         """Return the instance name."""
         return self.instance_id
-
+    
     @property
     def ip(self):
         """Return IP address of instance."""
         if not self._ip:
-            vnic_attachment = self.compute_client.list_vnic_attachments(
-                compartment_id=self.compartment_id,
-                instance_id=self.instance_data.id,
-            ).data
+            for _ in range(100):
+                vnic_attachment = self.compute_client.list_vnic_attachments(
+                    compartment_id=self.compartment_id,
+                    instance_id=self.instance_data.id,
+                ).data
+                if vnic_attachment:
+                    break
+                self._log.debug("No vnic_attachment found, retrying...")
+                sleep(5)
+            else:
+                raise PycloudlibError("No vnic_attachment found after 100 retries")
+
+            self._log.debug("vnic_attachment: %s", vnic_attachment)
             vnics = [
                 self.network_client.get_vnic(vnic_attachment.vnic_id).data
                 for vnic_attachment in vnic_attachment
@@ -96,6 +105,48 @@ class OciInstance(BaseInstance):
                 self._log.info("Using ipv4 address: %s", self._ip)
             return self._ip
         return self._ip
+
+    @property
+    def private_ip(self):
+        """Return private IP address of instance."""
+        for _ in range(100):
+            vnic_attachment = self.compute_client.list_vnic_attachments(
+                compartment_id=self.compartment_id,
+                instance_id=self.instance_data.id,
+            ).data
+            if vnic_attachment:
+                break
+            self._log.debug("No vnic_attachment found, retrying...")
+            sleep(5)
+        else:
+            raise PycloudlibError("No vnic_attachment found after 100 retries")
+
+        self._log.debug("vnic_attachment: %s", vnic_attachment)
+        vnics = [
+            self.network_client.get_vnic(vnic_attachment.vnic_id).data
+            for vnic_attachment in vnic_attachment
+        ]
+        self._log.debug("vnics: %s", vnics)
+        # select vnic with is_primary = True
+        primary_vnic = [vnic for vnic in vnics if vnic.is_primary][0]
+        return primary_vnic.private_ip
+
+    @property
+    def secondary_vnic_private_ip(self) -> Optional[str]:
+        """Return private IP address of secondary vnic."""
+        vnic_attachments = self.compute_client.list_vnic_attachments(
+            compartment_id=self.compartment_id,
+            instance_id=self.instance_data.id,
+        ).data
+        if len(vnic_attachments) < 2:
+            return None
+        vnics = [
+            self.network_client.get_vnic(vnic_attachment.vnic_id).data
+            for vnic_attachment in vnic_attachments
+        ]
+        # get vnic that is not primary
+        secondary_vnic_attachment = [vnic for vnic in vnics if not vnic.is_primary][0]
+        return secondary_vnic_attachment.private_ip
 
     @property
     def instance_data(self):
@@ -195,25 +246,51 @@ class OciInstance(BaseInstance):
             func_kwargs=func_kwargs,
         )
 
-    def add_network_interface(self, **kwargs) -> str:
+    def get_secondary_vnic_ip(self) -> str:
+        """Check if the instance has a secondary VNIC."""
+        vnic_attachments = oci.pagination.list_call_get_all_results_generator(  # noqa: E501
+            self.compute_client.list_vnic_attachments,
+            "record",
+            self.compartment_id,
+            instance_id=self.instance_id,
+        )
+        return vnic_attachments[1].data.private_ip
+
+    def add_network_interface(
+        self,
+        nic_index: int = 0,
+        use_private_subnet: bool = False,
+        subnet_name: Optional[str] = None,
+    ) -> str:
         """Add network interface to running instance.
 
         Creates a nic and attaches it to the instance. This is effectively a
-        hot-add of a network device. Returns the IP address of the added
+        hot-add of a network device. Returns the private IP address of the added
         network interface as a string.
 
-        Note: It assumes the associated compartment has at least one subnet and
-        creates the vnic in the first encountered subnet.
+        Args:
+            nic_index: The index of the NIC to add
+            subnet_name: Name of the subnet to add the NIC to. If not provided,
+                will use `use_private_subnet` to select first available subnet.
+            use_private_subnet: If True, will select the first available private
+                subnet. If False, will select the first available public subnet.
+                This is only used if `subnet_name` is not provided.
         """
-        subnet_id = get_subnet_id(
-            self.network_client, self.compartment_id, self.availability_domain
-        )
+        if subnet_name:
+            subnet_id = get_subnet_id_by_name(
+                self.network_client, self.compartment_id, subnet_name,
+            )
+        else:
+            subnet_id = get_subnet_id(
+                self.network_client, self.compartment_id, self.availability_domain, private=use_private_subnet,
+            )
         create_vnic_details = oci.core.models.CreateVnicDetails(  # noqa: E501
             subnet_id=subnet_id,
         )
         attach_vnic_details = oci.core.models.AttachVnicDetails(  # noqa: E501
             create_vnic_details=create_vnic_details,
             instance_id=self.instance_id,
+            nic_index=nic_index,
         )
         vnic_attachment_data = self.compute_client.attach_vnic(attach_vnic_details).data
         vnic_attachment_data = wait_till_ready(
@@ -222,6 +299,12 @@ class OciInstance(BaseInstance):
             desired_state=vnic_attachment_data.LIFECYCLE_STATE_ATTACHED,
         )
         vnic_data = self.network_client.get_vnic(vnic_attachment_data.vnic_id).data
+        self._log.info(
+            "Added network interface with private IP %s to instance %s on nic #%s",
+            vnic_data.private_ip,
+            self.instance_id,
+            nic_index,
+        )
         return vnic_data.private_ip
 
     def remove_network_interface(self, ip_address: str):
