@@ -2,7 +2,9 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """OCI instance."""
 
+import json
 from time import sleep
+import time
 from typing import Dict, List, Optional
 
 import oci
@@ -333,3 +335,46 @@ class OciInstance(BaseInstance):
                     )
                 return
         raise PycloudlibError(f"Network interface with ip_address={ip_address} did not detach")
+
+    def configure_secondary_vnic(self) -> str:
+        if not self.secondary_vnic_private_ip:
+            raise ValueError("Cannot configure secondary VNIC without a secondary VNIC attached")
+        secondary_vnic_imds_data: Optional[Dict[str, str]] = None
+        # it can take a bit for the 
+        for _ in range(60):
+            # Fetch JSON data from the Oracle Cloud metadata service
+            imds_req = self.execute("curl -s http://169.254.169.254/opc/v1/vnics").stdout
+            vnics_data = json.loads(imds_req)
+            if len(vnics_data) > 1:
+                self._log.debug("Successfully fetched secondary VNIC data from IMDS")
+                secondary_vnic_imds_data = vnics_data[1]
+                break
+            self._log.debug("No secondary VNIC data found from IMDS, retrying...")
+            time.sleep(1)
+
+        if not secondary_vnic_imds_data:
+            raise PycloudlibError(
+                "Failed to fetch secondary VNIC data from IMDS. Cannot configure secondary VNIC"
+            )
+                      
+        # Extract MAC address and private IP from the second VNIC 
+        mac_addr = secondary_vnic_imds_data["macAddr"]
+        private_ip = secondary_vnic_imds_data["privateIp"]
+        subnet_mask = secondary_vnic_imds_data["subnetCidrBlock"].split("/")[1]
+        # Find the network interface corresponding to the MAC address
+        interface = self.execute(
+            f"ip link show | grep -B1 {mac_addr} | head -n1 | awk '{{print $2}}' | sed 's/://' "
+        ).stdout.strip()
+        # Check if the interface was found
+        if not interface:
+            raise ValueError(f"No interface found for MAC address {mac_addr}")
+        # Add the IP address to the interface
+        self.execute(
+            f"sudo ip addr add {private_ip}/{subnet_mask} dev {interface}"
+        )
+        # Verify that the IP address was added
+        r = self.execute(f"ip addr show dev {interface}")
+        if private_ip not in r.stdout:
+            raise ValueError(f"IP {private_ip} was not successfully assigned to interface {interface}")
+        self._log.info("Successfully assigned IP %s to interface %s", private_ip, interface)
+        return private_ip

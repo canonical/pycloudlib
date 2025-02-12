@@ -487,3 +487,77 @@ class TestOciInstanceIp:
             ip = oci_instance.ip
             # the following will only run if no error is raised
             assert ip == expected_ip
+
+
+class TestConfigureSecondaryVnic:
+    def test_configure_secondary_vnic_success(self, oci_instance:OciInstance):
+        with mock.patch.object(
+            OciInstance, "secondary_vnic_private_ip", new_callable=mock.PropertyMock
+        ) as mock_secondary_ip:
+            mock_secondary_ip.return_value = "10.0.0.5"
+            # Provide a side_effect matching the four execute() calls 
+            oci_instance.execute = mock.Mock(side_effect=[
+                mock.Mock(stdout='[{"macAddr": "00:16:3e:aa:bb:cc","privateIp":"10.0.0.4",'
+                                 '"subnetCidrBlock":"10.0.0.0/24"},'
+                                 '{"macAddr":"00:16:3e:ee:ff:gg","privateIp":"10.0.0.5",'
+                                 '"subnetCidrBlock":"10.0.1.0/24"}]'),
+                mock.Mock(stdout="eth1"),
+                mock.Mock(stdout=""),
+                mock.Mock(stdout="10.0.0.5"),
+            ])
+            ip = oci_instance.configure_secondary_vnic()
+            assert ip == "10.0.0.5"
+
+    def test_configure_secondary_vnic_no_secondary(self, oci_instance:OciInstance):
+        with mock.patch.object(
+            OciInstance, "secondary_vnic_private_ip", new_callable=mock.PropertyMock
+        ) as mock_secondary_ip:
+            mock_secondary_ip.return_value = None
+            with pytest.raises(ValueError, match="Cannot configure secondary VNIC"):
+                oci_instance.configure_secondary_vnic()
+
+    # patch out time.sleep 
+    @mock.patch("time.sleep", mock.MagicMock()) 
+    def test_configure_secondary_vnic_unavailable_imds(self, oci_instance:OciInstance):
+        with mock.patch.object(
+            OciInstance, "secondary_vnic_private_ip", new_callable=mock.PropertyMock
+        ) as mock_secondary_ip:
+            mock_secondary_ip.return_value = "10.0.0.5"
+            # Return empty IMDS data each time
+            oci_instance.execute = mock.Mock(side_effect=[mock.Mock(stdout="[]")] * 60)
+            with pytest.raises(PycloudlibError, match="Failed to fetch secondary VNIC data"):
+                oci_instance.configure_secondary_vnic()
+
+    def test_configure_secondary_vnic_no_interface_found(self, oci_instance:OciInstance):
+        with mock.patch.object(
+            OciInstance, "secondary_vnic_private_ip", new_callable=mock.PropertyMock
+        ) as mock_secondary_ip:
+            mock_secondary_ip.return_value = "10.0.0.5"
+            # IMDS returns one entry
+            oci_instance.execute = mock.Mock(side_effect=[
+                mock.Mock(stdout='[{"macAddr": "00:16:3e:aa:bb:cc","privateIp":"10.0.0.4",'
+                                 '"subnetCidrBlock":"10.0.0.0/24"},'
+                                 '{"macAddr":"00:16:3e:ee:ff:gg","privateIp":"10.0.0.5",'
+                                 '"subnetCidrBlock":"10.0.1.0/24"}]'),
+                mock.Mock(stdout=""),  # No interface found
+            ])
+            with pytest.raises(ValueError, match="No interface found for MAC address"):
+                oci_instance.configure_secondary_vnic()
+
+    def test_configure_secondary_vnic_ip_not_assigned(self, oci_instance:OciInstance):
+        with mock.patch.object(
+            OciInstance, "secondary_vnic_private_ip", new_callable=mock.PropertyMock
+        ) as mock_secondary_ip:
+            mock_secondary_ip.return_value = "10.0.0.5"
+            # Returns the single IMDS entry, then interface, then IP add, then empty IP check
+            oci_instance.execute = mock.Mock(side_effect=[
+                mock.Mock(stdout='[{"macAddr": "00:16:3e:aa:bb:cc","privateIp":"10.0.0.4",'
+                                 '"subnetCidrBlock":"10.0.0.0/24"},'
+                                 '{"macAddr":"00:16:3e:ee:ff:gg","privateIp":"10.0.0.5",'
+                                 '"subnetCidrBlock":"10.0.1.0/24"}]'),
+                mock.Mock(stdout="eth1"),
+                mock.Mock(stdout=""),
+                mock.Mock(stdout=""),  # Nothing found
+            ])
+            with pytest.raises(ValueError, match="was not successfully assigned"):
+                oci_instance.configure_secondary_vnic()
