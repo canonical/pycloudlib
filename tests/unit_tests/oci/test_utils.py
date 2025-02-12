@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, mock_open, patch
 from pycloudlib.oci.utils import (
     get_subnet_id,
+    get_subnet_id_by_name,
     parse_oci_config_from_env_vars,
     _load_and_preprocess_oci_toml_file,
 )
@@ -70,7 +71,7 @@ class TestGetSubnetId:
             get_subnet_id(network_client, compartment_id, availability_domain)
 
     def test_get_subnet_id_fails_with_private_subnet(self, setup_environment):
-        """Test get_subnet_id fails when the subnet is private."""
+        """Test that passing private=False ignores private subnets."""
         network_client, compartment_id, availability_domain = setup_environment
         vcn = MagicMock()
         vcn.id = "vcn_id"
@@ -79,8 +80,13 @@ class TestGetSubnetId:
         subnet = MagicMock()
         subnet.prohibit_internet_ingress = True
         network_client.list_subnets.return_value.data = [subnet]
-        with pytest.raises(PycloudlibError, match="Unable to find suitable subnet in VCN"):
-            get_subnet_id(network_client, compartment_id, availability_domain)
+        with pytest.raises(PycloudlibError, match="Unable to find suitable subnet"):
+            get_subnet_id(
+                network_client,
+                compartment_id,
+                availability_domain,
+                private=False,
+            )
 
     def test_get_subnet_id_fails_with_different_availability_domain(self, setup_environment):
         """Test get_subnet_id fails when the subnet is in a different availability domain."""
@@ -141,6 +147,25 @@ class TestGetSubnetId:
         network_client.list_subnets.assert_called_with(
             compartment_id, vcn_id="vcn_id", retry_strategy=DEFAULT_RETRY_STRATEGY
         )
+
+    def test_get_subnet_id_succeeds_with_private_subnet(self, setup_environment):
+        """Test that passing private=True picks a private subnet if available."""
+        network_client, compartment_id, availability_domain = setup_environment
+        vcn = MagicMock()
+        vcn.id = "vcn_id"
+        vcn.display_name = "vcn_name"
+        network_client.list_vcns.return_value.data = [vcn]
+        private_subnet = MagicMock()
+        private_subnet.prohibit_internet_ingress = True
+        private_subnet.availability_domain = None
+        private_subnet.id = "private_subnet_id"
+        public_subnet = MagicMock()
+        public_subnet.prohibit_internet_ingress = False
+        public_subnet.availability_domain = None
+        public_subnet.id = "public_subnet_id"
+        network_client.list_subnets.return_value.data = [public_subnet, private_subnet]
+        result = get_subnet_id(network_client, compartment_id, availability_domain, private=True)
+        assert result == "private_subnet_id"
 
 
 class TestConfigPathFromEnv:
@@ -355,3 +380,25 @@ class TestLoadAndPreprocessOciTomlFile:
         """
         with pytest.raises(toml.TomlDecodeError):
             _load_and_preprocess_oci_toml_file(toml_str)
+
+
+class TestGetSubnetIdByName:
+    def test_get_subnet_id_by_name_fails_no_subnet(self):
+        network_client = MagicMock()
+        network_client.list_subnets.return_value.data = []
+        with pytest.raises(PycloudlibError, match="Unable to determine subnet name"):
+            get_subnet_id_by_name(network_client, "compartment_id", "missing_subnet")
+
+    def test_get_subnet_id_by_name_fails_multiple_subnets(self):
+        network_client = MagicMock()
+        network_client.list_subnets.return_value.data = [MagicMock(), MagicMock()]
+        with pytest.raises(PycloudlibError, match="Found multiple subnets with name"):
+            get_subnet_id_by_name(network_client, "compartment_id", "duplicate_subnet")
+
+    def test_get_subnet_id_by_name_succeeds(self):
+        network_client = MagicMock()
+        subnet_mock = MagicMock()
+        subnet_mock.id = "subnet_id"
+        network_client.list_subnets.return_value.data = [subnet_mock]
+        result = get_subnet_id_by_name(network_client, "compartment_id", "single_subnet")
+        assert result == "subnet_id"

@@ -256,6 +256,7 @@ class OCI(BaseCloud):
         *,
         retry_strategy=None,
         username: Optional[str] = None,
+        cluster_id: Optional[str] = None,
         **kwargs,
     ) -> OciInstance:
         """Launch an instance.
@@ -301,6 +302,7 @@ class OCI(BaseCloud):
             subnet_id=subnet_id,
             image_id=image_id,
             metadata=metadata,
+            compute_cluster_id=cluster_id,
             **kwargs,
         )
 
@@ -368,3 +370,81 @@ class OCI(BaseCloud):
 
         if rules_failed:
             raise InvalidTagNameError(tag=tag, rules_failed=rules_failed)
+
+    # function that inits empty compute cluster
+    # then launches X number of BM instances and attaches them to the cluster at launch
+    # then returns an iterable of the instance objects that were created
+    def create_compute_cluster(
+            self,
+            image_id: str,
+            instance_count: int = 2,
+            instance_type: str = "BM.Optimized3.36",
+            optional_launch_kwargs: Optional[dict] = None,
+            wait: bool = True,
+        ) -> list[OciInstance]:
+        """
+        Create a compute cluster with a specified number of instances.
+
+        Args:
+            instance_count: Number of instances to create
+            launch_kwargs: Additional arguments to pass to the launch method
+        
+        Returns:
+            List of OciInstance objects that were created
+        """
+
+        # create an empty compute cluster
+        cluster_id = self._init_empty_cluster()
+
+        # create a list to store the instances that are created
+        instances: list[OciInstance] = []
+
+        # if image id or instance type are provided in the optional launch kwargs, pop 
+        # them out and use them instead of the default values
+        if optional_launch_kwargs:
+            image_id = optional_launch_kwargs.pop("image_id", image_id)
+            instance_type = optional_launch_kwargs.pop("instance_type", instance_type)
+
+        # launch instances and attach them to the cluster
+        for _ in range(instance_count):
+            instance = self.launch(
+                image_id=image_id,
+                instance_type=instance_type,
+                **(optional_launch_kwargs or {}),
+                cluster_id=cluster_id,
+            )
+            instances.append(instance)
+        if wait:
+            for instance in instances:
+                instance.wait()
+        return instances
+
+    # function that creates an empty compute cluster
+    def _init_empty_cluster(self) -> str:
+        """
+        Create an empty cluster and return the cluster id.
+
+        :return: cluster id
+        """
+        # create_compute_cluster_response = core_client.create_compute_cluster(
+        #     create_compute_cluster_details=oci.core.models.CreateComputeClusterDetails(
+        #         availability_domain="EXAMPLE-availabilityDomain-Value",
+        #         compartment_id="ocid1.test.oc1..<unique_ID>EXAMPLE-compartmentId-Value",
+        #         display_name="EXAMPLE-displayName-Value",
+        #         defined_tags={
+        #             'EXAMPLE_KEY_oDNhF': {
+        #                 'EXAMPLE_KEY_0JbDz': 'EXAMPLE--Value'}},
+        #         freeform_tags={
+        #             'EXAMPLE_KEY_7199B': 'EXAMPLE_VALUE_qGHycVV8GARc88jnSUIR'}),
+        #     opc_retry_token="EXAMPLE-opcRetryToken-Value",
+        #     opc_request_id="G968LPS24ZTZRZEWGC8Z<unique_ID>")
+
+        create_compute_cluster_response = self.compute_client.create_compute_cluster(
+            create_compute_cluster_details=oci.core.models.CreateComputeClusterDetails(
+                availability_domain=self.availability_domain,
+                compartment_id=self.compartment_id,
+                display_name=f"{self.tag}-compute-cluster",
+            )
+        )
+        return create_compute_cluster_response.data.id
+

@@ -53,12 +53,42 @@ def wait_till_ready(
         )
     )
 
+def get_subnet_id_by_name(
+    network_client: "oci.core.VirtualNetworkClient",
+    compartment_id: str,
+    subnet_name: str,
+    *,
+    retry_strategy=DEFAULT_RETRY_STRATEGY,
+) -> str:
+    """Get a subnet id by name.
+
+    Args:
+        network_client: Instance of VirtualNetworkClient.
+        compartment_id: Compartment where the subnet has to belong
+        subnet_name: Name of the subnet to find
+        retry_strategy: A retry strategy to apply to the API calls
+    Returns:
+        id of the subnet selected
+    Raises:
+        `Exception` if unable to determine `subnet_id` for
+        `availability_domain`
+    """
+    subnets = network_client.list_subnets(
+        compartment_id, display_name=subnet_name, retry_strategy=retry_strategy
+    ).data
+    if len(subnets) == 0:
+        raise PycloudlibError(f"Unable to determine subnet name: {subnet_name}")
+    if len(subnets) > 1:
+        raise PycloudlibError(f"Found multiple subnets with name: {subnet_name}")
+    return subnets[0].id
+
 
 def get_subnet_id(
     network_client: "oci.core.VirtualNetworkClient",
     compartment_id: str,
     availability_domain: str,
     vcn_name: Optional[str] = None,
+    private: bool = False,
     *,
     retry_strategy=DEFAULT_RETRY_STRATEGY,
 ) -> str:
@@ -102,23 +132,35 @@ def get_subnet_id(
     ).data
     subnet_id = None
     for subnet in subnets:
-        if subnet.prohibit_internet_ingress:  # skip subnet if it's private
+        if subnet.prohibit_internet_ingress and not private:  # skip subnet if it's private
             log.debug(
                 "Ignoring private subnet: %s [id: %s]",
                 subnet.display_name,
                 subnet.id,
             )
             continue
-        if subnet.availability_domain and subnet.availability_domain != availability_domain:
+        if not subnet.prohibit_internet_ingress and private:  # skip subnet if it's public
             log.debug(
-                "Ignoring public subnet in different availability domain: %s [id: %s]",
+                "Ignoring public subnet: %s [id: %s]",
                 subnet.display_name,
                 subnet.id,
             )
             continue
-        log.info("Using public subnet: %s [id: %s]", subnet.display_name, subnet.id)
-        subnet_id = subnet.id
-        break
+        if subnet.availability_domain and subnet.availability_domain != availability_domain:
+            log.debug(
+                "Ignoring subnet in different availability domain: %s [id: %s]",
+                subnet.display_name,
+                subnet.id,
+            )
+            continue
+        if not private and not subnet.prohibit_internet_ingress:
+            log.info("Using public subnet: %s [id: %s]", subnet.display_name, subnet.id)
+            subnet_id = subnet.id
+            break
+        if private and subnet.prohibit_internet_ingress:
+            log.info("Using private subnet: %s [id: %s]", subnet.display_name, subnet.id)
+            subnet_id = subnet.id
+            break
     if not subnet_id:
         raise PycloudlibError(f"Unable to find suitable subnet in VCN {chosen_vcn_name}")
     return subnet_id
