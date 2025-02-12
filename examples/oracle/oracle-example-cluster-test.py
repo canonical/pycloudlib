@@ -14,6 +14,7 @@ import pycloudlib
 from pycloudlib.oci.instance import OciInstance
 from typing import Generator
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -140,12 +141,84 @@ class TestOracleClusterRdma:
         server_instance = mofed_cluster[0]
         client_instance = mofed_cluster[1]
 
-        # start the rping server on the first instance
-        server_instance.execute(f"rping -s -a {server_instance.secondary_vnic_private_ip} -v &")
+        def start_server():
+            # start the rping server on the first instance
+            server_instance.execute(f"rping -s -a {server_instance.secondary_vnic_private_ip} -v &")
+
+        server_thread = threading.Thread(target=start_server)
+        server_thread.start()
+
+        # Wait for rping server to start
+        time.sleep(5)
         # start the rping client on the second instance (only send 10 packets so it doesn't hang)
         r = client_instance.execute(f"rping -c -a {server_instance.secondary_vnic_private_ip} -C 10 -v")
         logger.info("rping output: %s", r.stdout)
         assert r.ok, "Failed to run rping"
 
+    def test_ucmatose(
+        self,
+        mofed_cluster: list[OciInstance],
+    ):
+        server_instance = mofed_cluster[0]
+        client_instance = mofed_cluster[1]
+
+        def start_server():
+            # start the rping server on the first instance
+            server_instance.execute(f"ucmatose &")
+
+        server_thread = threading.Thread(target=start_server)
+        server_thread.start()
+
+        # Wait for server to start
+        time.sleep(5)
+        # start the client on the second instance (only send 10 packets so it doesn't hang)
+        r = client_instance.execute(f"ucmatose -s {server_instance.secondary_vnic_private_ip}")
+        logger.info("ucmatose output: %s", r.stdout)
+        assert r.ok, "Failed to run ucmatose"
+
+    def test_ucx_perftest_lat_one_node(
+        self,
+        mofed_cluster: list[OciInstance],
+    ):
+        server_instance = mofed_cluster[0]
+        # ucx_perftest only works within a single instance on all MOFED stacks right now, so this
+        # being 0 is intentional. (Will adjust if Oracle provides config info to resolve this)
+        client_instance = mofed_cluster[0]
+
+        def start_server():
+            # start the rping server on the first instance
+            server_instance.execute(f"ucx_perftest -c 0 &")
+
+        server_thread = threading.Thread(target=start_server)
+        server_thread.start()
+
+        # Wait for server to start
+        time.sleep(5)
+        # start the client on the second instance (only send 10 packets so it doesn't hang)
+        r = client_instance.execute(f"ucx_perftest {server_instance.secondary_vnic_private_ip} -t tag_lat -c 1")
+        logger.info("ucx_perftest output: %s", r.stdout)
+        assert r.ok, "Failed to run ucx_perftest"
 
 
+    def test_ucx_perftest_bw_one_node(
+        self,
+        mofed_cluster: list[OciInstance],
+    ):
+        server_instance = mofed_cluster[0]
+        # ucx_perftest only works within a single instance on all MOFED stacks right now, so this
+        # being 0 is intentional. (Will adjust if Oracle provides config info to resolve this)
+        client_instance = mofed_cluster[0]
+
+        def start_server():
+            # start the rping server on the first instance
+            server_instance.execute(f"ucx_perftest -c 0 &")
+
+        server_thread = threading.Thread(target=start_server)
+        server_thread.start()
+
+        # Wait for server to start
+        time.sleep(5)
+        # start the client on the second instance (only send 10 packets so it doesn't hang)
+        r = client_instance.execute(f"ucx_perftest {server_instance.secondary_vnic_private_ip} -t tag_bw -c 1")
+        logger.info("ucx_perftest output: %s", r.stdout)
+        assert r.ok, "Failed to run ucx_perftest"
