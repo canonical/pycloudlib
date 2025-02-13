@@ -53,6 +53,7 @@ def wait_till_ready(
         )
     )
 
+
 def get_subnet_id_by_name(
     network_client: "oci.core.VirtualNetworkClient",
     compartment_id: str,
