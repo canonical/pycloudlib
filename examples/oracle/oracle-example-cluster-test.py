@@ -50,6 +50,9 @@ def cluster() -> Generator[list[OciInstance], None, None]:
 
 class TestOracleClusterBasic:
     def test_basic_ping_on_private_ips(self, cluster: list[OciInstance]):
+        """
+        Verifies that the instances in the cluster can reach each other on their private IPs.
+        """
         # get the private ips of the instances
         private_ips = [instance.private_ip for instance in cluster]
         # try to ping each instance from each other instance at their private ip
@@ -97,10 +100,26 @@ def setup_mofed_iptables_rules(instance: OciInstance):
     return instance
 
 
+def ensure_image_is_rdma_ready(instance: OciInstance):
+    r = instance.execute("ibstatus")
+    if not r.stdout or not r.ok:
+        logger.info("Infiniband status: %s", r.stdout + "\n" + r.stderr)
+        pytest.skip("The image beiing used is not RDMA ready")
+
 
 class TestOracleClusterRdma:
     @pytest.fixture(scope="class")
     def mofed_cluster(self, cluster: list[OciInstance]) -> Generator[list[OciInstance], None, None]:
+        """
+        Custom fixture to configure the instances in the cluster for RDMA testing.
+        
+        This fixture will:
+        - Ensure the image being used is RDMA ready
+        - Create a secondary VNIC on the private subnet for each instance in the cluster
+        - Configure the secondary VNIC for RDMA usage
+        - Set up the necessary iptables rules for RDMA usage on each instance's secondary NIC
+        """
+        ensure_image_is_rdma_ready(cluster[0])
         for instance in cluster:
             if instance.secondary_vnic_private_ip:
                 logger.info(
