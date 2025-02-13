@@ -7,13 +7,13 @@ import sys
 
 import pycloudlib
 
+
 def demo_cluster(
     availability_domain: str = None,
     compartment_id: str = None,
     vcn_name: str = None,
 ):
     """Show example of using the OCI library to launch a cluster instance and ping between them."""
-
     with pycloudlib.OCI(
         "pycl-oracle-cluster-demo",
         availability_domain=availability_domain,
@@ -36,6 +36,7 @@ def demo_cluster(
                         print(f"Failed to ping {private_ip} from {instance.private_ip}")
                     else:
                         print(f"Successfully pinged {private_ip} from {instance.private_ip}")
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

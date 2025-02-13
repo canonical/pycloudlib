@@ -4,10 +4,14 @@ from pycloudlib.oci.cloud import OCI
 
 logger = logging.getLogger(__name__)
 
+
 def test_cluster_launch():
-    with OCI(
-        "pycl-oracle-test-cluster-integration-test"
-    ) as cloud:
+    """
+    Test the launch of a cluster.
+
+    Verifies that the instances are launched and configured correctly.
+    """
+    with OCI("pycl-oracle-test-cluster-integration-test") as cloud:
         instances = cloud.create_compute_cluster(
             image_id=cloud.released_image("noble"),
             instance_count=2,
