@@ -4,19 +4,24 @@
 import logging
 import os
 import time
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import Any, Dict, Optional
 
+import oci
 import toml
 from oci.retry import DEFAULT_RETRY_STRATEGY  # pylint: disable=E0611,E0401
 
 from pycloudlib.errors import PycloudlibError, PycloudlibTimeoutError
 from pycloudlib.types import NetworkingConfig, NetworkingType
 
-if TYPE_CHECKING:
-    import oci
-
-
 log = logging.getLogger(__name__)
+
+OCI_SDK_NULL = "<null>"
+ORACLE_IMDS_NULL = "\u003cnull\u003e"
+
+
+def _oci_sdk_string_is_truthy(value: Optional[str]) -> bool:
+    """Check if value returned by OCI SDK is truthy."""
+    return value not in (OCI_SDK_NULL, ORACLE_IMDS_NULL, None, "")
 
 
 def wait_till_ready(
@@ -72,7 +77,7 @@ def get_subnet_id_by_name(
     Returns:
         id of the subnet selected
     Raises:
-        `Exception` if unable to determine `subnet_id` for
+        `PycloudlibError` if unable to determine `subnet_id` for
         `availability_domain`
     """
     subnets = network_client.list_subnets(
@@ -85,14 +90,131 @@ def get_subnet_id_by_name(
     return subnets[0].id
 
 
+def _get_subnet_features(
+    subnet: oci.core.models.Subnet,
+) -> Dict[str, Any]:
+    """
+    Get the core features of a subnet that can be used to determine compatibility.
+
+    These features can be used to easily determine if the subnet is compatible with certain
+        restrictions.
+
+    Args:
+        subnet: The subnet model to get the features of.
+
+    Returns:
+        A dictionary containing the following keys:
+        - availability_domain: The availability domain of the subnet.
+        - private: Whether the subnet is private.
+        - networking_type: The networking type of the subnet.
+
+    """
+    availability_domain = subnet.availability_domain
+    private = subnet.prohibit_internet_ingress
+    has_ipv4_cidr_block = _oci_sdk_string_is_truthy(subnet.cidr_block)
+    has_ipv6_cidr_block = _oci_sdk_string_is_truthy(subnet.ipv6_cidr_block)
+    networking_type = None
+    if has_ipv4_cidr_block and not has_ipv6_cidr_block:
+        networking_type = NetworkingType.IPV4
+    elif not has_ipv4_cidr_block and has_ipv6_cidr_block:
+        networking_type = NetworkingType.IPV6
+    elif has_ipv4_cidr_block and has_ipv6_cidr_block:
+        networking_type = NetworkingType.DUAL_STACK
+    else:
+        log.warning(
+            "Unable to determine networking type for subnet %s [id: %s]",
+            subnet.display_name,
+            subnet.id,
+        )
+    return {
+        "availability_domain": availability_domain,
+        "private": private,
+        "networking_type": networking_type,
+    }
+
+
+def _subnet_is_compatible(
+    subnet: oci.core.models.Subnet,
+    availability_domain: str,
+    networking_config: NetworkingConfig,
+) -> bool:
+    """
+    Check if the subnet is compatible with the given restrictions.
+
+    For each restriction, the following must be true:
+    availability_domain:
+    - if the subnet is tied to an availability domain, it must match the given availability domain
+    - if the subnet is not tied to an availability domain, then it is automatically compatible
+
+    From the networking_config, we have the following restrictions:
+
+    private:
+    - the subnet must match the given privacy setting
+
+    networking_type:
+    - if None or AUTO, then the subnet is compatible
+    - if IPV4, then the subnet must have a cidr_block and not have an ipv6_cidr_block
+    - if IPV6, then the subnet must not have a cidr_block and have an ipv6_cidr_block
+    - if DUAL_STACK, then the subnet must have both a cidr_block and an ipv6_cidr_block
+
+    Args:
+        subnet: The subnet information to check.
+        availability_domain: The availability domain to check against.
+        networking_config: The networking configuration to validate against.
+
+    Returns:
+        True if the subnet is compatible, False otherwise.
+    """
+    networking_type = networking_config.networking_type
+    private = networking_config.private
+
+    # to do this, lets get the subnet features
+    features = _get_subnet_features(subnet)
+    log.debug("Subnet features: %s", features)
+
+    if networking_type == NetworkingType.IPV4:
+        networking_type_compatible = (
+            features["networking_type"] == NetworkingType.IPV4
+            or features["networking_type"] == NetworkingType.DUAL_STACK
+        )
+    elif networking_type == NetworkingType.IPV6:
+        networking_type_compatible = features["networking_type"] == NetworkingType.IPV6
+    elif networking_type == NetworkingType.DUAL_STACK:
+        networking_type_compatible = features["networking_type"] == NetworkingType.DUAL_STACK
+    else:  # networking type is AUTO or None
+        networking_type_compatible = True
+
+    private_compatible = private == features["private"]
+    availability_domain_compatible = (
+        features["availability_domain"] is None
+        or features["availability_domain"] == availability_domain
+    )
+    compatible = (
+        networking_type_compatible and private_compatible and availability_domain_compatible
+    )
+    if not compatible:
+        log.debug(
+            "Subnet %s is NOT compatible. Restrictions met?:\n"
+            "availability_domain: %s\n"
+            "private: %s\n"
+            "networking_type: %s",
+            subnet.display_name,
+            availability_domain_compatible,
+            private_compatible,
+            networking_type_compatible,
+        )
+
+    return compatible
+
+
 def get_subnet_id(
     network_client: "oci.core.VirtualNetworkClient",
     compartment_id: str,
     availability_domain: str,
     vcn_name: Optional[str] = None,
-    private: bool = False,
     *,
     retry_strategy=DEFAULT_RETRY_STRATEGY,
+    networking_config: Optional[NetworkingConfig] = None,
 ) -> str:
     """Get a subnet id linked to `availability_domain`.
 
@@ -106,12 +228,23 @@ def get_subnet_id(
         vcn_name: Exact name of the VCN to use. If not provided, the newest
             VCN in the given compartment will be used.
         retry_strategy: A retry strategy to apply to the API calls
+        networking_config: The networking configuration to use. This provides the `private` and
+            `networking_type` restrictions to use when selecting the subnet.
     Returns:
         id of the subnet selected
     Raises:
-        `Exception` if unable to determine `subnet_id` for
-        `availability_domain`
+        `PycloudlibError` if unable to determine `subnet_id` for `availabilitjy_domain`,
+        or if no relevant VCNs are found in the compartment.
     """
+    if not networking_config:
+        networking_config = NetworkingConfig()
+        log.warning(
+            "No networking config provided. Using default networking config of "
+            "networking_type: %s, private: %s",
+            networking_config.networking_type,
+            networking_config.private,
+        )
+
     if vcn_name is not None:  # if vcn_name specified, use that vcn
         vcns = network_client.list_vcns(
             compartment_id,
@@ -130,38 +263,19 @@ def get_subnet_id(
     chosen_vcn_name = vcns[0].display_name
 
     subnets = network_client.list_subnets(
-        compartment_id, vcn_id=vcn_id, retry_strategy=retry_strategy
+        compartment_id=compartment_id,
+        vcn_id=vcn_id,
+        retry_strategy=retry_strategy,
     ).data
     subnet_id = None
     for subnet in subnets:
-        if subnet.prohibit_internet_ingress and not private:  # skip subnet if it's private
-            log.debug(
-                "Ignoring private subnet: %s [id: %s]",
-                subnet.display_name,
-                subnet.id,
-            )
-            continue
-        if not subnet.prohibit_internet_ingress and private:  # skip subnet if it's public
-            log.debug(
-                "Ignoring public subnet: %s [id: %s]",
-                subnet.display_name,
-                subnet.id,
-            )
-            continue
-        if subnet.availability_domain and subnet.availability_domain != availability_domain:
-            log.debug(
-                "Ignoring subnet in different availability domain: %s [id: %s]",
-                subnet.display_name,
-                subnet.id,
-            )
-            continue
-        if not private and not subnet.prohibit_internet_ingress:
-            log.info("Using public subnet: %s [id: %s]", subnet.display_name, subnet.id)
+        if _subnet_is_compatible(
+            subnet=subnet,
+            availability_domain=availability_domain,
+            networking_config=networking_config,
+        ):
             subnet_id = subnet.id
-            break
-        if private and subnet.prohibit_internet_ingress:
-            log.info("Using private subnet: %s [id: %s]", subnet.display_name, subnet.id)
-            subnet_id = subnet.id
+            log.info("Found compatible subnet %s [id: %s]", subnet.display_name, subnet.id)
             break
     if not subnet_id:
         raise PycloudlibError(f"Unable to find suitable subnet in VCN {chosen_vcn_name}")
@@ -238,3 +352,38 @@ def parse_oci_config_from_env_vars() -> Optional[Dict[str, str]]:
             log.info("Replacing existing key_file path in OCI config")
         oci_config["key_file"] = key_file_path
     return oci_config
+
+
+def generate_create_vnic_details(
+    subnet_id: str,
+    networking_config: Optional[NetworkingConfig] = None,
+) -> oci.core.models.CreateVnicDetails:
+    """
+    Create a VNIC details object based on the primary network configuration.
+
+    Args:
+        subnet_id: The subnet id to use for the VNIC.
+        networking_config: The network configuration to use for the VNIC.
+
+    Returns:
+        vnic_details: The VNIC details object.
+    """
+    # default to IPv4 with public IP
+    # this will be used if networking_config is not provided or if set to AUTO
+    vnic_details = oci.core.models.CreateVnicDetails(
+        subnet_id=subnet_id,
+        assign_ipv6_ip=False,  # add IPv6 address
+        assign_public_ip=True,  # assign public IPv4 address
+    )
+    if networking_config:
+        if networking_config.networking_type == NetworkingType.IPV6:
+            vnic_details.assign_public_ip = False
+            vnic_details.assign_ipv6_ip = True
+        elif networking_config.networking_type == NetworkingType.DUAL_STACK:
+            vnic_details.assign_public_ip = not networking_config.private
+            vnic_details.assign_ipv6_ip = True
+        elif networking_config.networking_type == NetworkingType.IPV4:
+            vnic_details.assign_public_ip = not networking_config.private
+            vnic_details.assign_ipv6_ip = False
+    log.debug("Generated VNIC details: %s", vnic_details)
+    return vnic_details
