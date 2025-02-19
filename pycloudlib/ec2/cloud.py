@@ -6,12 +6,13 @@ from typing import List, Optional
 
 import botocore
 
-from pycloudlib.cloud import BaseCloud, ImageType
+from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.ec2.instance import EC2Instance
 from pycloudlib.ec2.util import _get_session, _tag_resource
 from pycloudlib.ec2.vpc import VPC
 from pycloudlib.errors import CloudSetupError, ImageNotFoundError, PycloudlibError
+from pycloudlib.types import ImageType
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 
 # Images before mantic don't have gp3 disk type
