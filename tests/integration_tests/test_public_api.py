@@ -36,7 +36,7 @@ def _random_tag():
     Returns:
         str: tag for cloud instance
     """
-    return f"pycl-test-{"".join(random.choices('abcdefghijklmnopqrstuvwxyz', k=10))}"
+    return f"pycl-test-{''.join(random.choices('abcdefghijklmnopqrstuvwxyz', k=10))}"
 
 
 @pytest.fixture
