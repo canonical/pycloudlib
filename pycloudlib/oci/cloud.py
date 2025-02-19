@@ -6,7 +6,7 @@ import base64
 import json
 import os
 import re
-from typing import Optional, cast
+from typing import List, Optional, cast
 
 import oci
 
@@ -378,7 +378,7 @@ class OCI(BaseCloud):
         instance_type: str = "BM.Optimized3.36",
         optional_launch_kwargs: Optional[dict] = None,
         wait: bool = True,
-    ) -> list[OciInstance]:
+    ) -> List[OciInstance]:
         """
         Create a compute cluster with a specified number of instances.
 
@@ -390,7 +390,7 @@ class OCI(BaseCloud):
             List of OciInstance objects that were created
         """
         cluster_id = self._init_empty_cluster()
-        instances: list[OciInstance] = []
+        instances: List[OciInstance] = []
         if optional_launch_kwargs:
             image_id = optional_launch_kwargs.pop("image_id", image_id)
             instance_type = optional_launch_kwargs.pop("instance_type", instance_type)
