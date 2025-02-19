@@ -1,7 +1,6 @@
 # This file is part of pycloudlib. See LICENSE file for license information.
 """Base class for all other clouds to provide consistent set of functions."""
 
-import enum
 import getpass
 import io
 import logging
@@ -26,16 +25,6 @@ from pycloudlib.util import (
 )
 
 _RequiredValues = Optional[Sequence[Optional[Any]]]
-
-
-@enum.unique
-class ImageType(enum.Enum):
-    """Allowed image types when launching cloud images."""
-
-    GENERIC = "generic"
-    MINIMAL = "minimal"
-    PRO = "Pro"
-    PRO_FIPS = "Pro FIPS"
 
 
 class BaseCloud(ABC):
@@ -179,7 +168,6 @@ class BaseCloud(ABC):
             image_id: string, image ID to use for the instance
             instance_type: string, type of instance to create
             user_data: used by cloud-init to run custom scripts/configuration
-            username: username to use when connecting via SSH
             **kwargs: dictionary of other arguments to pass to launch
 
         Returns:

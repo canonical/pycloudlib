@@ -3,7 +3,7 @@
 import mock
 import pytest
 
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 from pycloudlib.ec2.cloud import EC2
 
 # mock module path
