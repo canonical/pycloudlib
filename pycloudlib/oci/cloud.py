@@ -20,11 +20,13 @@ from pycloudlib.errors import (
 )
 from pycloudlib.oci.instance import OciInstance
 from pycloudlib.oci.utils import (
+    generate_create_vnic_details,
     get_subnet_id,
     get_subnet_id_by_name,
     parse_oci_config_from_env_vars,
     wait_till_ready,
 )
+from pycloudlib.types import NetworkingConfig
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
 
@@ -251,6 +253,7 @@ class OCI(BaseCloud):
             availability_domain=self.availability_domain,
             oci_config=self.oci_config,
             username=username,
+            vcn_name=self.vcn_name,
         )
 
     def launch(
@@ -265,6 +268,7 @@ class OCI(BaseCloud):
         subnet_id: Optional[str] = None,
         subnet_name: Optional[str] = None,
         metadata: Dict = {},
+        primary_network_config: Optional[NetworkingConfig] = None,
         **kwargs,
     ) -> OciInstance:
         """Launch an instance.
@@ -286,6 +290,9 @@ class OCI(BaseCloud):
             username: username to use when connecting via SSH
             vcn_name: Name of the VCN to use. If not provided, the first VCN
                 found will be used
+            subnet_name: string, name of subnet to use for instance.
+            primary_network_config: NetworkingConfig object to use for configuring the primary
+                network interface
             **kwargs: dictionary of other arguments to pass as
                 LaunchInstanceDetails
 
@@ -296,18 +303,16 @@ class OCI(BaseCloud):
         if not image_id:
             raise ValueError(f"{self._type} launch requires image_id param. Found: {image_id}")
 
-        # provided subnet_id takes the highest precendence
         if not subnet_id:
             if subnet_name:
-                subnet_id = get_subnet_id_by_name(
-                    self.network_client, self.compartment_id, subnet_name
-                )
+                subnet_id = get_subnet_id_by_name(self.network_client, self.compartment_id, subnet_name)
             else:
                 subnet_id = get_subnet_id(
                     self.network_client,
                     self.compartment_id,
                     self.availability_domain,
                     vcn_name=self.vcn_name,
+                    networking_config=primary_network_config,
                 )
         default_metadata = {
             "ssh_authorized_keys": self.key_pair.public_key_content,
@@ -327,6 +332,10 @@ class OCI(BaseCloud):
             image_id=image_id,
             metadata={**default_metadata, **metadata},
             compute_cluster_id=cluster_id,
+            create_vnic_details=generate_create_vnic_details(
+                subnet_id=subnet_id,
+                networking_config=primary_network_config,
+            ),
             **kwargs,
         )
 
@@ -340,6 +349,32 @@ class OCI(BaseCloud):
         )
         self.created_instances.append(instance)
         return instance
+
+    def find_compatible_subnet(self, networking_config: NetworkingConfig) -> str:
+        """
+        Automatically select a subnet that is compatible with the given networking_config.
+
+        In this case, compatible means that the subnet can support the necessary networking type
+        (ipv4 only, ipv6 only, or dual stack) and the private or public requirement.
+        This method will select the first subnet that matches the criteria.
+
+        Args:
+            networking_config: NetworkingConfig object to use for finding a subnet
+
+        Returns:
+            id of the subnet selected
+
+        Raises:
+            `PycloudlibError` if unable to determine `subnet_id` for the given `networking_config`
+        """
+        subnet_id = get_subnet_id(
+            network_client=self.network_client,
+            compartment_id=self.compartment_id,
+            availability_domain=self.availability_domain,
+            vcn_name=self.vcn_name,
+            networking_config=networking_config,
+        )
+        return subnet_id
 
     def snapshot(self, instance, clean=True, name=None):
         """Snapshot an instance and generate an image from it.
