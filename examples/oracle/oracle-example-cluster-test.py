@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 from datetime import datetime
-from typing import Generator
+from typing import Generator, List
 
 import pytest
 
@@ -15,19 +15,19 @@ from pycloudlib.oci.instance import OciInstance
 
 logger = logging.getLogger(__name__)
 
-EXISTING_INSTANCE_IDS: list[str] = [
+EXISTING_INSTANCE_IDS: List[str] = [
     # add the OCIDs of the instances you want to use for testing here
 ]
 
 
 # change this to either "class" or "module" as you see fit
 @pytest.fixture(scope="module")
-def cluster() -> Generator[list[OciInstance], None, None]:
+def cluster() -> Generator[List[OciInstance], None, None]:
     """
     Launch a cluster of BM instances.
 
     Yields:
-        list[OciInstance]: The created or retrieved cluster instances.
+        List[OciInstance]: The created or retrieved cluster instances.
     """
     with pycloudlib.OCI(
         "pycl-oracle-cluster-test",
@@ -51,12 +51,12 @@ def cluster() -> Generator[list[OciInstance], None, None]:
 class TestOracleClusterBasic:
     """Test basic functionalities of Oracle Cluster."""
 
-    def test_basic_ping_on_private_ips(self, cluster: list[OciInstance]):  # pylint: disable=W0621
+    def test_basic_ping_on_private_ips(self, cluster: List[OciInstance]):  # pylint: disable=W0621
         """
         Test that cluster instances can ping each other on private IPs.
 
         Args:
-            cluster (list[OciInstance]): Instances in the cluster.
+            cluster (List[OciInstance]): Instances in the cluster.
         """
         # get the private ips of the instances
         private_ips = [instance.private_ip for instance in cluster]
@@ -135,13 +135,13 @@ class TestOracleClusterRdma:
     @pytest.fixture(scope="class")
     def mofed_cluster(
         self,
-        cluster: list[OciInstance],  # pylint: disable=W0621
-    ) -> Generator[list[OciInstance], None, None]:
+        cluster: List[OciInstance],  # pylint: disable=W0621
+    ) -> Generator[List[OciInstance], None, None]:
         """
         Configure cluster for RDMA testing.
 
         Yields:
-            list[OciInstance]: RDMA-ready cluster instances.
+            List[OciInstance]: RDMA-ready cluster instances.
         """
         ensure_image_is_rdma_ready(cluster[0])
         for instance in cluster:
@@ -161,12 +161,12 @@ class TestOracleClusterRdma:
 
         yield cluster
 
-    def test_basic_ping_on_new_rdma_ips(self, mofed_cluster: list[OciInstance]):
+    def test_basic_ping_on_new_rdma_ips(self, mofed_cluster: List[OciInstance]):
         """
         Test ping on RDMA-enabled private IPs.
 
         Args:
-            mofed_cluster (list[OciInstance]): RDMA-enabled cluster instances.
+            mofed_cluster (List[OciInstance]): RDMA-enabled cluster instances.
         """
         # get the private ips of the instances that are on the same RDMA-enabled subnet
         rdma_ips = [instance.secondary_vnic_private_ip for instance in mofed_cluster]
@@ -190,12 +190,12 @@ class TestOracleClusterRdma:
                         instance.secondary_vnic_private_ip,
                     )
 
-    def test_rping(self, mofed_cluster: list[OciInstance]):
+    def test_rping(self, mofed_cluster: List[OciInstance]):
         """
         Test rping between two instances.
 
         Args:
-            mofed_cluster (list[OciInstance]): RDMA-enabled cluster instances
+            mofed_cluster (List[OciInstance]): RDMA-enabled cluster instances
         """
         server_instance = mofed_cluster[0]
         client_instance = mofed_cluster[1]
@@ -216,12 +216,12 @@ class TestOracleClusterRdma:
         logger.info("rping output: %s", r.stdout)
         assert r.ok, "Failed to run rping"
 
-    def test_ucmatose(self, mofed_cluster: list[OciInstance]):
+    def test_ucmatose(self, mofed_cluster: List[OciInstance]):
         """
         Test ucmatose connections.
 
         Args:
-            mofed_cluster (list[OciInstance]): RDMA-enabled cluster instances
+            mofed_cluster (List[OciInstance]): RDMA-enabled cluster instances
         """
         server_instance = mofed_cluster[0]
         client_instance = mofed_cluster[1]
@@ -240,12 +240,12 @@ class TestOracleClusterRdma:
         logger.info("ucmatose output: %s", r.stdout)
         assert r.ok, "Failed to run ucmatose"
 
-    def test_ucx_perftest_lat_one_node(self, mofed_cluster: list[OciInstance]):
+    def test_ucx_perftest_lat_one_node(self, mofed_cluster: List[OciInstance]):
         """
         Run ucx_perftest latency on a single node.
 
         Args:
-            mofed_cluster (list[OciInstance]): RDMA-enabled cluster instances
+            mofed_cluster (List[OciInstance]): RDMA-enabled cluster instances
         """
         server_instance = mofed_cluster[0]
         # ucx_perftest only works within a single instance on all MOFED stacks right now, so this
@@ -268,12 +268,12 @@ class TestOracleClusterRdma:
         logger.info("ucx_perftest output: %s", r.stdout)
         assert r.ok, "Failed to run ucx_perftest"
 
-    def test_ucx_perftest_bw_one_node(self, mofed_cluster: list[OciInstance]):
+    def test_ucx_perftest_bw_one_node(self, mofed_cluster: List[OciInstance]):
         """
         Run ucx_perftest bandwidth on a single node.
 
         Args:
-            mofed_cluster (list[OciInstance]): RDMA-enabled cluster instances
+            mofed_cluster (List[OciInstance]): RDMA-enabled cluster instances
         """
         server_instance = mofed_cluster[0]
         # ucx_perftest only works within a single instance on all MOFED stacks right now, so this
