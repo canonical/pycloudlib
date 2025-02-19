@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 from pycloudlib.lxd import _images
 
 M_PATH = "pycloudlib.lxd._images."

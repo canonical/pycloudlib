@@ -8,7 +8,8 @@ from tempfile import TemporaryDirectory
 import pytest
 
 import pycloudlib
-from pycloudlib.cloud import BaseCloud, ImageType
+from pycloudlib.cloud import BaseCloud
+from pycloudlib.types import ImageType
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import LTS_RELEASES, UBUNTU_RELEASE_VERSION_MAP
 

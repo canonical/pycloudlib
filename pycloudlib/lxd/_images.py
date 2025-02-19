@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, List, Optional, Sequence, Tuple
 
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 from pycloudlib.util import subp
 
 _REMOTE_DAILY = "ubuntu-daily"

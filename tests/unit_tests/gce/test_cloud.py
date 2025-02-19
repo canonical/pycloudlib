@@ -3,7 +3,7 @@
 import mock
 import pytest
 
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 from pycloudlib.gce.cloud import GCE
 from pycloudlib.result import Result
 

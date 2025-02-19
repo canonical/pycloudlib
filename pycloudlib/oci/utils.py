@@ -10,6 +10,7 @@ import toml
 from oci.retry import DEFAULT_RETRY_STRATEGY  # pylint: disable=E0611,E0401
 
 from pycloudlib.errors import PycloudlibError, PycloudlibTimeoutError
+from pycloudlib.types import NetworkingConfig, NetworkingType
 
 if TYPE_CHECKING:
     import oci
