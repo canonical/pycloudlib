@@ -8,9 +8,15 @@ from typing import Any, Dict, List, Optional
 
 import oci
 
+from pycloudlib.cloud import NetworkingConfig
 from pycloudlib.errors import PycloudlibError
 from pycloudlib.instance import BaseInstance
-from pycloudlib.oci.utils import get_subnet_id, get_subnet_id_by_name, wait_till_ready
+from pycloudlib.oci.utils import (
+    generate_create_vnic_details,
+    get_subnet_id,
+    get_subnet_id_by_name,
+    wait_till_ready,
+)
 
 
 class OciInstance(BaseInstance):
@@ -258,7 +264,7 @@ class OciInstance(BaseInstance):
     def add_network_interface(
         self,
         nic_index: int = 0,
-        use_private_subnet: bool = False,
+        networking_config: Optional[NetworkingConfig] = None,
         subnet_name: Optional[str] = None,
         **kwargs: Any,
     ) -> str:
@@ -270,13 +276,16 @@ class OciInstance(BaseInstance):
 
         Args:
             nic_index: The index of the NIC to add
-            subnet_name: Name of the subnet to add the NIC to. If not provided,
-                will use `use_private_subnet` to select first available subnet.
-            use_private_subnet: If True, will select the first available private
-                subnet. If False, will select the first available public subnet.
-                This is only used if `subnet_name` is not provided.
+            subnet_name: Name of the subnet to add the NIC to. If provided, this subnet will
+                blindly be selected and networking_config will be ignored.
+            networking_config: Networking configuration to use when selecting subnet. This specifies
+                the networking type (ipv4, ipv6, or dualstack) and whether to use a public or
+                private subnet. If not provided, will default to selecting the first public subnet
+                found.
         """
         if subnet_name:
+            if networking_config:
+                self._log.debug("Ignoring networking_config when subnet_name is provided.")
             subnet_id = get_subnet_id_by_name(
                 self.network_client,
                 self.compartment_id,
@@ -287,10 +296,10 @@ class OciInstance(BaseInstance):
                 self.network_client,
                 self.compartment_id,
                 self.availability_domain,
-                private=use_private_subnet,
+                networking_config=networking_config,
             )
-        create_vnic_details = oci.core.models.CreateVnicDetails(  # noqa: E501
-            subnet_id=subnet_id,
+        create_vnic_details = generate_create_vnic_details(
+            subnet_id=subnet_id, networking_config=networking_config
         )
         attach_vnic_details = oci.core.models.AttachVnicDetails(  # noqa: E501
             create_vnic_details=create_vnic_details,
