@@ -84,7 +84,7 @@ def get_subnet_id_by_name(
 
 def _get_subnet_features(
     subnet: oci.core.models.Subnet,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """
     Get the availability domain, private, and networking type of the subnet.
 
