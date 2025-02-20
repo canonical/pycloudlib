@@ -27,6 +27,15 @@ from pycloudlib.util import (
 
 _RequiredValues = Optional[Sequence[Optional[Any]]]
 
+# Export types here to maintain backwards compatibility
+__all__ = [
+    "ImageType",
+    "NetworkingType",
+    "NetworkingConfig",
+    "BaseCloud",
+    "KeyPair",
+]
+
 
 class BaseCloud(ABC):
     """Base Cloud Class."""
@@ -360,13 +369,3 @@ class BaseCloud(ABC):
             private_key_path=private_key_path,
             name=name,
         )
-
-
-# Export types here to maintain backwards compatibility
-__all__ = [
-    ImageType,
-    NetworkingType,
-    NetworkingConfig,
-    BaseCloud,
-    KeyPair,
-]
