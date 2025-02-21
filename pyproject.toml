@@ -48,6 +48,9 @@ docstring-code-format = true
 extend-select = [
   "D",   # pydocstyle
   "I",   # isort
+  "PLC",  # Pylint conventions
+  "PLE",  # Pylint errors
+  "PLW",  # Pylint warnings
 ]
 
 [tool.ruff.lint.pydocstyle]
