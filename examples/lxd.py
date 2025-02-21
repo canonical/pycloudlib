@@ -197,8 +197,8 @@ def basic_lifecycle():
             print(inst.ephemeral)
             print(inst.state)
 
-            inst = lxd.get_instance(name)
-            inst.delete()
+            same_instance_retrieved = lxd.get_instance(name)
+            same_instance_retrieved.delete()
 
 
 def launch_virtual_machine():

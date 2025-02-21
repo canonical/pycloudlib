@@ -10,7 +10,7 @@ next_port = 18000
 
 def get_free_port():
     """Look for a free local port for SSHing to VM."""
-    global next_port  # pylint: disable=global-statement
+    global next_port  # noqa: PLW0603 - need to use global variable to keep track across calls
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         for port in range(next_port, next_port + 100):
