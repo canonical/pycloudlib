@@ -1,6 +1,8 @@
 name: Check Semantic Versioning
 on:
-  - pull_request
+  pull_request:
+    branches:
+      - main
 
 jobs:
   version-check:
