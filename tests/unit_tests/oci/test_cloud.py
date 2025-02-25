@@ -290,6 +290,22 @@ class TestOciInstances:
         mock_network_client.list_subnets.assert_called_once()
         assert oci_cloud.get_instance.call_count == 2
 
+        # Ensure when a subnet_id is directly passed to launch
+        # no functions to obtain a subnet-id are called.
+        with mock.patch("pycloudlib.oci.cloud.get_subnet_id") as m_subnet_id, \
+            mock.patch("pycloudlib.oci.cloud.get_subnet_id_by_name") as m_subnet_name:
+            instance = oci_cloud.launch(
+                "test-image-id", instance_type="VM.Standard2.1", subnet_id="subnet-id"
+            )
+            m_subnet_name.assert_not_called()
+            m_subnet_id.assert_not_called()
+        
+        # The first arg is the LaunchInstanceDetails object
+        args, _ = oci_cloud.compute_client.launch_instance.call_args
+        launch_instance_details = args[0]
+        assert launch_instance_details.subnet_id == "subnet-id"
+        assert oci_cloud.get_instance.call_count == 3
+
     def test_launch_instance_invalid_image(self, oci_cloud):
         """Test launch method raises ValueError when no image_id is provided."""
         with pytest.raises(ValueError, match="launch requires image_id param"):
