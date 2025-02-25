@@ -262,6 +262,7 @@ class OCI(BaseCloud):
         retry_strategy=None,
         username: Optional[str] = None,
         cluster_id: Optional[str] = None,
+        subnet_id: Optional[str] = None,
         subnet_name: Optional[str] = None,
         **kwargs,
     ) -> OciInstance:
@@ -273,7 +274,10 @@ class OCI(BaseCloud):
                 https://docs.cloud.oracle.com/en-us/iaas/Content/Compute/References/computeshapes.htm
             user_data: used by Cloud-Init to run custom scripts or
                 provide custom Cloud-Init configuration
+            subnet_id: string, OCID of subnet to use for instance.
+                Takes precedence over subnet_name if both are provided.
             subnet_name: string, name of subnet to use for instance.
+                Only used if subnet_id is not provided.
             retry_strategy: a retry strategy from oci.retry module
                 to apply for this operation
             username: username to use when connecting via SSH
@@ -289,15 +293,19 @@ class OCI(BaseCloud):
         if not image_id:
             raise ValueError(f"{self._type} launch requires image_id param. Found: {image_id}")
 
-        if subnet_name:
-            subnet_id = get_subnet_id_by_name(self.network_client, self.compartment_id, subnet_name)
-        else:
-            subnet_id = get_subnet_id(
-                self.network_client,
-                self.compartment_id,
-                self.availability_domain,
-                vcn_name=self.vcn_name,
-            )
+        # provided subnet_id takes the highest precendence
+        if not subnet_id:
+            if subnet_name:
+                subnet_id = get_subnet_id_by_name(
+                    self.network_client, self.compartment_id, subnet_name
+                )
+            else:
+                subnet_id = get_subnet_id(
+                    self.network_client,
+                    self.compartment_id,
+                    self.availability_domain,
+                    vcn_name=self.vcn_name,
+                )
         metadata = {
             "ssh_authorized_keys": self.key_pair.public_key_content,
         }
