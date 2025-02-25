@@ -263,8 +263,10 @@ class TestOciInstances:
             oci_cloud.get_instance("test-instance-id")
 
     @mock.patch("pycloudlib.oci.cloud.wait_till_ready")
-    def test_launch_instance(self, mock_wait_till_ready, oci_cloud):
+    def test_launch_instance(self, mock_wait_till_ready, oci_cloud, oci_mock):
         """Test launch method with valid inputs."""
+        _, mock_network_client, _ = oci_mock
+
         # mock the key pair
         oci_cloud.key_pair = mock.Mock(public_key_config="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC")
         oci_cloud.compute_client.launch_instance.return_value = mock.Mock(
@@ -279,6 +281,12 @@ class TestOciInstances:
         assert instance is not None
         m_subnet.assert_called_once()
         oci_cloud.get_instance.assert_called_once()
+        
+        # assert that subnet_name is obtained properly
+        mock_network_client.list_subnets.return_value = mock.Mock(data=[mock.Mock(id="subnet-id")])
+        instance = oci_cloud.launch("test-image-id", instance_type="VM.Standard2.1", subnet_name="subnet-name")
+        mock_network_client.list_subnets.assert_called_once()
+        assert oci_cloud.get_instance.call_count == 2
 
     def test_launch_instance_invalid_image(self, oci_cloud):
         """Test launch method raises ValueError when no image_id is provided."""

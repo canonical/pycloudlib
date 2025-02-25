@@ -19,7 +19,12 @@ from pycloudlib.errors import (
     PycloudlibException,
 )
 from pycloudlib.oci.instance import OciInstance
-from pycloudlib.oci.utils import get_subnet_id, parse_oci_config_from_env_vars, wait_till_ready
+from pycloudlib.oci.utils import (
+    get_subnet_id,
+    get_subnet_id_by_name,
+    parse_oci_config_from_env_vars,
+    wait_till_ready,
+)
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
 
@@ -257,6 +262,7 @@ class OCI(BaseCloud):
         retry_strategy=None,
         username: Optional[str] = None,
         cluster_id: Optional[str] = None,
+        subnet_name: Optional[str] = None,
         **kwargs,
     ) -> OciInstance:
         """Launch an instance.
@@ -267,6 +273,7 @@ class OCI(BaseCloud):
                 https://docs.cloud.oracle.com/en-us/iaas/Content/Compute/References/computeshapes.htm
             user_data: used by Cloud-Init to run custom scripts or
                 provide custom Cloud-Init configuration
+            subnet_name: string, name of subnet to use for instance.
             retry_strategy: a retry strategy from oci.retry module
                 to apply for this operation
             username: username to use when connecting via SSH
@@ -281,12 +288,16 @@ class OCI(BaseCloud):
         """
         if not image_id:
             raise ValueError(f"{self._type} launch requires image_id param. Found: {image_id}")
-        subnet_id = get_subnet_id(
-            self.network_client,
-            self.compartment_id,
-            self.availability_domain,
-            vcn_name=self.vcn_name,
-        )
+
+        if subnet_name:
+            subnet_id = get_subnet_id_by_name(self.network_client, self.compartment_id, subnet_name)
+        else:
+            subnet_id = get_subnet_id(
+                self.network_client,
+                self.compartment_id,
+                self.availability_domain,
+                vcn_name=self.vcn_name,
+            )
         metadata = {
             "ssh_authorized_keys": self.key_pair.public_key_content,
         }
