@@ -306,6 +306,48 @@ class TestOciInstances:
         assert launch_instance_details.subnet_id == "subnet-id"
         assert oci_cloud.get_instance.call_count == 3
 
+    
+    @mock.patch("pycloudlib.oci.cloud.wait_till_ready")
+    def test_launch_custom_metadata(self, mock_wait_till_ready, oci_cloud):
+        """Test launch method with valid inputs."""
+        # mock the key pair
+        oci_cloud.key_pair = mock.Mock(public_key_config="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC")
+        oci_cloud.compute_client.launch_instance.return_value = mock.Mock(
+            data=mock.Mock(id="instance-id")
+        )
+        oci_cloud.get_instance = mock.Mock(return_value=mock.Mock())
+
+        # Ensure metdata gets combined with defaults
+        metadata = {"metadata_key": "metadata_value"}
+        default_metadata = {"ssh_authorized_keys": oci_cloud.key_pair.public_key_content}
+        expected_metadata = {**default_metadata, **metadata}
+        instance = oci_cloud.launch(
+           "test-image-id", instance_type="VM.Standard2.1", subnet_id="subnet-id",
+            metadata=metadata,
+        )
+        
+        # The first arg is the LaunchInstanceDetails object
+        args, _ = oci_cloud.compute_client.launch_instance.call_args
+        launch_instance_details = args[0]
+        assert launch_instance_details.metadata == expected_metadata
+        assert instance is not None
+        oci_cloud.get_instance.assert_called_once()
+        
+        # Ensure default_metadata values can be overridden
+        metadata = {"ssh_authorized_keys": "override", "metadata_key": "metadata_value"}
+        expected_metadata = {**default_metadata, **metadata}
+        instance = oci_cloud.launch(
+           "test-image-id", instance_type="VM.Standard2.1", subnet_id="subnet-id",
+            metadata=metadata,
+        )
+        
+        # The first arg is the LaunchInstanceDetails object
+        args, _ = oci_cloud.compute_client.launch_instance.call_args
+        launch_instance_details = args[0]
+        assert launch_instance_details.metadata == expected_metadata
+        assert oci_cloud.get_instance.call_count == 2
+        
+
     def test_launch_instance_invalid_image(self, oci_cloud):
         """Test launch method raises ValueError when no image_id is provided."""
         with pytest.raises(ValueError, match="launch requires image_id param"):
