@@ -7,7 +7,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tox-defaults:
+  linting:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install dependencies
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
+      - name: Git checkout
+        uses: actions/checkout@v4
+      - name: Run ruff and mypy checks
+        run: tox -e ruff,mypy
+  py38:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install dependencies
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
+      - name: Git checkout
+        uses: actions/checkout@v4
+      - name: Run tox
+        run: tox -e py38
+  py310:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install dependencies
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
+      - name: Git checkout
+        uses: actions/checkout@v4
+      - name: Run tox
+        run: tox -e py310
+  py312:
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
@@ -15,7 +42,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v4
       - name: Run tox
-        run: tox
+        run: tox -e py312
   docs:
     runs-on: ubuntu-24.04
     steps:
