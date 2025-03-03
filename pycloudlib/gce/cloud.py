@@ -16,7 +16,7 @@ from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.extended_operation import ExtendedOperation
 from google.cloud import compute_v1
 
-from pycloudlib.cloud import BaseCloud, ImageType
+from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     CloudSetupError,
@@ -25,6 +25,7 @@ from pycloudlib.errors import (
 )
 from pycloudlib.gce.instance import GceInstance
 from pycloudlib.gce.util import get_credentials, raise_on_error
+from pycloudlib.types import ImageType
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP, subp
 
 logging.getLogger("google.cloud").setLevel(logging.WARNING)

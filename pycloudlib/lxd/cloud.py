@@ -8,11 +8,12 @@ from typing import List, Optional
 
 import yaml
 
-from pycloudlib.cloud import BaseCloud, ImageType
+from pycloudlib.cloud import BaseCloud
 from pycloudlib.constants import LOCAL_UBUNTU_ARCH
 from pycloudlib.lxd import _images
 from pycloudlib.lxd.defaults import base_vm_profiles
 from pycloudlib.lxd.instance import LXDInstance, LXDVirtualMachineInstance
+from pycloudlib.types import ImageType
 from pycloudlib.util import subp
 
 

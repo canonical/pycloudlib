@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 from pycloudlib.lxd.cloud import LXDContainer, LXDVirtualMachine
 
 M_PATH = "pycloudlib.lxd.cloud."

@@ -197,7 +197,7 @@ class TestOciInstanceVnicOperations:
 
     def test_add_network_interface(self, setup_vnic_mocks):
         """Test add_network_interface() method."""
-        oci_instance = setup_vnic_mocks
+        oci_instance: OciInstance = setup_vnic_mocks
 
         # Call add_network_interface and check result
         result = oci_instance.add_network_interface()

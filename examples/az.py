@@ -5,7 +5,7 @@
 import logging
 
 import pycloudlib
-from pycloudlib.cloud import ImageType
+from pycloudlib.types import ImageType
 
 cloud_config = """#cloud-config
 runcmd:

@@ -15,7 +15,7 @@ from azure.mgmt.resource import ResourceManagementClient
 
 from pycloudlib.azure import security_types, util
 from pycloudlib.azure.instance import AzureInstance, VMInstanceStatus
-from pycloudlib.cloud import BaseCloud, ImageType
+from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     InstanceNotFoundError,
@@ -23,6 +23,7 @@ from pycloudlib.errors import (
     PycloudlibError,
     PycloudlibTimeoutError,
 )
+from pycloudlib.types import ImageType
 from pycloudlib.util import get_timestamped_tag, update_nested
 
 UBUNTU_DAILY_IMAGES = {
