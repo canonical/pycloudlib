@@ -51,7 +51,7 @@ def cluster() -> Generator[List[OciInstance], None, None]:
 class TestOracleClusterBasic:
     """Test basic functionalities of Oracle Cluster."""
 
-    def test_basic_ping_on_private_ips(self, cluster: List[OciInstance]):  # pylint: disable=W0621
+    def test_basic_ping_on_private_ips(self, cluster: List[OciInstance]):
         """
         Test that cluster instances can ping each other on private IPs.
 
@@ -126,7 +126,52 @@ def ensure_image_is_rdma_ready(instance: OciInstance):
     r = instance.execute("ibstatus")
     if not r.stdout or not r.ok:
         logger.info("Infiniband status: %s", r.stdout + "\n" + r.stderr)
-        pytest.skip("The image beiing used is not RDMA ready")
+        pytest.skip("The image being used is not RDMA ready")
+
+
+def ensure_second_vnics_ready(test_cluster: List[OciInstance]):
+    """
+    Check if all cluster instances have a secondary VNIC and attach and configure one if not.
+
+    If the instance already has a secondary VNIC, it will skip the attachment process.
+
+    Otherwise, it will do the following to set up the secondary VNIC:
+        - Attach a secondary VNIC to the instance
+        - Configure the secondary VNIC using information from the IMDS
+        - Set up the iptables rules on the appropriate NIC for RDMA usage
+
+    Args:
+        cluster (List[OciInstance]): The cluster (list of instances) to check and configure.
+    """
+    for instance in test_cluster:
+        if instance.secondary_vnic_private_ip:
+            logger.info(
+                "Instance %s already has a secondary VNIC, not attaching one.", instance.name
+            )
+            continue
+        logger.info("Creating a secondary VNIC on instance %s", instance.name)
+        # create a secondary VNIC on the 2nd vnic on the private subnet for RDMA usage
+        instance.add_network_interface(
+            nic_index=1,
+            subnet_name="private subnet-mofed-vcn",  # use the private subnet for mofed testing
+        )
+        instance.configure_secondary_vnic()
+        setup_mofed_iptables_rules(instance)
+
+
+def get_private_nic_pci_address(instance: OciInstance):
+    """
+    Get the PCI address of the second NIC on the instance (mlx5_1) which is used for RDMA.
+
+    Args:
+        instance (OciInstance): The instance to get the PCI address from.
+
+    Returns:
+        str: The PCI address of the second NIC.
+    """
+    r = instance.execute("sudo mst status -v | grep mlx5_1")
+    pciaddr = r.stdout.split()[2]
+    return pciaddr
 
 
 class TestOracleClusterRdma:
@@ -135,7 +180,7 @@ class TestOracleClusterRdma:
     @pytest.fixture(scope="class")
     def mofed_cluster(
         self,
-        cluster: List[OciInstance],  # pylint: disable=W0621
+        cluster: List[OciInstance],
     ) -> Generator[List[OciInstance], None, None]:
         """
         Configure cluster for RDMA testing.
@@ -144,20 +189,7 @@ class TestOracleClusterRdma:
             List[OciInstance]: RDMA-ready cluster instances.
         """
         ensure_image_is_rdma_ready(cluster[0])
-        for instance in cluster:
-            if instance.secondary_vnic_private_ip:
-                logger.info(
-                    "Instance %s already has a secondary VNIC, not attaching one.", instance.name
-                )
-                continue
-            logger.info("Creating a secondary VNIC on instance %s", instance.name)
-            # create a secondary VNIC on the 2nd vnic on the private subnet for RDMA usage
-            instance.add_network_interface(
-                nic_index=1,
-                subnet_name="private subnet-mofed-vcn",  # use the private subnet for mofed testing
-            )
-            instance.configure_secondary_vnic()
-            setup_mofed_iptables_rules(instance)
+        ensure_second_vnics_ready(cluster)
 
         yield cluster
 
@@ -295,3 +327,146 @@ class TestOracleClusterRdma:
         )
         logger.info("ucx_perftest output: %s", r.stdout)
         assert r.ok, "Failed to run ucx_perftest"
+
+
+class TestOracleClusterOfedTools:
+    """
+    Test Nvidia tools included in OFED userspace package.
+
+    Validate that CLI tools included in OFED are installed and executable.
+    Only verify query commands to avoid affecting the physical NIC firmware.
+    """
+
+    def test_mst_status(self, cluster: List[OciInstance]):
+        """
+        Run mst status to confirm it is installed.
+
+        Args:
+            cluster (List[OciInstance]): cluster instances
+        """
+        dut_instance = cluster[0]
+
+        r = dut_instance.execute("sudo mst status")
+        logger.info("mst status output: %s", r.stdout)
+        assert r.ok, "Failed to run mst status"
+        assert "MST modules" in r.stdout
+        assert "PCI Devices" in r.stdout
+
+    def test_mlxconfig(self, cluster: List[OciInstance]):
+        """
+        Run mlxconfig to confirm it is installed.
+
+        Args:
+            cluster (List[OciInstance]): cluster instances
+        """
+        dut_instance = cluster[0]
+        pci_addr = get_private_nic_pci_address(dut_instance)
+
+        r = dut_instance.execute(f"sudo mlxconfig -d {pci_addr} q")
+        logger.info("mlxconfig query output: %s", r.stdout)
+        assert r.ok, "Failed to run mlxconfig query"
+        assert "ConnectX" in r.stdout
+
+    def test_mlxfwmanager(self, cluster: List[OciInstance]):
+        """
+        Run mlxfwmanager to confirm it is installed.
+
+        Args:
+            cluster (List[OciInstance]): cluster instances
+        """
+        dut_instance = cluster[0]
+        pci_addr = get_private_nic_pci_address(dut_instance)
+
+        r = dut_instance.execute(f"sudo mlxfwmanager -d {pci_addr} --query")
+        logger.info("mlxfwmanager query output: %s", r.stdout)
+        assert r.ok, "Failed to run mlxfwmanager query"
+        assert "ConnectX" in r.stdout
+        assert "Device Type:" in r.stdout
+        assert "Part Number:" in r.stdout
+
+    def test_flint(self, cluster: List[OciInstance]):
+        """
+        Run flint to confirm it is installed.
+
+        Args:
+            cluster (List[OciInstance]): cluster instances
+        """
+        dut_instance = cluster[0]
+        pci_addr = get_private_nic_pci_address(dut_instance)
+
+        r = dut_instance.execute(f"sudo flint -d {pci_addr} q")
+        logger.info("flint query output: %s", r.stdout)
+        assert r.ok, "Failed to run flint query"
+        assert "Image type:" in r.stdout
+        assert "FW Version:" in r.stdout
+        assert "Product Version:" in r.stdout
+
+    def test_mlxfwreset(self, cluster: List[OciInstance]):
+        """
+        Run mlxfwreset to confirm it is installed.
+
+        Args:
+            cluster (List[OciInstance]): cluster instances
+        """
+        dut_instance = cluster[0]
+        pci_addr = get_private_nic_pci_address(dut_instance)
+
+        r = dut_instance.execute(f"sudo mlxfwreset -d {pci_addr} q")
+        logger.info("mlxfwreset query output: %s", r.stdout)
+        assert r.ok, "Failed to run mlxfwreset query"
+        assert "3: Driver restart and PCI reset" in r.stdout
+        assert "0: Tool is the owner" in r.stdout
+
+
+class TestOracleClusterPerformance:
+    """Test traffic performance between Oracle Cluster instances."""
+
+    @pytest.fixture(scope="class")
+    def private_vnic_cluster(
+        self,
+        cluster: List[OciInstance],
+    ) -> Generator[List[OciInstance], None, None]:
+        """
+        Cluster with private VNIC pair.
+
+        Yields:
+            List[OciInstance]: Instences of cluster with private VNIC.
+        """
+        ensure_second_vnics_ready(cluster)
+
+        yield cluster
+
+    def test_iperf3(self, private_vnic_cluster: List[OciInstance]):
+        """
+        Test iperf3 between two instances.
+
+        This tests the following:
+        - iperf3 successfully runs between two instances
+        - iperf3 throughput is greater than the minimum threshold (45.0)
+
+        Args:
+            private_vnic_cluster (List[OciInstance]): Cluster using private VNICs
+        """
+        min_throughput = 45.0
+        server_instance = private_vnic_cluster[0]
+        client_instance = private_vnic_cluster[1]
+
+        def start_server():
+            """Start the iperf3 server on the "server_instance"."""
+            server_instance.execute("iperf3 -s -1")
+
+        server_thread = threading.Thread(target=start_server)
+        server_thread.start()
+
+        # Wait for iperf3 server to start before starting the client
+        time.sleep(5)
+        r = client_instance.execute(
+            f"iperf3 -c {server_instance.secondary_vnic_private_ip} -P 40 -Z | grep SUM"
+        )
+        iperf3_output = r.stdout
+        logger.info("iperf3 output: %s", iperf3_output)
+        assert r.ok, "Failed to run iperf3"
+
+        throughput = iperf3_output.splitlines()[-1].split()[5]
+        print("iperf3 measured throughput: %s" % throughput)
+        assert float(throughput) > min_throughput
