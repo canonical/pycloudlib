@@ -135,6 +135,7 @@ class OCI(BaseCloud):
             image_id: string, id of the image to delete
         """
         self.compute_client.delete_image(image_id, **kwargs)
+        self._record_image_deletion(image_id)
 
     def released_image(self, release, operating_system="Canonical Ubuntu"):
         """Get the released image.
@@ -365,15 +366,17 @@ class OCI(BaseCloud):
         )
         return subnet_id
 
-    def snapshot(self, instance, clean=True, name=None):
+    def snapshot(self, instance, *, clean=True, keep=False, name=None):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
-            name: (Optional) Name of created image
+            keep: Keep the image after the cloud instance is cleaned up
+            name: Name of created image
+
         Returns:
-            An image object
+            The image id of the snapshot
         """
         if clean:
             instance.clean()
@@ -392,7 +395,11 @@ class OCI(BaseCloud):
             desired_state="AVAILABLE",
         )
 
-        self.created_images.append(image_data.id)
+        self._store_snapshot_info(
+            snapshot_name=image_data.display_name,
+            snapshot_id=image_data.id,
+            keep_snapshot=keep,
+        )
 
         return image_data.id
 
