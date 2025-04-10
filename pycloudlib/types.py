@@ -65,3 +65,38 @@ class NetworkingConfig:
             "networking_type": self.networking_type.value,
             "private": self.private,
         }
+
+
+@dataclass
+class ImageInfo:
+    """Dataclass that represents an image on any given cloud."""
+
+    image_id: str
+    image_name: str
+
+    def __str__(self):
+        """Return a human readable string representation of the image."""
+        return f"{self.image_name} [id: {self.image_id}]"
+
+    def __repr__(self):
+        """Return a string representation of the image."""
+        return f"ImageInfo(id={self.image_id}, name={self.image_name})"
+
+    def __eq__(self, other):
+        """
+        Check if two ImageInfo objects represent the same image.
+
+        Only the id is used for comparison since this should be the unique identifier for an image.
+        """
+        # Allow for comparing an ImageInfo object with just an ID string
+        if isinstance(other, str):
+            return self.image_id == other
+        # Do not allow for comparing with other types
+        if not isinstance(other, ImageInfo):
+            return False
+        # Check if the image IDs are the same when comparing two ImageInfo objects
+        return self.image_id == other.image_id
+
+    def __dict__(self):
+        """Return a dictionary representation of the image."""
+        return {"image_id": self.image_id, "image_name": self.image_name}

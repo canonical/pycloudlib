@@ -295,6 +295,8 @@ class EC2(BaseCloud):
         self._log.debug("removing custom snapshot %s", snapshot_id)
         self.client.delete_snapshot(SnapshotId=snapshot_id)
 
+        self._record_image_deletion(image_id)
+
     def delete_key(self, name):
         """Delete an uploaded key.
 
@@ -417,12 +419,13 @@ class EC2(BaseCloud):
             keypair_names.append(keypair["KeyName"])
         return keypair_names
 
-    def snapshot(self, instance, clean=True):
+    def snapshot(self, instance, *, clean=True, keep=False, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
             instance: Instance to snapshot
             clean: run instance clean method before taking snapshot
+            keep: keep the snapshot after the cloud instance is cleaned up
 
         Returns:
             An image id
@@ -441,7 +444,12 @@ class EC2(BaseCloud):
         )
         image_ami_edited = response["ImageId"]
         image = self.resource.Image(image_ami_edited)
-        self.created_images.append(image.id)
+
+        self._store_snapshot_info(
+            snapshot_id=image.id,
+            snapshot_name=image.name,
+            keep_snapshot=keep,
+        )
 
         self._wait_for_snapshot(image)
         _tag_resource(image, self.tag)
