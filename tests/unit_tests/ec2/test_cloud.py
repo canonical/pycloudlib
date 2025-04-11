@@ -70,8 +70,15 @@ class TestEC2:
                 "noble",
                 ImageType.PRO_FIPS,
                 False,
-                "ubuntu-pro-fips*/images/hvm-ssd-gp3/ubuntu-noble-24.04-*",
+                "ubuntu-pro-fips-server/images/hvm-ssd-gp3/ubuntu-noble-24.04-*",
                 id="pro-fips-lts",
+            ),
+            pytest.param(
+                "jammy",
+                ImageType.PRO_FIPS_UPDATES,
+                False,
+                "ubuntu-pro-fips-updates-server/images/hvm-ssd/ubuntu-jammy-22.04-*",
+                id="pro-fips-updates-lts",
             ),
             # Test GENERIC with non-LTS release and daily = False
             pytest.param(
@@ -140,6 +147,7 @@ class TestEC2:
             ImageType.MINIMAL: "099720109477",
             ImageType.PRO: "099720109477",
             ImageType.PRO_FIPS: "aws-marketplace",
+            ImageType.PRO_FIPS_UPDATES: "aws-marketplace",
         }
 
         ec2 = FakeEC2()
