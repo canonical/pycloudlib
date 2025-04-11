@@ -62,6 +62,10 @@ UBUNTU_DAILY_PRO_FIPS_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-pro-focal-fips:pro-fips-20_04:latest",
 }
 
+UBUNTU_DAILY_PRO_FIPS_UPDATES_IMAGES = {
+    "jammy": "Canonical:0001-com-ubuntu-pro-jammy-fips:pro-fips-22_04-gen1:latest",
+}
+
 UBUNTU_RELEASE_IMAGES = {
     "xenial": "Canonical:UbuntuServer:16.04-LTS:latest",
     "bionic": "Canonical:UbuntuServer:18.04-LTS:latest",
@@ -683,6 +687,8 @@ class Azure(BaseCloud):
             return UBUNTU_DAILY_PRO_IMAGES
         if image_type == ImageType.PRO_FIPS:
             return UBUNTU_DAILY_PRO_FIPS_IMAGES
+        if image_type == ImageType.PRO_FIPS_UPDATES:
+            return UBUNTU_DAILY_PRO_FIPS_UPDATES_IMAGES
         if image_type == ImageType.MINIMAL:
             return UBUNTU_MINIMAL_DAILY_IMAGES
 
