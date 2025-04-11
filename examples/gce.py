@@ -39,20 +39,12 @@ def generic(gce):
         print(inst.execute("lsb_release -a"))
 
 
-def pro(gce):
+def pro(gce, series, image_type):
     """Show example of running a GCE PRO machine."""
-    daily = gce.daily_image("bionic", image_type=ImageType.PRO)
+    daily = gce.daily_image(series, image_type)
     with gce.launch(daily) as inst:
         inst.wait()
-        print(inst.execute("sudo ua status --wait"))
-
-
-def pro_fips(gce):
-    """Show example of running a GCE PRO FIPS machine."""
-    daily = gce.daily_image("bionic", image_type=ImageType.PRO_FIPS)
-    with gce.launch(daily) as inst:
-        inst.wait()
-        print(inst.execute("sudo ua status --wait"))
+        print(inst.execute("sudo pro status --wait"))
 
 
 def demo():
@@ -62,8 +54,9 @@ def demo():
         manage_ssh_key(gce)
 
         generic(gce)
-        pro(gce)
-        pro_fips(gce)
+        pro(gce, "focal", ImageType.PRO)
+        pro(gce, "focal", ImageType.PRO_FIPS)
+        pro(gce, "jammy", ImageType.PRO_FIPS_UPDATES)
 
 
 if __name__ == "__main__":
