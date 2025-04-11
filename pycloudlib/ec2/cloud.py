@@ -161,7 +161,10 @@ class EC2(BaseCloud):
             return f"ubuntu-pro-server/images/{disk_type}/ubuntu-{release}-{release_ver}-*"
 
         if image_type == ImageType.PRO_FIPS:
-            return f"ubuntu-pro-fips*/images/{disk_type}/ubuntu-{release}-{release_ver}-*"
+            return f"ubuntu-pro-fips-server/images/{disk_type}/ubuntu-{release}-{release_ver}-*"
+
+        if image_type == ImageType.PRO_FIPS_UPDATES:
+            return f"ubuntu-pro-fips-updates-server/images/{disk_type}/ubuntu-{release}-{release_ver}-*"
 
         raise ValueError("Invalid image_type")
 
