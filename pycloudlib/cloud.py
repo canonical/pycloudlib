@@ -36,6 +36,7 @@ class ImageType(enum.Enum):
     MINIMAL = "minimal"
     PRO = "Pro"
     PRO_FIPS = "Pro FIPS"
+    PRO_FIPS_UPDATES = "Pro FIPS Updates"
 
 
 class BaseCloud(ABC):
