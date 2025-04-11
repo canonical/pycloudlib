@@ -109,6 +109,29 @@ def demo_pro_fips():
             print(instance.execute("sudo ua status --wait"))
 
 
+def demo_pro_fips_updates():
+    """Show example of launchig a Ubuntu PRO FIPS image through Azure."""
+    with pycloudlib.Azure(tag="azure") as client:
+        image_id = client.daily_image(release="jammy", image_type=ImageType.PRO_FIPS_UPDATES)
+
+        pub_key, priv_key = client.create_key_pair(key_name="test_pro_fips")
+        pub_path, priv_path = save_keys(
+            key_name="test_pro_fips",
+            pub_key=pub_key,
+            priv_key=priv_key,
+        )
+        client.use_key(pub_path, priv_path)
+
+        print("Launching Focal Pro FIPS Updates instance.")
+        with client.launch(
+            image_id=image_id,
+            instance_type="Standard_DS2_v2",  # default is Standard_DS1_v2
+        ) as instance:
+            instance.wait()
+            print(instance.ip)
+            print(instance.execute("sudo ua status --wait"))
+
+
 if __name__ == "__main__":
     # Avoid polluting the log with azure info
     logging.getLogger("adal-python").setLevel(logging.WARNING)
@@ -118,3 +141,4 @@ if __name__ == "__main__":
     demo()
     demo_pro()
     demo_pro_fips()
+    demo_pro_fips_updates()

@@ -92,22 +92,13 @@ def launch_basic(ec2, daily):
         print(instance.availability_zone)
 
 
-def launch_pro(ec2, daily):
-    """Show basic functionality on PRO instances."""
-    print("Launching Pro instance...")
-    with ec2.launch(daily) as instance:
+def launch_pro(ec2, name, image):
+    """Show basic functionality on Pro instances."""
+    print("Launching {} instance...".format(name))
+    with ec2.launch(image) as instance:
         instance.wait()
-        print(instance.execute("sudo ua status --wait"))
-        print("Deleting Pro instance...")
-
-
-def launch_pro_fips(ec2, daily):
-    """Show basic functionality on PRO instances."""
-    print("Launching Pro FIPS instance...")
-    with ec2.launch(daily) as instance:
-        instance.wait()
-        print(instance.execute("sudo ua status --wait"))
-        print("Deleting Pro FIPS instance...")
+        print(instance.execute("sudo pro status --wait"))
+        print("Deleting {} instance...".format(name))
 
 
 def handle_ssh_key(ec2, key_name):
@@ -140,13 +131,17 @@ def demo():
         key_name = "test-ec2"
         handle_ssh_key(ec2, key_name)
 
-        daily = ec2.daily_image(release="bionic")
-        daily_pro = ec2.daily_image(release="bionic", image_type=ImageType.PRO)
-        daily_pro_fips = ec2.daily_image(release="bionic", image_type=ImageType.PRO_FIPS)
+        daily = ec2.daily_image(release="focal")
+        daily_pro = ec2.daily_image(release="focal", image_type=ImageType.PRO)
+        daily_pro_fips = ec2.daily_image(release="focal", image_type=ImageType.PRO_FIPS)
+        daily_pro_fips_updates = ec2.daily_image(
+            release="focal", image_type=ImageType.PRO_FIPS_UPDATES
+        )
 
         launch_basic(ec2, daily)
-        launch_pro(ec2, daily_pro)
-        launch_pro_fips(ec2, daily_pro_fips)
+        launch_pro(ec2, "PRO", daily_pro)
+        launch_pro(ec2, "PRO FIPS", daily_pro_fips)
+        launch_pro(ec2, "PRO FIPS UPDATES", daily_pro_fips_updates)
         custom_vpc(ec2, daily)
         snapshot(ec2, daily)
         launch_multiple(ec2, daily)
