@@ -163,6 +163,11 @@ class GCE(BaseCloud):
                 UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
             )
 
+        if image_type == ImageType.PRO_FIPS_UPDATES:
+            return "ubuntu-pro-fips-updates-{}-{}-*".format(
+                UBUNTU_RELEASE_VERSION_MAP[release].replace(".", ""), release
+            )
+
         raise ValueError("Invalid image_type: {}".format(image_type.value))
 
     def _query_image_list(self, release: str, project: str, name_filter: str, arch: str):

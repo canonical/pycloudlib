@@ -305,6 +305,11 @@ class TestGCE:
                 ImageType.PRO_FIPS,
                 "ubuntu-pro-fips-2004-focal-*",
             ),
+            pytest.param(
+                "jammy",
+                ImageType.PRO_FIPS_UPDATES,
+                "ubuntu-pro-fips-updates-2204-jammy-*",
+            ),
         ],
     )
     def test_get_name_filter(self, release, image_type, expected_name_filter, gce):
