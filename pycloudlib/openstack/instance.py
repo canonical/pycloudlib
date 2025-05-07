@@ -66,13 +66,20 @@ class OpenstackInstance(BaseInstance):
 
     def _create_and_attach_floating_ip(self):
         floating_ip = self.conn.create_floating_ip(wait=True)
-        tries = 30
-        for _ in range(tries):
+        for _ in range(30):
             try:
-                self.conn.compute.add_floating_ip_to_server(
-                    self.server, floating_ip.floating_ip_address
-                )
+                ports = [p for p in self.conn.network.ports(device_id=self.server.id)]
+                if not ports:
+                    self._log.debug(f"Server {self.name} ports not yet available; sleeping")
+                    time.sleep(1)
+                    continue
+                # Assign IP to first port on the server
+                self.conn.network.update_ip(floating_ip, port_id=ports[0].id)
                 break
+            except ResourceNotFound as e:
+                if "Floating IP" in str(e):
+                    time.sleep(1)
+                    continue
             except BadRequestException as e:
                 if "Instance network is not ready yet" in str(e):
                     time.sleep(1)

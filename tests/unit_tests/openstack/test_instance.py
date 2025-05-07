@@ -1,5 +1,7 @@
 """Openstack instance tests."""
 
+import pytest
+
 from unittest import mock
 
 from pycloudlib.openstack.instance import OpenstackInstance
@@ -37,38 +39,45 @@ NETWORK_IPS = [
 ]
 
 
-@mock.patch("pycloudlib.openstack.instance.OpenstackInstance._create_and_attach_floating_ip")
 class TestAttachFloatingIp:
     """Ensure we create/use floating IPs accordingly."""
 
-    def test_existing_floating_ip(self, m_create):
-        """Test that if a server has an existing floating IP, we use it."""
-        m_connection = mock.Mock()
-        m_server = m_connection.compute.get_server.return_value
+    @pytest.fixture(autouse=True)
+    def setup_connection(self):
+        self.conn = mock.Mock()
+        m_server = self.conn.compute.get_server.return_value
         m_server.addresses = SERVER_ADDRESSES
-        m_connection.network.ips.return_value = NETWORK_IPS
+        m_create_floating_ip = self.conn.create_floating_ip.return_value
+        m_create_floating_ip.floating_ip_address = "10.42.42.42"
+        self.conn.network.ports.return_value = [
+            mock.Mock(id="port1"), mock.Mock(id="port2")
+        ]
+
+    def test_existing_floating_ip(self):
+        """Test that if a server has an existing floating IP, we use it."""
+        self.conn.network.ips.return_value = NETWORK_IPS
 
         instance = OpenstackInstance(
             key_pair=None,
             instance_id=None,
             network_id=None,
-            connection=m_connection,
+            connection=self.conn,
         )
         assert "10.0.0.3" == instance.floating_ip["floating_ip_address"]
-        assert 0 == m_create.call_count
+        assert 0 == self.conn.create_floating_ip.call_count
 
-    def test_no_matching_floating_ip(self, m_create):
+    def test_no_matching_floating_ip(self):
         """Test that if a server doesn't have a floating IP, we create it."""
-        m_connection = mock.Mock()
-        m_server = m_connection.compute.get_server.return_value = mock.Mock()
-        m_server.addresses = SERVER_ADDRESSES
-        m_connection.network.ips.return_value = []
+        self.conn.network.ips.return_value = []
 
         instance = OpenstackInstance(
             key_pair=None,
             instance_id=None,
             network_id=None,
-            connection=m_connection,
+            connection=self.conn,
         )
-        assert instance.floating_ip is m_create.return_value
-        assert 1 == m_create.call_count
+        assert instance.floating_ip is self.conn.create_floating_ip.return_value
+        assert 1 == self.conn.create_floating_ip.call_count
+        self.conn.network.update_ip.assert_called_once_with(
+            self.conn.create_floating_ip.return_value, port_id='port1'
+        )
