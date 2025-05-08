@@ -75,7 +75,11 @@ class IBM(BaseCloud):
         authenticator = IAMAuthenticator(api_key)
         self.instance_counter = itertools.count(1)
 
-        self._client = VpcV1(authenticator=authenticator)
+        # Note this pins API version to ibm-vpc 0.28.0 also in setup.cfg.
+        # If updating API version:
+        # 1. Check latest https://github.com/IBM/vpc-python-sdk/releases/
+        # 2. Update setup.cfg ibm-vpc < conditional
+        self._client = VpcV1(authenticator=authenticator, version="2025-04-22")
         self._client.set_service_url(f"https://{self.region}.iaas.cloud.ibm.com/v1")
 
         self._resource_manager_service = ResourceManagerV2(authenticator=authenticator)
