@@ -37,6 +37,7 @@ UBUNTU_DAILY_IMAGES = {
     "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
     "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
+    "questing": "Canonical:ubuntu-25_10-daily:server:latest",
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
@@ -46,6 +47,7 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",
     "oracular": "Canonical:ubuntu-24_10-daily:minimal:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:minimal:latest",
+    "questing": "Canonical:ubuntu-25_04-daily:minimal:latest",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
