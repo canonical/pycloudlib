@@ -20,6 +20,7 @@ import yaml
 from pycloudlib.result import Result
 
 UBUNTU_RELEASE_VERSION_MAP = {
+    "questing": "25.10",
     "plucky": "25.04",
     "oracular": "24.10",
     "noble": "24.04",
