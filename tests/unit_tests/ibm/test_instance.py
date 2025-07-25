@@ -3,7 +3,7 @@
 import pytest
 from unittest import mock
 
-from pycloudlib.ibm.instance import IBMInstance, _IBMInstanceType
+from pycloudlib.ibm.instance import IBMInstance, _IBMInstanceType, _Status
 
 SAMPLE_RAW_INSTANCE = {
     "id": "ibm1",
@@ -38,6 +38,7 @@ class TestIBMInstance:
         assert inst_id == inst.id
         assert zone_id == inst.zone
         assert inst_type == inst._ibm_instance_type
+
 
     @mock.patch("time.sleep")  # bypass the time.sleep call in _attach_floating_ip()
     @mock.patch(M_PATH + "VpcV1", autospec=True)
@@ -94,3 +95,55 @@ class TestIBMInstance:
 
         assert inst._floating_ip["id"] == fi_id
         assert inst._floating_ip["name"] == fi_name
+
+
+    @pytest.mark.parametrize(
+        "kwargs, expected_timeout",
+        [
+            pytest.param({}, 900, id="default_timeout"),
+            pytest.param({"start_timeout": 123}, 123, id="custom_timeout"),
+        ],
+    )
+    @mock.patch(M_PATH + "VpcV1", autospec=True)
+    def test_wait_for_instance_start(self, m_client, kwargs, expected_timeout, caplog):
+        """Test _wait_for_instance_start calls _wait_for_status correctly."""
+        inst = IBMInstance.from_raw_instance(
+            key_pair=None,
+            client=m_client,
+            instance=SAMPLE_RAW_INSTANCE,
+        )
+
+        with mock.patch.object(inst, "_wait_for_status") as m_wait_for_status:
+            inst._wait_for_instance_start(**kwargs)
+            assert "Waiting for instance to finish provisioning." in caplog.text
+
+            m_wait_for_status.assert_called_once_with(
+                _Status.RUNNING,
+                sleep_seconds=expected_timeout,
+                side_effect_fn=inst._check_instance_failed_status,
+            )
+
+
+    @mock.patch(M_PATH + "VpcV1", autospec=True)
+    def test_wait_passes_kwargs(self, m_client):
+        """Test that wait() correctly passes kwargs to internal methods."""
+        inst = IBMInstance.from_raw_instance(
+            key_pair=None,
+            client=m_client,
+            instance=SAMPLE_RAW_INSTANCE,
+        )
+        custom_timeout = 123
+
+        with mock.patch.multiple(
+            inst,
+            _wait_for_instance_start=mock.DEFAULT,
+            _wait_for_execute=mock.DEFAULT,
+            _wait_for_cloudinit=mock.DEFAULT,
+        ) as mocks:
+            inst.wait(start_timeout=custom_timeout)
+
+            mocks["_wait_for_instance_start"].assert_called_once_with(
+                start_timeout=custom_timeout
+            )
+            mocks["_wait_for_execute"].assert_called_once()
+            mocks["_wait_for_cloudinit"].assert_called_once()
