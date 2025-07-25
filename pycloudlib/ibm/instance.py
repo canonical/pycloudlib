@@ -692,9 +692,11 @@ class IBMInstance(BaseInstance):
         **kwargs,
     ) -> "IBMInstance":
         """Find an instance by ID."""
-        instance = _IBMInstanceType.VSI.get_instance(client, instance_id)
+        response = _IBMInstanceType.VSI.get_instance(client, instance_id)
+        instance = response.result
         if not instance:
-            instance = _IBMInstanceType.BARE_METAL_SERVER.get_instance(client, instance_id)
+            response = _IBMInstanceType.BARE_METAL_SERVER.get_instance(client, instance_id)
+            instance = response.result
 
         if not instance:
             raise IBMException(f"Instance not found: {instance_id}")
