@@ -301,6 +301,7 @@ class AzureInstance(BaseInstance):
         vm_nics_ids = [nic.id for nic in self._instance["vm"].network_profile.network_interfaces]
         all_nics: List[NetworkInterface] = list(self._network_client.network_interfaces.list_all())
         vm_nics = [nic for nic in all_nics if nic.id in vm_nics_ids]
+        primary_nic: Optional[NetworkInterface] = None
         primary_nic = [nic for nic in vm_nics if nic.primary][0]
         nic_params = []
         nic_to_remove: Optional[NetworkInterface] = None
