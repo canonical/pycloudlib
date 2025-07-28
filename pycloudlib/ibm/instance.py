@@ -919,12 +919,12 @@ class IBMInstance(BaseInstance):
                 f"{self._instance['status_reasons'][0]['message']}"
             )
 
-    def _wait_for_instance_start(self, **kwargs):
+    def _wait_for_instance_start(self, start_timeout=900, **kwargs):
         """Wait for the cloud instance to be up."""
         self._log.info("Waiting for instance to finish provisioning.")
         self._wait_for_status(
             _Status.RUNNING,
-            sleep_seconds=900,
+            sleep_seconds=start_timeout,
             side_effect_fn=self._check_instance_failed_status,
         )
 
