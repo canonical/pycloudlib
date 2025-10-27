@@ -184,6 +184,8 @@ class AzureInstance(BaseInstance):
             )
             # Azure has a 60 secs delay for the boot diagnostics to be active.
             time.sleep(BOOT_DIAGNOSTICS_URI_DELAY)
+            if not diagnostics.serial_console_log_blob_uri:
+                raise PycloudlibError("No serial console log blob uri has been set.")
             response = requests.get(diagnostics.serial_console_log_blob_uri, timeout=10)
         except ResourceExistsError:
             self._log.warning("Boot diagnostics not enabled, so none is collected.")
