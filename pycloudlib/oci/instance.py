@@ -46,6 +46,7 @@ class OciInstance(BaseInstance):
         self.availability_domain = availability_domain
         self._fault_domain = None
         self._ip = None
+        self._ips: List[str] = []
 
         if oci_config is None:
             oci_config = oci.config.from_file("~/.oci/config")  # noqa: E501
@@ -93,19 +94,31 @@ class OciInstance(BaseInstance):
             ]
             # select vnic with is_primary = True
             primary_vnic = [vnic for vnic in vnics if vnic.is_primary][0]
-            # if not public IP, check for ipv6
-            # None is specifically returned by OCI when ipv6 only vnic
-            if primary_vnic.public_ip is None:
-                if primary_vnic.ipv6_addresses:
+
+            # attempt to use the IPv4 address if available
+            if primary_vnic.public_ip:
+                self._ip = primary_vnic.public_ip
+                self._ips.append(primary_vnic.public_ip)
+                self._log.info("Using ipv4 address: %s", self._ip)
+
+            # fallback to ipv6 address if possible
+            if primary_vnic.ipv6_addresses:
+                if self._ip is None:
                     self._ip = primary_vnic.ipv6_addresses[0]
                     self._log.info("Using ipv6 address: %s", self._ip)
-                else:
-                    raise PycloudlibError("No public ipv4 address or ipv6 address found")
-            else:
-                self._ip = primary_vnic.public_ip
-                self._log.info("Using ipv4 address: %s", self._ip)
-            return self._ip
+                self.ips.extend(primary_vnic.ipv6_addresses)
+
+            if self._ip is None:
+                raise PycloudlibError("No public ipv4 address or ipv6 address found")
+
         return self._ip
+
+    @property
+    def ips(self):
+        """Return IP address of instance."""
+        if self._ip is None:
+            return []
+        return self._ips
 
     @property
     def private_ip(self):
