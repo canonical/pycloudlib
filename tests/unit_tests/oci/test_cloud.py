@@ -40,6 +40,7 @@ def oci_mock():
         mock_network_client = mock.Mock()
         mock_compute_client_class.return_value = mock_compute_client
         mock_network_client_class.return_value = mock_network_client
+        mock_network_client.get_subnet.return_value = create_mock_subnet_response()
 
         yield mock_compute_client, mock_network_client, oci_config
 
@@ -77,6 +78,26 @@ def oci_cloud(oci_mock, tmp_path):
 
     yield oci_cloud
 
+def create_mock_subnet_response(
+    cidr_block: str = "10.0.0.0/16", 
+    ipv6_cidr_block: str = "2603:c010:2004:8500::/56",
+    display_name: str = "test-display-name",
+    subnet_id: str = "subnet-id",
+    vcn_id: str = "vcn-id"
+):
+    """Creates a mock OCI Response containing a Subnet model.
+    
+    Since both `cidr_block` and `ipv6_cidr_block` are provided, the default
+    subnet is dual stack.
+    """
+    mock_subnet_data = oci.core.models.Subnet(
+        cidr_block=cidr_block,
+        ipv6_cidr_block=ipv6_cidr_block,
+        display_name=display_name,
+        id=subnet_id,
+        vcn_id=vcn_id
+    )
+    return oci.response.Response(status=200, headers={}, data=mock_subnet_data, request=None)
 
 OCI_PYCLOUDLIB_CONFIG = """\
 [oci]
@@ -304,6 +325,11 @@ class TestOciInstances:
         args, _ = oci_cloud.compute_client.launch_instance.call_args
         launch_instance_details = args[0]
         assert launch_instance_details.subnet_id == "subnet-id"
+
+        # confirm vnic options have been provided for ipv4, ipv6 and dual stack subnets
+        assert launch_instance_details.create_vnic_details.assign_public_ip
+        assert launch_instance_details.create_vnic_details.assign_ipv6_ip
+        
         assert oci_cloud.get_instance.call_count == 3
 
     
