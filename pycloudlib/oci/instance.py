@@ -106,7 +106,7 @@ class OciInstance(BaseInstance):
                 if self._ip is None:
                     self._ip = primary_vnic.ipv6_addresses[0]
                     self._log.info("Using ipv6 address: %s", self._ip)
-                self.ips.extend(primary_vnic.ipv6_addresses)
+                self._ips.extend(primary_vnic.ipv6_addresses)
 
             if self._ip is None:
                 raise PycloudlibError("No public ipv4 address or ipv6 address found")
@@ -116,7 +116,7 @@ class OciInstance(BaseInstance):
     @property
     def ips(self):
         """Return IP address of instance."""
-        if self._ip is None:
+        if self.ip is None:
             return []
         return self._ips
 
