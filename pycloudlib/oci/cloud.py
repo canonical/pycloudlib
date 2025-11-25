@@ -313,12 +313,14 @@ class OCI(BaseCloud):
         subnet = self.network_client.get_subnet(subnet_id).data
         vnic_kwargs = {}
 
-        # When no IPv4 CIDR is present, the value is assigned to '<null>' str instead of None.
-        if "null" not in subnet.cidr_block:
-            vnic_kwargs["assign_public_ip"] = True
+        # Only assign public IP if the subnet allows it
+        if not subnet.prohibit_public_ip_on_vnic:
+            # When no IPv4 CIDR is present, the value is assigned to '<null>' str instead of None.
+            if "null" not in subnet.cidr_block:
+                vnic_kwargs["assign_public_ip"] = True
 
-        if subnet.ipv6_cidr_block is not None:
-            vnic_kwargs["assign_ipv6_ip"] = True
+            if subnet.ipv6_cidr_block is not None:
+                vnic_kwargs["assign_ipv6_ip"] = True
 
         default_metadata = {
             "ssh_authorized_keys": self.key_pair.public_key_content,
