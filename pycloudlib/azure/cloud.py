@@ -25,6 +25,7 @@ from pycloudlib.errors import (
 )
 from pycloudlib.util import get_timestamped_tag, update_nested
 
+# Use Azure CLI for valid images: az vm image list -p Canonical --all -o table
 UBUNTU_DAILY_IMAGES = {
     "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS:latest",
     "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS:latest",
@@ -38,6 +39,7 @@ UBUNTU_DAILY_IMAGES = {
     "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
     "questing": "Canonical:ubuntu-25_10-daily:server:latest",
+    "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
@@ -48,6 +50,7 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "oracular": "Canonical:ubuntu-24_10-daily:minimal:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:minimal:latest",
     "questing": "Canonical:ubuntu-25_04-daily:minimal:latest",
+    "resolute": "Canonical:ubuntu-26_04-lts-daily:minimal:latest",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
@@ -75,9 +78,11 @@ UBUNTU_RELEASE_IMAGES = {
     "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2:latest",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
     "noble": "Canonical:ubuntu-24_04-lts:server:latest",
-    # TODO(20241031: drop -daily once release is published)
     "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
+    "questing": "Canonical:ubuntu-25_10-daily:server:latest",
+    # TODO(20241031: drop -daily once release is published)
+    "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
 }
 
 UBUNTU_CVM_IMAGES = {
