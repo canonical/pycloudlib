@@ -30,13 +30,8 @@ UBUNTU_DAILY_IMAGES = {
     "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS:latest",
     "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS:latest",
     "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts:latest",  # noqa: E501
-    "impish": "Canonical:0001-com-ubuntu-server-impish-daily:21_10-daily:latest",  # noqa: E501
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts:latest",  # noqa: E501
-    "kinetic": "Canonical:0001-com-ubuntu-server-kinetic-daily:22_10-daily:latest",  # noqa: E501
-    "lunar": "Canonical:0001-com-ubuntu-server-lunar-daily:23_04-daily:latest",
-    "mantic": "Canonical:0001-com-ubuntu-server-mantic-daily:23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
-    "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
     "questing": "Canonical:ubuntu-25_10-daily:server:latest",
     "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
@@ -47,7 +42,6 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "jammy": "Canonical:0001-com-ubuntu-minimal-jammy-daily:minimal-22_04-daily-lts:latest",  # noqa: E501
     "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",
-    "oracular": "Canonical:ubuntu-24_10-daily:minimal:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:minimal:latest",
     "questing": "Canonical:ubuntu-25_04-daily:minimal:latest",
     "resolute": "Canonical:ubuntu-26_04-lts-daily:minimal:latest",
@@ -75,13 +69,11 @@ UBUNTU_RELEASE_IMAGES = {
     "xenial": "Canonical:UbuntuServer:16.04-LTS:latest",
     "bionic": "Canonical:UbuntuServer:18.04-LTS:latest",
     "focal": "Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2:latest",
-    "impish": "Canonical:0001-com-ubuntu-server-impish:21_10-gen2:latest",
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
     "noble": "Canonical:ubuntu-24_04-lts:server:latest",
-    "oracular": "Canonical:ubuntu-24_10-daily:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
     "questing": "Canonical:ubuntu-25_10-daily:server:latest",
-    # TODO(20241031: drop -daily once release is published)
+    # TODO(20241031: drop -daily once resolute release is published)
     "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
 }
 
