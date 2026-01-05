@@ -239,7 +239,10 @@ class BaseInstance(ABC):
         # bionic-pro cloud images.
         #
         # [1] https://github.com/canonical/cloud-init/commit/abfdf1d83995cc20e
-        self.execute("sudo cloud-init clean --logs")
+        result = self.execute("sudo cloud-init clean --logs --config all")
+        if result.failed and "unrecognized arguments: --config all" in result.stderr:
+            # Cope with cloud-init version less than 25.2 which has no -c arg.
+            result = self.execute("sudo cloud-init clean --logs")
         self.execute("sudo echo 'uninitialized' > /etc/machine-id")
         self.execute("sudo rm -rf /var/log/syslog")
 
