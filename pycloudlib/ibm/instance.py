@@ -8,7 +8,7 @@ import time
 from enum import Enum, auto
 from functools import partial
 from itertools import chain
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from ibm_cloud_sdk_core import ApiException, DetailedResponse
 from ibm_vpc import VpcV1
@@ -725,12 +725,12 @@ class IBMInstance(BaseInstance):
         """Create and return a raw IBM instance."""
         ibm_instance_type = _IBMInstanceType.from_instance_type(instance_type)
 
-        initialization = {
+        initialization: Dict[str, Any] = {
             "image": {"id": image_id},
             "keys": [{"id": key_id}],
         }
 
-        base_proto = {
+        base_proto: Dict[str, Any] = {
             "name": name,
             "primary_network_interface": {
                 "name": "eth0",
@@ -755,13 +755,15 @@ class IBMInstance(BaseInstance):
             kwargs = {"instance_prototype": instance_prototype}
 
         elif ibm_instance_type == _IBMInstanceType.BARE_METAL_SERVER:
-            kwargs = {
+            bare_metal_server_prototype = {
                 **base_proto,
                 "initialization": initialization,
             }
 
             if user_data:
-                kwargs["initialization"]["user_data"] = user_data
+                bare_metal_server_prototype["initialization"]["user_data"] = user_data
+
+            kwargs = {"bare_metal_server_prototype": bare_metal_server_prototype}
 
         else:
             raise NotImplementedError(f"Implement me for: {ibm_instance_type}")
