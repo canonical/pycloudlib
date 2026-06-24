@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from azure.core.exceptions import HttpResponseError, ResourceNotFoundError
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
-from azure.mgmt.resource import ResourceManagementClient
+from azure.mgmt.resource.resources import ResourceManagementClient
 
 from pycloudlib.azure import security_types, util
 from pycloudlib.azure.instance import AzureInstance, VMInstanceStatus
