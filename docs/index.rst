@@ -21,18 +21,15 @@ Install directly from `PyPI <https://pypi.org/project/pycloudlib/>`_:
 
 .. code-block:: shell
 
-    pip3 install pycloudlib
+    uv pip install pycloudlib
 
-Project's requirements.txt file can include pycloudlib as a dependency. Check
-out the `pip documentation <https://pip.readthedocs.io/en/1.1/requirements.html>`_ for instructions on how to include a particular version or git hash.
-
-Install from latest master:
+Install from the latest ``main`` branch:
 
 .. code-block:: shell
 
     git clone https://git.launchpad.net/pycloudlib
     cd pycloudlib
-    python3 setup.py install
+    uv sync
 
 *****
 Usage
@@ -49,7 +46,7 @@ for more information.
 Bugs
 ****
 
-File bugs on Launchpad under the `pycloudlib project <https://bugs.launchpad.net/pycloudlib/+filebug>`_.
+File bugs on `Launchpad <https://bugs.launchpad.net/pycloudlib/+filebug>`_.
 
 *******
 Contact
