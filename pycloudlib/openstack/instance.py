@@ -178,7 +178,7 @@ class OpenstackInstance(BaseInstance):
         """Wait for instance to be up."""
         self.conn.compute.wait_for_server(self.server, status="ACTIVE")
 
-    def wait_for_delete(self):
+    def wait_for_delete(self, **kwargs):
         """Wait for instance to be deleted."""
         try:
             self.conn.compute.wait_for_server(self.server, status="DELETED")

@@ -419,7 +419,7 @@ class EC2(BaseCloud):
             keypair_names.append(keypair["KeyName"])
         return keypair_names
 
-    def snapshot(self, instance, clean=True):
+    def snapshot(self, instance, clean=True, **kwargs):
         """Snapshot an instance and generate an image from it.
 
         Args:
