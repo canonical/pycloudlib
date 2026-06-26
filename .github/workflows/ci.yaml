@@ -10,51 +10,56 @@ jobs:
   linting:
     runs-on: ubuntu-24.04
     steps:
-      - name: Install dependencies
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - name: Run ruff and mypy checks
-        run: tox -e ruff,mypy
-  py310:
-    runs-on: ubuntu-22.04
+        run: uvx --with tox-uv tox -e ruff,mypy
+
+  unit-tests:
+    strategy:
+      matrix:
+        include:
+          - python: "3.10"
+            runner: ubuntu-22.04
+            tox-env: py310
+          - python: "3.12"
+            runner: ubuntu-24.04
+            tox-env: py312
+    runs-on: ${{ matrix.runner }}
     steps:
-      - name: Install dependencies
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - name: Run tox
-        run: tox -e py310
-  py312:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Install dependencies
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
-      - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-      - name: Run tox
-        run: tox -e py312
+        run: uvx --with tox-uv tox -e ${{ matrix.tox-env }}
+
   docs:
     runs-on: ubuntu-24.04
     steps:
-      - name: Install dependencies
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - name: Build rtd docs
-        run: tox -e docs
+        run: uvx --with tox-uv tox -e docs
+
   integration-tests:
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
         run: |
           sudo apt-get update -q
-          sudo apt-get install -qy distro-info tox
+          sudo apt-get install -qy distro-info
           sudo snap install lxd
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - name: Setup LXD
-        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee  # v1
+        uses: canonical/setup-lxd@v0.1.2
       - name: Setup pycloudlib config and ssh key
         run: |
           ssh-keygen -P "" -q -f ~/.ssh/id_rsa
@@ -62,4 +67,4 @@ jobs:
           echo "[lxd]" > ~/.config/pycloudlib.toml
       - name: Run CI integration tests
         run: |
-          tox -e integration-tests-ci -- --color=yes tests/integration_tests/
+          uvx --with tox-uv tox -e integration-tests-ci -- --color=yes tests/integration_tests/

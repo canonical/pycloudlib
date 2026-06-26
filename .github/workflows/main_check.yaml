@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -q
-          sudo apt-get install -qy distro-info tox
+          sudo apt-get install -qy distro-info
           sudo apt-get remove --yes --purge azure-cli
       - name: Initialize Pycloudlib
         env:
@@ -24,8 +24,10 @@ jobs:
           echo "$GCE_CREDENTIALS_JSON" > ~/.config/gce_credentials
           echo "$PYCLOUDLIB_TOML" > ~/.config/pycloudlib.toml
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - name: Run CI integration tests
         run: |
-          GOOGLE_APPLICATION_CREDENTIALS=~/.config/gce_credentials tox -e integration-tests-main-check \
+          GOOGLE_APPLICATION_CREDENTIALS=~/.config/gce_credentials uvx --with tox-uv tox -e integration-tests-main-check \
             -- --color=yes tests/integration_tests
