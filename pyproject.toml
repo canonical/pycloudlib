@@ -154,3 +154,6 @@ testpaths = ["tests/unit_tests"]
 [tool.hatch.version]
 path = "VERSION"
 pattern = "(?P<version>.+)"
+
+[tool.uv]
+python-preference = "only-system"
