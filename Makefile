@@ -1,35 +1,32 @@
 PYTHON = python3
-SETUP  := $(PYTHON) setup.py
+UV = uv
 
 .PHONY: build clean install publish source test venv
 
 build:
-	$(SETUP) build
+	$(UV) build
 
 clean:
-	$(SETUP) clean
-	rm -rf .tox .eggs *.egg-info build dist venv
+	rm -rf .tox .eggs *.egg-info build dist .venv
 	@find . -regex '.*\(__pycache__\|\.py[co]\)' -delete
 	$(MAKE) -C docs clean
 
 install:
-	$(SETUP) install
+	$(UV) sync
 
 publish:
 	rm -rf dist/
-	$(SETUP) sdist
-	pip install twine
+	$(UV) build
+	$(UV) run pip install twine
 	twine upload dist/*
 
 source:
-	$(SETUP) sdist
+	$(UV) build
 
 test:
-	$(SETUP) check -r -s
-	tox
+	$(UV) run tox
 
 venv:
-	$(PYTHON) -m virtualenv -p /usr/bin/$(PYTHON) venv
-	venv/bin/pip install -Ur requirements.txt
+	uv sync
 	@echo "Now run the following to activate the virtual env:"
-	@echo ". venv/bin/activate"
+	@echo ". .venv/bin/activate"

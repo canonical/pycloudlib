@@ -25,7 +25,7 @@ The makefile can be used to create a Python virtual environment and do local tes
 ```shell
 # Creates a python virtual environment with all requirements
 make venv
-. venv/bin/activate
+. .venv/bin/activate
 ```
 
 ### Documentation
@@ -39,7 +39,7 @@ Documentation should be written in Markdown whenever possible.
 When making changes please keep the following in mind:
 
 * Keep pull requests limited to a single issue
-* Code must be formatted to [Black](https://black.readthedocs.io/en/stable/index.html) standards
+* Code must be formatted to [ruff](https://docs.astral.sh/ruff/) standards
   * Run `tox -e format` to reformat code accordingly
 * Run `tox` to execute style and lint checks
 * When adding new clouds please add detailed documentation under the `docs` directory and code examples under `examples`
