@@ -4,6 +4,7 @@
 
 import logging
 import os
+from typing import Optional
 
 import pycloudlib
 import pycloudlib.ibm_classic
@@ -39,7 +40,7 @@ def manage_ssh_key(classic: pycloudlib.IBMClassic):
 
 
 def launch_with_basic_cloud_config(
-    ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: str = None
+    ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: Optional[str] = None
 ):
     """Launch a basic instance and demo basic functionality."""
     image_gid = ibm_classic.released_image("22.04", disk_size=disk_size)
@@ -72,7 +73,7 @@ write_files:
 
 
 def launch_and_demo_all_lifecycle_features(
-    ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: str = None
+    ibm_classic: pycloudlib.IBMClassic, disk_size="25G", datacenter: Optional[str] = None
 ):
     """Launch a basic instance and demo basic functionality."""
     image_gid = ibm_classic.released_image("22.04", disk_size=disk_size)
