@@ -6,9 +6,14 @@ on:
 
 concurrency: ${{ github.ref }}
 
+permissions:
+  contents: read  # Default: read-only; widen per-job as needed
+
 jobs:
   tag-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # For git push of version tag
     outputs:
       version: ${{ steps.tag-release.outputs.version}}
     steps:
