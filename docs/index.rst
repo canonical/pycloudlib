@@ -46,7 +46,7 @@ for more information.
 Bugs
 ****
 
-File bugs on `Launchpad <https://bugs.launchpad.net/pycloudlib/+filebug>`_.
+File bugs on `GitHub <https://github.com/canonical/pycloudlib/issues>`_.
 
 *******
 Contact
