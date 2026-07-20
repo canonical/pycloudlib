@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run ruff and mypy checks
         run: tox -e ruff,mypy
   py310:
@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run tox
         run: tox -e py310
   py312:
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run tox
         run: tox -e py312
   docs:
@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Build rtd docs
         run: tox -e docs
   integration-tests:
@@ -52,7 +52,7 @@ jobs:
           sudo apt-get install -qy distro-info tox
           sudo snap install lxd
       - name: Git checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Setup LXD
         uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee  # v1
       - name: Setup pycloudlib config and ssh key
