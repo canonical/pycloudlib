@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
       - name: Run ruff and mypy checks
         run: uvx --with tox-uv tox -e ruff,mypy
 
@@ -30,9 +30,9 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
       - name: Run tox
         run: uvx --with tox-uv tox -e ${{ matrix.tox-env }}
 
@@ -40,9 +40,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
       - name: Build rtd docs
         run: uvx --with tox-uv tox -e docs
 
@@ -55,11 +55,11 @@ jobs:
           sudo apt-get install -qy distro-info
           sudo snap install lxd
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26  # v3
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
       - name: Setup LXD
-        uses: canonical/setup-lxd@v0.1.2
+        uses: canonical/setup-lxd@54a5806e490d92e207b57183cf111ed54bbdeff4  # v0.1.2
       - name: Setup pycloudlib config and ssh key
         run: |
           ssh-keygen -P "" -q -f ~/.ssh/id_rsa
