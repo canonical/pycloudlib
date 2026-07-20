@@ -247,21 +247,25 @@ class Azure(BaseCloud):
             security_rules.append(
                 {
                     "name": "port-{}".format(port),
-                    "priority": priority,
-                    "protocol": "TCP",
-                    "access": "Allow",
-                    "direction": "Inbound",
-                    "sourceAddressPrefix": "*",
-                    "sourcePortRange": "*",
-                    "destinationAddressPrefix": "*",
-                    "destinationPortRange": port,
+                    "properties": {
+                        "priority": priority,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": port,
+                    },
                 }
             )
             priority += 10
 
         parameters = {
             "location": self.location,
-            "security_rules": security_rules,
+            "properties": {
+                "securityRules": security_rules,
+            },
         }
 
         if network_security_group_params and network_security_group_params.parameters:
@@ -271,6 +275,7 @@ class Azure(BaseCloud):
             resource_group_name=resource_group_name,
             network_security_group_name=security_group_name,
             parameters=parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return nsg_poller.result()
@@ -341,7 +346,9 @@ class Azure(BaseCloud):
         )
         parameters = {
             "location": self.location,
-            "address_space": {"address_prefixes": address_prefixes},
+            "properties": {
+                "addressSpace": {"addressPrefixes": address_prefixes},
+            },
             "tags": {"name": self.tag},
         }
         if virtual_network_params and virtual_network_params.parameters:
@@ -352,6 +359,7 @@ class Azure(BaseCloud):
             resource_group_name,
             virtual_network_name,
             parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return network_poller.result()
@@ -383,8 +391,9 @@ class Azure(BaseCloud):
         )
 
         parameters = {
-            "address_prefix": address_prefix,
-            "tags": {"name": self.tag},
+            "properties": {
+                "addressPrefix": address_prefix,
+            },
         }
         if subnet_params and subnet_params.parameters:
             update_nested(parameters, subnet_params.parameters)
@@ -395,6 +404,7 @@ class Azure(BaseCloud):
             vnet_name,
             subnet_name,
             parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return subnet_poller.result()
@@ -421,8 +431,10 @@ class Azure(BaseCloud):
         parameters = {
             "location": self.location,
             "sku": {"name": "Standard"},
-            "public_ip_allocation_method": "Static",
-            "rpublic_ip_address_version": "IPV4",
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+            },
             "tags": {"name": self.tag},
         }
 
@@ -434,6 +446,7 @@ class Azure(BaseCloud):
             resource_group_name,
             ip_name,
             parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return ip_poller.result()
@@ -470,14 +483,18 @@ class Azure(BaseCloud):
 
         nic_config = {
             "location": self.location,
-            "ip_configurations": [
-                {
-                    "name": ip_config_name,
-                    "subnet": {"id": subnet_id},
-                    "public_ip_address": {"id": ip_address_id},
-                }
-            ],
-            "network_security_group": {"id": nsg_id},
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": ip_config_name,
+                        "properties": {
+                            "subnet": {"id": subnet_id},
+                            "publicIPAddress": {"id": ip_address_id},
+                        },
+                    }
+                ],
+                "networkSecurityGroup": {"id": nsg_id},
+            },
             "tags": {"name": self.tag},
         }
 
@@ -486,7 +503,10 @@ class Azure(BaseCloud):
 
         self._log.debug("Creating Azure network interface")
         nic_poller = self.network_client.network_interfaces.begin_create_or_update(
-            resource_group_name, nic_name, nic_config
+            resource_group_name,
+            nic_name,
+            nic_config,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return nic_poller.result()
@@ -542,17 +562,13 @@ class Azure(BaseCloud):
         if user_data:
             # We need to encode the user_data into base64 before sending
             # it to the virtual machine.
-            os_profile["customData"] = base64.b64encode(
-                user_data.encode()
-            ).decode()
+            os_profile["customData"] = base64.b64encode(user_data.encode()).decode()
 
         vm_parameters = {
             "location": self.location,
             "properties": {
                 "hardwareProfile": {"vmSize": instance_type},
-                "storageProfile": {
-                    "imageReference": util.get_image_reference_params(image_id)
-                },
+                "storageProfile": {"imageReference": util.get_image_reference_params(image_id)},
                 "osProfile": os_profile,
                 "networkProfile": {"networkInterfaces": nics},
                 "diagnosticsProfile": {

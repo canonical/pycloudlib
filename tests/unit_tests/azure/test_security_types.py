@@ -31,7 +31,7 @@ class TestSecurityType:
                 "properties": {
                     "securityProfile": {
                         "securityType": "Dummy",
-                        "random_key": "random_value",
+                        "randomKey": "random-value",
                     }
                 },
             },
@@ -48,10 +48,10 @@ class TestSecurityType:
         assert (
             vm_params.get("properties", {})
             .get("securityProfile", {})
-            .get("random_key", {})
+            .get("randomKey", {})
             == orig_vm_params.get("properties", {})
             .get("securityProfile", {})
-            .get("random_key", {})
+            .get("randomKey", {})
         )
 
     @pytest.mark.parametrize(
@@ -75,7 +75,7 @@ class TestSecurityType:
             (
                 {
                     "properties": {"securityProfile": {"securityType": "Dummy"}},
-                    "random_key": "random_value",
+                    "randomKey": "random-value",
                 },
                 {"os_disk_encryption": DiskEncryption.VM_GUEST_STATE_ONLY},
                 DiskEncryption.VM_GUEST_STATE_ONLY,
@@ -94,7 +94,7 @@ class TestSecurityType:
             vm_params["properties"]["securityProfile"]["securityType"]
             == AzureSecurityType.CONFIDENTIAL_VM.value
         )
-        assert vm_params.get("random_key", {}) == orig_vm_params.get("random_key", {})
+        assert vm_params.get("randomKey", {}) == orig_vm_params.get("randomKey", {})
         assert (
             vm_params["properties"]["storageProfile"]["osDisk"]["managedDisk"][
                 "securityProfile"
