@@ -13,6 +13,7 @@ from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.network.models import NetworkInterface
 
+from pycloudlib.azure.util import COMPUTE_API_VERSION
 from pycloudlib.errors import PycloudlibError, PycloudlibTimeoutError
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import update_nested
@@ -289,7 +290,7 @@ class AzureInstance(BaseInstance):
             self._instance["rg_name"], nic_name, default_config
         )
         created_nic = nic_poller.result()
-        nic_details = {"id": created_nic.id, "primary": False}
+        nic_details = {"id": created_nic.id, "properties": {"primary": False}}
         self._attach_nic_to_vm([nic_details])
         return created_nic.ip_configurations[0].private_ip_address
 
@@ -312,7 +313,9 @@ class AzureInstance(BaseInstance):
             if nic_private_ip == ip_address:
                 nic_to_remove = vm_nic
             else:
-                nic_params.append({"id": vm_nic.id, "primary": vm_nic.primary})
+                nic_params.append(
+                    {"id": vm_nic.id, "properties": {"primary": vm_nic.primary}}
+                )
         if not nic_to_remove:
             raise PycloudlibError(f"Did not find NIC with private ip address: {ip_address}")
         # if primary nic is removed, then make the next NIC as primary
@@ -322,7 +325,7 @@ class AzureInstance(BaseInstance):
                 primary_nics = [nic for nic in vm_nics if nic.id == nic_param["id"]]
                 if len(primary_nics) > 0:
                     primary_nic = primary_nics[0]
-                    nic_param["primary"] = True
+                    nic_param["properties"]["primary"] = True
                     break
             if not primary_nic:
                 raise PycloudlibError("Could not set Primary NIC.")
@@ -349,10 +352,15 @@ class AzureInstance(BaseInstance):
         # Deleting will be async, no need to wait
         all_ips = list(self._network_client.public_ip_addresses.list_all())
         params = self._instance["vm"].as_dict()
-        net_params = {"network_profile": {"network_interfaces": new_nic_params}}
+        net_params = {
+            "properties": {"networkProfile": {"networkInterfaces": new_nic_params}}
+        }
         update_nested(params, net_params)
         poll = self._client.virtual_machines.begin_create_or_update(
-            self._instance["rg_name"], self.name, params
+            self._instance["rg_name"],
+            self.name,
+            params,
+            api_version=COMPUTE_API_VERSION,
         )
         # Update VM and Ip address
         self._instance["vm"] = poll.result()
@@ -374,12 +382,17 @@ class AzureInstance(BaseInstance):
             do_start = True
 
         params = self._instance["vm"].as_dict()
-        vm_attached_nics = params["network_profile"]["network_interfaces"]
+        vm_attached_nics = params["properties"]["networkProfile"]["networkInterfaces"]
         vm_attached_nics.extend(nics)
-        net_params = {"network_profile": {"network_interfaces": vm_attached_nics}}
+        net_params = {
+            "properties": {"networkProfile": {"networkInterfaces": vm_attached_nics}}
+        }
         update_nested(params, net_params)
         poll = self._client.virtual_machines.begin_create_or_update(
-            self._instance["rg_name"], self.name, params
+            self._instance["rg_name"],
+            self.name,
+            params,
+            api_version=COMPUTE_API_VERSION,
         )
         self._instance["vm"] = poll.result()
         if do_start:

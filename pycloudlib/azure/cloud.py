@@ -498,6 +498,12 @@ class Azure(BaseCloud):
         machine. We check if the user has passed user_data and the type of
         image_id we are receiving, which can be snapshots ids or not.
 
+        The returned dict follows the Azure REST API shape: resource-specific
+        properties are nested under ``properties`` and use camelCase keys, so
+        the body is accepted verbatim by azure-mgmt-compute >= 36 (hybrid
+        models) which no longer translate snake_case dicts to the REST
+        representation.
+
         Args:
             name: string, The name of the virtual machine.
             image_id: string, The identifier of an image.
@@ -517,42 +523,44 @@ class Azure(BaseCloud):
             }
             for i, nic_id in enumerate(nic_ids)
         ]
-        vm_parameters = {
-            "location": self.location,
-            "hardware_profile": {"vm_size": instance_type},
-            "storage_profile": {"image_reference": {}},
-            "os_profile": {
-                "computer_name": name,
-                "admin_username": self.username,
-                "linux_configuration": {
-                    "ssh": {
-                        "public_keys": [
-                            {
-                                "path": "/home/{}/.ssh/authorized_keys".format(self.username),
-                                "key_data": self.key_pair.public_key_content,
-                            }
-                        ]
-                    },
-                    "disable_password_authentication": True,
+        os_profile = {
+            "computerName": name,
+            "adminUsername": self.username,
+            "linuxConfiguration": {
+                "ssh": {
+                    "publicKeys": [
+                        {
+                            "path": "/home/{}/.ssh/authorized_keys".format(self.username),
+                            "keyData": self.key_pair.public_key_content,
+                        }
+                    ]
                 },
+                "disablePasswordAuthentication": True,
             },
-            "diagnostics_profile": {"boot_diagnostics": {"enabled": self._enable_boot_diagnostics}},
-            "network_profile": {
-                "network_interfaces": nics,
-            },
-            "tags": {"name": self.tag},
         }
 
         if user_data:
             # We need to encode the user_data into base64 before sending
             # it to the virtual machine.
-            vm_parameters["os_profile"]["custom_data"] = base64.b64encode(
+            os_profile["customData"] = base64.b64encode(
                 user_data.encode()
             ).decode()
 
-        vm_parameters["storage_profile"]["image_reference"] = util.get_image_reference_params(
-            image_id
-        )
+        vm_parameters = {
+            "location": self.location,
+            "properties": {
+                "hardwareProfile": {"vmSize": instance_type},
+                "storageProfile": {
+                    "imageReference": util.get_image_reference_params(image_id)
+                },
+                "osProfile": os_profile,
+                "networkProfile": {"networkInterfaces": nics},
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {"enabled": self._enable_boot_diagnostics}
+                },
+            },
+            "tags": {"name": self.tag},
+        }
 
         # We can have pro images from two different sources; marketplaces
         # and snapshots. A snapshot image does not have the necessary metadata
@@ -609,6 +617,7 @@ class Azure(BaseCloud):
                 self.resource_group.name,
                 name,
                 params,
+                api_version=util.COMPUTE_API_VERSION,
             )
             vm_poller.wait(provisioning_timeout)
             if not vm_poller.done():
@@ -1133,9 +1142,12 @@ class Azure(BaseCloud):
             image_name="%s-%s" % (self.tag, "image"),
             parameters={
                 "location": self.location,
-                "source_virtual_machine": {"id": instance.id},
+                "properties": {
+                    "sourceVirtualMachine": {"id": instance.id},
+                },
                 "tags": {"name": self.tag, "src-image-id": instance.image_id},
             },
+            api_version=util.COMPUTE_API_VERSION,
         )
 
         image = image_poller.result()
