@@ -21,6 +21,15 @@ RE_AZURE_IMAGE_ID = r"(?P<publisher>[^:]+):(?P<offer>[^:]+):(?P<sku>[^:]+)(:(?P<
 # https://github.com/Azure/azure-sdk-for-python/issues/48125
 COMPUTE_API_VERSION = "2024-07-01"
 
+# azure-mgmt-network >= 31 defaults to an api-version Azure ARM rejects for
+# Microsoft.Network/* resources (virtualNetworks, subnets, publicIPAddresses,
+# networkInterfaces, networkSecurityGroups), causing it to fall back to
+# validating the request body against the generic ResourceDefinition base
+# type. Pin the last known-good stable api-version here so the body pycloudlib
+# builds is validated against the correct resource type. See:
+# https://github.com/Azure/azure-sdk-for-python/issues/48125
+NETWORK_API_VERSION = "2025-05-01"
+
 
 class AzureParams(NamedTuple):
     """Azure Parameters Class.

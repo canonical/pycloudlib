@@ -74,14 +74,16 @@ class TestCreateNetworkInterfaceClient:
         expected_security_rules = [
             {
                 "name": "port-22",
-                "priority": 300,
-                "protocol": "TCP",
-                "access": "Allow",
-                "direction": "Inbound",
-                "sourceAddressPrefix": "*",
-                "sourcePortRange": "*",
-                "destinationAddressPrefix": "*",
-                "destinationPortRange": "22",
+                "properties": {
+                    "priority": 300,
+                    "protocol": "TCP",
+                    "access": "Allow",
+                    "direction": "Inbound",
+                    "sourceAddressPrefix": "*",
+                    "sourcePortRange": "*",
+                    "destinationAddressPrefix": "*",
+                    "destinationPortRange": "22",
+                },
             },
         ]
 
@@ -90,25 +92,29 @@ class TestCreateNetworkInterfaceClient:
                 [
                     {
                         "name": "port-3128",
-                        "priority": 310,
-                        "protocol": "TCP",
-                        "access": "Allow",
-                        "direction": "Inbound",
-                        "sourceAddressPrefix": "*",
-                        "sourcePortRange": "*",
-                        "destinationAddressPrefix": "*",
-                        "destinationPortRange": "3128",
+                        "properties": {
+                            "priority": 310,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "3128",
+                        },
                     },
                     {
                         "name": "port-8080",
-                        "priority": 320,
-                        "protocol": "TCP",
-                        "access": "Allow",
-                        "direction": "Inbound",
-                        "sourceAddressPrefix": "*",
-                        "sourcePortRange": "*",
-                        "destinationAddressPrefix": "*",
-                        "destinationPortRange": "8080",
+                        "properties": {
+                            "priority": 320,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "8080",
+                        },
                     },
                 ]
             )
@@ -119,8 +125,11 @@ class TestCreateNetworkInterfaceClient:
                 network_security_group_name="tag-sgn",
                 parameters={
                     "location": "location",
-                    "security_rules": expected_security_rules,
+                    "properties": {
+                        "securityRules": expected_security_rules,
+                    },
                 },
+                api_version="2025-05-01",
             ),
         ]
 
@@ -193,20 +202,24 @@ class TestNonComputeParamsOverrides:
         expected_security_rules = [
             {
                 "name": "port-22",
-                "priority": 300,
-                "protocol": "TCP",
-                "access": "Allow",
-                "direction": "Inbound",
-                "sourceAddressPrefix": "*",
-                "sourcePortRange": "*",
-                "destinationAddressPrefix": "*",
-                "destinationPortRange": "22",
+                "properties": {
+                    "priority": 300,
+                    "protocol": "TCP",
+                    "access": "Allow",
+                    "direction": "Inbound",
+                    "sourceAddressPrefix": "*",
+                    "sourcePortRange": "*",
+                    "destinationAddressPrefix": "*",
+                    "destinationPortRange": "22",
+                },
             },
         ]
         expected_calls = []
         parameters = {
             "location": cloud.location,
-            "security_rules": expected_security_rules,
+            "properties": {
+                "securityRules": expected_security_rules,
+            },
         }
         if not nsg_obj:
             expected_calls = [
@@ -214,6 +227,7 @@ class TestNonComputeParamsOverrides:
                     resource_group_name="default-rg",
                     network_security_group_name="pyc-test-sgn",
                     parameters=parameters,
+                    api_version="2025-05-01",
                 ),
             ]
         else:
@@ -223,6 +237,7 @@ class TestNonComputeParamsOverrides:
                     resource_group_name=nsg_obj.resource_group_name,
                     network_security_group_name=nsg_obj.name,
                     parameters=parameters,
+                    api_version="2025-05-01",
                 ),
             ]
 
@@ -237,7 +252,7 @@ class TestNonComputeParamsOverrides:
             AzureCreateParams(
                 "vnet001",
                 "new-vnet-rg",
-                {"address_space": {"address_prefixes": ["addr_prefix"]}},
+                {"properties": {"addressSpace": {"addressPrefixes": ["addr_prefix"]}}},
             ),
         ),
     )
@@ -263,15 +278,31 @@ class TestNonComputeParamsOverrides:
 
         parameters = {
             "location": cloud.location,
-            "address_space": {"address_prefixes": ["10.0.0.0/16"]},
+            "properties": {
+                "addressSpace": {"addressPrefixes": ["10.0.0.0/16"]},
+            },
             "tags": {"name": cloud.tag},
         }
 
         if not vnet_obj:
-            expected_calls = [mock.call("default-rg", "pyc-test-vnet", parameters)]
+            expected_calls = [
+                mock.call(
+                    "default-rg",
+                    "pyc-test-vnet",
+                    parameters,
+                    api_version="2025-05-01",
+                )
+            ]
         else:
-            expected_calls = [mock.call(vnet_obj.resource_group_name, vnet_obj.name, parameters)]
-            parameters["address_space"]["address_prefixes"] = ["addr_prefix"]
+            expected_calls = [
+                mock.call(
+                    vnet_obj.resource_group_name,
+                    vnet_obj.name,
+                    parameters,
+                    api_version="2025-05-01",
+                )
+            ]
+            parameters["properties"]["addressSpace"]["addressPrefixes"] = ["addr_prefix"]
             pass
         assert expected_calls == virtual_networks.begin_create_or_update.call_args_list
 
@@ -279,7 +310,11 @@ class TestNonComputeParamsOverrides:
         "subnet_obj",
         (
             None,
-            AzureCreateParams("subnet001", "new-subnet-rg", {"address_prefix": "addr_prfx"}),
+            AzureCreateParams(
+                "subnet001",
+                "new-subnet-rg",
+                {"properties": {"addressPrefix": "addr_prfx"}},
+            ),
         ),
     )
     def test_subnet_params_override(self, _m_get_client, subnet_obj):
@@ -301,8 +336,9 @@ class TestNonComputeParamsOverrides:
         expected_calls = []
 
         parameters = {
-            "address_prefix": "10.0.0.0/24",
-            "tags": {"name": cloud.tag},
+            "properties": {
+                "addressPrefix": "10.0.0.0/24",
+            },
         }
 
         if not subnet_obj:
@@ -312,16 +348,18 @@ class TestNonComputeParamsOverrides:
                     "vnet001",
                     cloud.tag + "-subnet",
                     parameters,
+                    api_version="2025-05-01",
                 )
             ]
         else:
-            parameters["address_prefix"] = "addr_prfx"
+            parameters["properties"]["addressPrefix"] = "addr_prfx"
             expected_calls = [
                 mock.call(
                     subnet_obj.resource_group_name,
                     "vnet001",
                     subnet_obj.name,
                     parameters,
+                    api_version="2025-05-01",
                 )
             ]
         assert expected_calls == subnets.begin_create_or_update.call_args_list
@@ -360,8 +398,10 @@ class TestNonComputeParamsOverrides:
         parameters = {
             "location": cloud.location,
             "sku": {"name": "Standard"},
-            "public_ip_allocation_method": "Static",
-            "rpublic_ip_address_version": "IPV4",
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+            },
             "tags": {"name": cloud.tag},
         }
 
@@ -371,6 +411,7 @@ class TestNonComputeParamsOverrides:
                     "default-ip-rg",
                     "{}-{}-ip".format(cloud.tag, us),
                     parameters,
+                    api_version="2025-05-01",
                 )
             ]
         else:
@@ -380,6 +421,7 @@ class TestNonComputeParamsOverrides:
                     ip_obj.resource_group_name,
                     ip_obj.name,
                     parameters,
+                    api_version="2025-05-01",
                 )
             ]
         assert expected_calls == public_ip_addresses.begin_create_or_update.call_args_list
@@ -417,26 +459,46 @@ class TestNonComputeParamsOverrides:
 
         parameters = {
             "location": cloud.location,
-            "ip_configurations": [
-                {
-                    "name": "{}-{}-ip-config".format(cloud.tag, us),
-                    "subnet": {"id": "subnet_id"},
-                    "public_ip_address": {"id": "ip_id"},
-                }
-            ],
-            "network_security_group": {"id": "nsg_id"},
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "{}-{}-ip-config".format(cloud.tag, us),
+                        "properties": {
+                            "subnet": {"id": "subnet_id"},
+                            "publicIPAddress": {"id": "ip_id"},
+                        },
+                    }
+                ],
+                "networkSecurityGroup": {"id": "nsg_id"},
+            },
             "tags": {"name": cloud.tag},
         }
         if not nic_obj:
-            expected_calls = [mock.call("default-nic-rg", "{}-nic".format(cloud.tag), parameters)]
+            expected_calls = [
+                mock.call(
+                    "default-nic-rg",
+                    "{}-nic".format(cloud.tag),
+                    parameters,
+                    api_version="2025-05-01",
+                )
+            ]
         else:
             parameters["location"] = "new-nic-location"
-            parameters["ip_configurations"] = [
+            parameters["properties"]["ipConfigurations"] = [
                 {
                     "name": "{}-{}-ip-config".format(nic_obj.name, us),
-                    "subnet": {"id": "subnet_id"},
-                    "public_ip_address": {"id": "ip_id"},
+                    "properties": {
+                        "subnet": {"id": "subnet_id"},
+                        "publicIPAddress": {"id": "ip_id"},
+                    },
                 }
             ]
-            expected_calls = [mock.call(nic_obj.resource_group_name, nic_obj.name, parameters)]
+            expected_calls = [
+                mock.call(
+                    nic_obj.resource_group_name,
+                    nic_obj.name,
+                    parameters,
+                    api_version="2025-05-01",
+                )
+            ]
         assert expected_calls == network_interfaces.begin_create_or_update.call_args_list
