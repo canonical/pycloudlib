@@ -4,15 +4,15 @@ This document describes how to contribute changes to pycloudlib.
 
 ## Get the Source
 
-The following demonstrates how to obtain the source from Launchpad and how to create a branch to hack on.
+The following demonstrates how to obtain the source from GitHub and how to create a branch to hack on.
 
-It is assumed you have a [Launchpad](https://launchpad.net/) account and refers to your launchpad user as LP_USER throughout.
+It is assumed you have a [GitHub](https://github.com/) account. Fork the repository at
+https://github.com/canonical/pycloudlib and replace `GH_USER` below with your GitHub username.
 
 ```shell
-git clone https://git.launchpad.net/pycloudlib
+git clone https://github.com/GH_USER/pycloudlib
 cd pycloudlib
-git remote add LP_USER ssh://LP_USER@git.launchpad.net/~LP_USER/pycloudlib
-git push LP_USER master
+git remote add upstream https://github.com/canonical/pycloudlib
 git checkout -b YOUR_BRANCH
 ```
 
@@ -44,23 +44,17 @@ When making changes please keep the following in mind:
 * Run `tox` to execute style and lint checks
 * When adding new clouds please add detailed documentation under the `docs` directory and code examples under `examples`
 
-## Submit a Merge Request
+## Submit a Pull Request
 
-To submit your merge request first push your branch:
+To submit your pull request first push your branch to your fork:
 
 ```shell
-git push -u LP_USER YOUR_BRANCH
+git push -u origin YOUR_BRANCH
 ```
 
-Then navigate to your personal Launchpad code page:
+Then navigate to https://github.com/canonical/pycloudlib and open a pull request from your branch.
 
-https://code.launchpad.net/~LP_USER/pycloudlib
-
-And do the following:
-
-* Click on your branch and choose 'Propose for merging'
-* Target branch: set to 'master'
-* Enter a commit message formatted as follows:
+Use a commit message formatted as follows:
 
 ```text
 topic: short description
@@ -68,25 +62,18 @@ topic: short description
 Detailed paragraph with change information goes here. Describe why the
 changes are getting made, not what as that is obvious.
 
-Fixes LP: #1234567
+Fixes: #1234
 ```
 
-The submitted branch will get auto-reviewed by a bot and then a developer in the [pycloudlib-devs](https://launchpad.net/~pycloudlib-devs) group will review of your submitted merge.
+A developer from the [pycloudlib-devs](https://github.com/orgs/canonical/teams/pycloudlib-devs) team will review your pull request.
 
 ## Do a Review
 
-Pull the code into a local branch:
+Pull the contributor's branch into a local branch:
 
 ```shell
-git checkout -b <branch-name> <LP_USER>
-git pull https://git.launchpad.net/<LP_USER>/pycodestyle.git merge_request
+git fetch upstream pull/PR_NUMBER/head:review-branch
+git checkout review-branch
 ```
 
-Merge, re-test, and push:
-
-```shell
-git checkout master
-git merge <branch-name>
-tox
-git push origin master
-```
+Test and, once approved, the maintainer will merge via GitHub.
