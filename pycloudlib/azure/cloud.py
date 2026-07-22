@@ -33,8 +33,8 @@ UBUNTU_DAILY_IMAGES = {
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
-    "questing": "Canonical:ubuntu-25_10-daily:server:latest",
     "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
+    "stonking": "Canonical:ubuntu-26_10-daily:server:latest",
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
@@ -43,8 +43,8 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:minimal:latest",
-    "questing": "Canonical:ubuntu-25_04-daily:minimal:latest",
     "resolute": "Canonical:ubuntu-26_04-lts-daily:minimal:latest",
+    "stonking": "Canonical:ubuntu-26_10-daily:minimal:latest",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
@@ -53,6 +53,7 @@ UBUNTU_DAILY_PRO_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-pro-focal:pro-20_04-lts:latest",
     "jammy": "Canonical:0001-com-ubuntu-pro-jammy:pro-22_04-lts:latest",
     "noble": "Canonical:ubuntu-24_04-lts:ubuntu-pro:latest",
+    "resolute": "Canonical:ubuntu-26_04-lts:ubuntu-pro:latest",
 }
 
 UBUNTU_DAILY_PRO_FIPS_IMAGES = {
@@ -72,8 +73,6 @@ UBUNTU_RELEASE_IMAGES = {
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
     "noble": "Canonical:ubuntu-24_04-lts:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
-    "questing": "Canonical:ubuntu-25_10-daily:server:latest",
-    # TODO(20241031: drop -daily once resolute release is published)
     "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
 }
 
