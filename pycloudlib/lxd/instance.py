@@ -462,7 +462,7 @@ class LXDInstance(BaseInstance):
         if wait:
             self.wait()
 
-    def wait_for_delete(self):
+    def wait_for_delete(self):  # type: ignore[override]
         """Wait for delete.
 
         Not used for LXD.
@@ -494,13 +494,13 @@ class LXDInstance(BaseInstance):
             time.sleep(1)
         raise PycloudlibTimeoutError
 
-    def wait_for_stop(self):
+    def wait_for_stop(self):  # type: ignore[override]
         """Wait for cloud instance to transition to stop state."""
         # Ephemeral instances will not go to STOPPED. They get destroyed.
         if not self.ephemeral:
             self.wait_for_state("STOPPED")
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self):  # type: ignore[override]
         """Wait for the cloud instance to be up.
 
         LXD VMs need to install systemd units upon initialization. There is
@@ -530,17 +530,17 @@ class LXDInstance(BaseInstance):
 class LXDVirtualMachineInstance(LXDInstance):
     """LXD Virtual Machine backed instance."""
 
-    def _run_command(self, command, stdin):
+    def _run_command(self, command, stdin, get_pty=False):
         """Run command in the instance."""
         if self.execute_via_ssh:
-            return super()._run_command(command, stdin)
+            return super()._run_command(command, stdin, get_pty=get_pty)
 
         if self.series == "xenial":
             self._log.warning(MISSING_AGENT_MSG, "lxc exec")
 
-        return super()._run_command(command, stdin)
+        return super()._run_command(command, stdin, get_pty=get_pty)
 
-    def _wait_for_instance_start(self):
+    def _wait_for_instance_start(self):  # type: ignore[override]
         """Wait for the cloud instance to be up.
 
         LXD VMs need to install systemd units upon initialization. There is

@@ -7,14 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26  # v3
         with:
           fetch-depth: 0  # Necessary to compare with the main branch
 
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
-        with:
-          python-version: '3.x'  # Use Python 3.x
+      - name: Install uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
 
       - name: Check version bump
         run: |
@@ -22,12 +20,10 @@ jobs:
           OLD_VERSION=$(git show origin/main:VERSION)
           # Read VERSION file from the current branch
           NEW_VERSION=$(cat VERSION)
-          
+
           echo "Old version: $OLD_VERSION"
           echo "New version: $NEW_VERSION"
-          
-          pip install -r ci-requirements.txt
 
           # Run the version comparison Python script
-          python .github/workflows/version_check.py "$OLD_VERSION" "$NEW_VERSION"
+          uv run --with packaging .github/workflows/version_check.py "$OLD_VERSION" "$NEW_VERSION"
 

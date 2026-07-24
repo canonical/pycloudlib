@@ -1,6 +1,6 @@
 # pycloudlib
 
-[![Build Status](https://travis-ci.com/canonical/pycloudlib.svg?branch=master)](https://travis-ci.com/canonical/pycloudlib)
+[![CI](https://github.com/canonical/pycloudlib/actions/workflows/ci.yaml/badge.svg)](https://github.com/canonical/pycloudlib/actions/workflows/ci.yaml)
 
 Python library to launch, interact, and snapshot cloud instances
 
@@ -9,17 +9,15 @@ Python library to launch, interact, and snapshot cloud instances
 Install directly from [PyPI](https://pypi.org/project/pycloudlib/):
 
 ```shell
-pip3 install pycloudlib
+pip install pycloudlib
 ```
 
-Project's requirements.txt file can include pycloudlib as a dependency. Check out the [pip documentation](https://pip.readthedocs.io/en/1.1/requirements.html) for instructions on how to include a particular version or git hash.
-
-Install from latest changes in `main` branch:
+Install from the latest `main` branch:
 
 ```shell
-git clone https://github.com/canonical/pycloudlib.git
+git clone https://git.launchpad.net/pycloudlib
 cd pycloudlib
-python3 setup.py install
+uv sync
 ```
 
 ## Usage

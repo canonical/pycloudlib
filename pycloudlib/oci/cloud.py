@@ -134,7 +134,7 @@ class OCI(BaseCloud):
         """
         self.compute_client.delete_image(image_id, **kwargs)
 
-    def released_image(self, release, operating_system="Canonical Ubuntu"):
+    def released_image(self, release, operating_system="Canonical Ubuntu"):  # type: ignore[override]
         """Get the released image.
 
         OCI just has periodic builds, so "released" and "daily" don't
@@ -359,7 +359,7 @@ class OCI(BaseCloud):
         self.created_instances.append(instance)
         return instance
 
-    def snapshot(self, instance, clean=True, name=None):
+    def snapshot(self, instance, clean=True, name=None):  # type: ignore[override]
         """Snapshot an instance and generate an image from it.
 
         Args:
