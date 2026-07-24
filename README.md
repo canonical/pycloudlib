@@ -20,6 +20,13 @@ cd pycloudlib
 uv sync
 ```
 
+## Supported platforms
+
+pycloudlib runs on **Linux only**, tested on Ubuntu 24.04 LTS (Python 3.12) and
+Ubuntu 26.04 LTS (Python 3.14). See the
+[supported platforms](https://pycloudlib.readthedocs.io/en/latest/supported_platforms.html)
+documentation for the full support matrix and policy details.
+
 ## Usage
 
 The library exports each cloud with a standard set of functions for operating on instances, snapshots, and images. There are also cloud specific operations that allow additional operations.

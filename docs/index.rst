@@ -79,6 +79,7 @@ use the pycloudlib-devs@lists.launchpad.net list.
    ssh_keys
    images
    resource_cleanup
+   supported_platforms
 
 .. toctree::
    :hidden:
