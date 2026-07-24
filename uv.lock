@@ -26,15 +26,6 @@ wheels = [
 ]
 
 [[package]]
-name = "appdirs"
-version = "1.4.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d7/d8/05696357e0311f5b5c316d7b95f46c669dd9c15aaeecbb48c7d0aeb88c40/appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41", size = 13470, upload-time = "2020-05-11T07:59:51.037Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl", hash = "sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128", size = 9566, upload-time = "2020-05-11T07:59:49.499Z" },
-]
-
-[[package]]
 name = "applicationinsights"
 version = "0.11.10"
 source = { registry = "https://pypi.org/simple" }
@@ -1759,12 +1750,6 @@ wheels = [
 ]
 
 [[package]]
-name = "netifaces"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae239e93ffc1918cf33fd9bab35c04d1e963b311e347a73/netifaces-0.11.0.tar.gz", hash = "sha256:043a79146eb2907edf439899f262b3dfe41717d34124298ed281139a8b93ca32", size = 30106, upload-time = "2021-05-31T08:33:02.506Z" }
-
-[[package]]
 name = "oci"
 version = "2.180.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1785,10 +1770,9 @@ wheels = [
 
 [[package]]
 name = "openstacksdk"
-version = "1.4.0"
+version = "4.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "appdirs" },
     { name = "cryptography" },
     { name = "decorator" },
     { name = "dogpile-cache" },
@@ -1796,15 +1780,17 @@ dependencies = [
     { name = "jmespath" },
     { name = "jsonpatch" },
     { name = "keystoneauth1" },
-    { name = "netifaces" },
     { name = "os-service-types" },
     { name = "pbr" },
+    { name = "platformdirs" },
+    { name = "psutil" },
     { name = "pyyaml" },
     { name = "requestsexceptions" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/0b/40d75b57d3395029d89f2e420de264ac1f1ba3305b2388c8e7232a29d566/openstacksdk-1.4.0.tar.gz", hash = "sha256:3615129edb67c82afbd1a1706e915ffa68e0eebfc99c903c343aac6517dd5858", size = 1173316, upload-time = "2023-08-03T12:48:45.2Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/24/1167097740136e302c74043c1c6feecf8d757b052d7b457960e0dc60fa03/openstacksdk-4.8.0.tar.gz", hash = "sha256:4dc038e1c17d893005f3a0a8951456afd9d148f3f65d448f94adcceb278d7f31", size = 1309981, upload-time = "2025-11-13T13:59:59.614Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/19/edac6766041a91b5e0ce3b50379b8f07bc7c80b6019a872904c33b164e50/openstacksdk-1.4.0-py3-none-any.whl", hash = "sha256:844982ec09d4930cc389edb2dfad5aa55b07b41f3f2978cb4e43c5f40a469fa5", size = 1652843, upload-time = "2023-08-03T12:48:41.753Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/45/87fa873f35abdf191d66d4821fe965f781e2d3e37e58883c6e23e95fa794/openstacksdk-4.8.0-py3-none-any.whl", hash = "sha256:7f7c438d418a4ee0c8737b1ac0859b3c1e8e21401677782415d21bce3324b9dd", size = 1849694, upload-time = "2025-11-13T13:59:57.634Z" },
 ]
 
 [[package]]
@@ -1985,6 +1971,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/24/03/e26bf3d6453b7fda5bd2b84029a426553bb373d6277ef6b5ac8863421f87/pkginfo-1.12.1.2.tar.gz", hash = "sha256:5cd957824ac36f140260964eba3c6be6442a8359b8c48f4adf90210f33a04b7b", size = 451828, upload-time = "2025-02-19T15:27:37.188Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/3d/f4f2ba829efb54b6cd2d91349c7463316a9cc55a43fc980447416c88540f/pkginfo-1.12.1.2-py3-none-any.whl", hash = "sha256:c783ac885519cab2c34927ccfa6bf64b5a704d7c69afaea583dd9b7afe969343", size = 32717, upload-time = "2025-02-19T15:27:33.071Z" },
+]
+
+[[package]]
+name = "platformdirs"
+version = "4.11.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/9b/560e4be8e26f6fd133a03630a8df0c663b9e8d61b4ade152b72005aec83b/platformdirs-4.11.0.tar.gz", hash = "sha256:0555d18370482847566ffabcaa53ad7c6c1c29f195989ae1ed634a05f76ea1e0", size = 31953, upload-time = "2026-07-21T13:09:36.565Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7d/68/d8d58938dfb1370b266a1a729e6d77a985be23689a0496498ee17b2cbf90/platformdirs-4.11.0-py3-none-any.whl", hash = "sha256:360ccded2b7fce0af0ff80cc8f5942a1c5d99b0e856033acb030bfc634709e74", size = 23247, upload-time = "2026-07-21T13:09:35.422Z" },
 ]
 
 [[package]]
@@ -2210,7 +2205,7 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13" },
     { name = "myst-parser", marker = "extra == 'docs'" },
     { name = "oci", specifier = ">=2.17.0" },
-    { name = "openstacksdk", specifier = ">=1.1.0,<1.5.0" },
+    { name = "openstacksdk", specifier = ">=4.2.0,<4.9.0" },
     { name = "packaging", marker = "extra == 'dev'" },
     { name = "paramiko", specifier = ">=2.9.2" },
     { name = "protobuf" },
@@ -2219,7 +2214,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'test'" },
     { name = "pytest-mock", marker = "extra == 'test'" },
     { name = "pytest-xdist", marker = "extra == 'test'" },
-    { name = "python-openstackclient", specifier = ">=5.2.1" },
+    { name = "python-openstackclient", specifier = ">=5.2.1,<8.3.0" },
     { name = "pyyaml", specifier = ">=5.1" },
     { name = "qemu-qmp", specifier = ">=0.0.3" },
     { name = "requests", specifier = ">=2.22" },
