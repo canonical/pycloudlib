@@ -53,7 +53,7 @@ UBUNTU_DAILY_PRO_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-pro-focal:pro-20_04-lts:latest",
     "jammy": "Canonical:0001-com-ubuntu-pro-jammy:pro-22_04-lts:latest",
     "noble": "Canonical:ubuntu-24_04-lts:ubuntu-pro:latest",
-    "resolute": "Canonical:ubuntu-26_04-lts:ubuntu-pro:latest",
+    "resolute": "Canonical:ubuntu-26_04-lts:pro-server:latest",
 }
 
 UBUNTU_DAILY_PRO_FIPS_IMAGES = {
