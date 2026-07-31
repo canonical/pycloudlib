@@ -14,6 +14,7 @@ from pycloudlib.cloud import BaseCloud
 from pycloudlib.config import ConfigFile
 from pycloudlib.errors import (
     CloudSetupError,
+    ImageNotFoundError,
     InstanceNotFoundError,
     InvalidTagNameError,
     PycloudlibException,
@@ -198,7 +199,10 @@ class OCI(BaseCloud):
             for i in image_response.data
             if "aarch64" not in i.display_name and "GPU" not in i.display_name
         ]
-        image_id = matching_image[0].id
+        try:
+            image_id = matching_image[0].id
+        except IndexError:
+            raise ImageNotFoundError(release=release)
         return image_id
 
     def image_serial(self, image_id):
