@@ -11,10 +11,10 @@ import pycloudlib
 REQUIRED_ENV_VARS = ("OS_AUTH_URL", "OS_PASSWORD", "OS_USERNAME")
 
 
-def basic_lifecycle(image_id: str):
+def basic_lifecycle(image_id: str, instance_type: str):
     """Demonstrate basic set of lifecycle operations with OpenStack."""
     with pycloudlib.Openstack("pycloudlib-test") as os_cloud:
-        with os_cloud.launch(image_id=image_id) as inst:
+        with os_cloud.launch(instance_type=instance_type, image_id=image_id) as inst:
             inst.wait()
 
             result = inst.execute("uptime")
@@ -23,16 +23,16 @@ def basic_lifecycle(image_id: str):
             inst.delete(wait=False)
 
 
-def demo(image_id: str):
+def demo(image_id: str, instance_type: str):
     """Show examples of using the Openstack module."""
-    basic_lifecycle(image_id)
+    basic_lifecycle(image_id, instance_type)
 
 
 def assert_openstack_config():
     """Assert any required OpenStack env variables and args needed for demo."""
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         sys.stderr.write(
-            f"Usage: {sys.argv[0]} <openstack_image_id>\n"
+            f"Usage: {sys.argv[0]} <openstack_image_id> <instance_type>\n"
             "Must provide an image id from openstack image list\n\n"
         )
         sys.exit(1)
@@ -46,4 +46,5 @@ if __name__ == "__main__":
     assert_openstack_config()
     logging.basicConfig(level=logging.DEBUG)
     image_id = sys.argv[1]
-    demo(image_id=sys.argv[1])
+    image_id = sys.argv[2]
+    demo(image_id=sys.argv[1], instance_type=sys.argv[2])
