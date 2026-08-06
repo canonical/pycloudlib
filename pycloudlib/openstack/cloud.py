@@ -55,7 +55,13 @@ class Openstack(BaseCloud):
         Args:
             image_id: string, id of the image to delete
         """
-        self.conn.delete_image(image_id, wait=True)
+        image = self.conn.image.find_image(image_id)
+        if image is None:
+            return
+        self.conn.image.delete_image(image, ignore_missing=True)
+        # Preserve the wait=True behavior of the old self.conn.delete_image
+        # shade-compat helper by waiting for the image to actually be gone.
+        self.conn.image.wait_for_delete(image, wait=3600)
 
     def released_image(self, release, **kwargs):
         """Not supported for openstack."""
@@ -185,8 +191,8 @@ class Openstack(BaseCloud):
         if clean:
             instance.clean()
         instance.shutdown()
-        image = self.conn.create_image_snapshot(
-            "{}-snapshot".format(self.tag), instance.server.id, wait=True
+        image = self.conn.compute.create_server_image(
+            instance.server, name="{}-snapshot".format(self.tag), wait=True, timeout=3600
         )
         self.created_images.append(image.id)
         return image.id
@@ -213,10 +219,10 @@ class Openstack(BaseCloud):
         name = self.key_pair.name
         public_key_content = self.key_pair.public_key_content
 
-        openstack_keypair = self.conn.get_keypair(name)
+        openstack_keypair = self.conn.compute.find_keypair(name)
         if not openstack_keypair:
             # If the openstack keypair doesn't exist, create it
-            return self.conn.create_keypair(name, public_key_content)
+            return self.conn.compute.create_keypair(name=name, public_key=public_key_content)
         if public_key_content == openstack_keypair.public_key:
             return openstack_keypair
         raise CloudSetupError(
