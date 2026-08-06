@@ -61,7 +61,7 @@ class Openstack(BaseCloud):
         self.conn.image.delete_image(image, ignore_missing=True)
         # Preserve the wait=True behavior of the old self.conn.delete_image
         # shade-compat helper by waiting for the image to actually be gone.
-        self.conn.image.wait_for_delete(image)
+        self.conn.image.wait_for_delete(image, wait=3600)
 
     def released_image(self, release, **kwargs):
         """Not supported for openstack."""
@@ -192,7 +192,7 @@ class Openstack(BaseCloud):
             instance.clean()
         instance.shutdown()
         image = self.conn.compute.create_server_image(
-            instance.server, name="{}-snapshot".format(self.tag), wait=True
+            instance.server, name="{}-snapshot".format(self.tag), wait=True, timeout=3600
         )
         self.created_images.append(image.id)
         return image.id
