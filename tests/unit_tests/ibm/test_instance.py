@@ -3,7 +3,7 @@
 import pytest
 from unittest import mock
 
-from pycloudlib.ibm.instance import IBMInstance, _IBMInstanceType, _Status
+from pycloudlib.ibm.instance import IBMInstance, VPC, _IBMInstanceType, _Status
 
 SAMPLE_RAW_INSTANCE = {
     "id": "ibm1",
@@ -12,6 +12,67 @@ SAMPLE_RAW_INSTANCE = {
     "zone": {"name": "zone1"},
 }
 M_PATH = "pycloudlib.ibm.instance."
+VPC_ID = "vpc-1"
+
+
+def _subnet(subnet_id, zone):
+    return {
+        "id": subnet_id,
+        "vpc": {"id": VPC_ID},
+        "zone": {"name": zone},
+    }
+
+
+def _client_with_subnets(*subnets):
+    client = mock.Mock()
+    client.list_vpcs.return_value.get_result.return_value = {
+        "vpcs": [{"id": VPC_ID, "name": "custom-vpc"}]
+    }
+    client.list_subnets.return_value.get_result.return_value = {"subnets": list(subnets)}
+    return client
+
+
+def _existing_vpc(client, **kwargs):
+    return VPC.from_existing(
+        None,
+        client=client,
+        name="custom-vpc",
+        resource_group_id="resource-group-id",
+        zone="us-south-1",
+        **kwargs,
+    )
+
+
+class TestVPC:
+    def test_from_existing_selects_subnet_by_zone(self):
+        """Select a custom VPC subnet in the configured zone."""
+        client = _client_with_subnets(
+            _subnet("subnet-wrong-zone", "us-south-2"),
+            _subnet("subnet-requested-zone", "us-south-1"),
+        )
+
+        vpc = _existing_vpc(client)
+
+        assert vpc.subnet_id == "subnet-requested-zone"
+        client.create_subnet.assert_not_called()
+
+    def test_from_existing_creates_expected_subnet(self):
+        """Create a subnet in the resolved zone when none matches."""
+        client = _client_with_subnets(_subnet("other-zone-subnet", "us-south-2"))
+        client.create_subnet.return_value.get_result.return_value = {"id": "created-subnet"}
+
+        vpc = _existing_vpc(client)
+
+        assert vpc.subnet_id == "created-subnet"
+        client.create_subnet.assert_called_once_with(
+            {
+                "name": "custom-vpc-us-south-1-subnet",
+                "resource_group": {"id": "resource-group-id"},
+                "vpc": {"id": VPC_ID},
+                "total_ipv4_address_count": 256,
+                "zone": {"name": "us-south-1"},
+            }
+        )
 
 
 class TestIBMInstance:
