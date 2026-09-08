@@ -14,6 +14,7 @@ Read the top-level `.kb/agents.md` file before continuing below.
 
 - **The `ibm-vpc` API version is pinned** in `ibm/cloud.py` (`VpcV1(..., version=...)` plus a `set_service_url` per region), and the SDK upper bound is constrained in `pyproject.toml` (`ibm-vpc >= 0.10, < 0.29.0`). When updating: check the SDK releases and update **both** the version string and the `<` upper bound together.
 - `resource_group_id` and `vpc` are lazy properties (looked up on first access); a missing resource group raises `IBMException`. See `ibm/cloud.py` for the `from_existing`/`from_default` VPC selection.
+- Preserve whether `zone` was passed or configured: supplied zones select or create a zone-qualified subnet in that zone; an omitted zone selects the first existing subnet and creates the legacy-named subnet in `<region>-1` only when the VPC is empty.
 - `ibm/_util.py` provides the iteration/wait helpers used across the backend; `ibm/errors.py` defines `IBMException`.
 - mypy: `ibm_vpc.*`/`ibm_cloud_sdk_core.*`/`ibm_platform_services.*` are in `ignore_missing_imports`; `pycloudlib.ibm.instance` has `check_untyped_defs = false` (TODO overrides in `pyproject.toml`).
 
