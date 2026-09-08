@@ -78,15 +78,17 @@ class _Subnet:
         return cls.from_existing(client, f"{zone}-default-subnet", vpc_id)
 
     @classmethod
-    def discover(cls, client: VpcV1, vpc_id: str) -> "_Subnet":
-        """Discover a Subnet within a VPC."""
+    def discover(cls, client: VpcV1, vpc_id: str, zone: str) -> "_Subnet":
+        """Discover a Subnet within a VPC and zone."""
         subnet = _get_first(
             client.list_subnets,
             resource_name="subnets",
-            filter_fn=(lambda subnet: subnet["vpc"]["id"] == vpc_id),
+            filter_fn=(
+                lambda subnet: subnet["vpc"]["id"] == vpc_id and subnet["zone"]["name"] == zone
+            ),
         )
         if subnet is None:
-            raise IBMException(f"No subnet associated to vpc found: {vpc_id}")
+            raise IBMException(f"No subnet associated to vpc found: {vpc_id} in zone {zone}")
         return cls(client, subnet)
 
     @property
@@ -200,7 +202,7 @@ class VPC:
     ) -> "VPC":
         """Find a VPC by name.
 
-        Try to discover a Subnet within it or create it if not found.
+        Try to discover a Subnet within it in the requested zone or create it if not found.
         """
         vpc = _get_first(
             client.list_vpcs,
@@ -211,11 +213,11 @@ class VPC:
             raise IBMException(f"VPC not found: {name}")
 
         try:
-            subnet = _Subnet.discover(client, vpc_id=vpc["id"])
+            subnet = _Subnet.discover(client, vpc_id=vpc["id"], zone=zone)
         except IBMException:
             subnet = _Subnet.create(
                 client,
-                name=f"{name}-subnet",
+                name=f"{name}-{zone}-subnet",
                 zone=zone,
                 resource_group_id=resource_group_id,
                 vpc_id=vpc["id"],
