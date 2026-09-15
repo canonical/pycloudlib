@@ -9,6 +9,7 @@ import pytest
 import toml
 
 from pycloudlib.errors import (
+    ImageNotFoundError,
     InstanceNotFoundError,
     InvalidTagNameError,
     PycloudlibException,
@@ -222,6 +223,23 @@ class TestOciImages:
         """Test daily_image with an invalid release version."""
         with pytest.raises(ValueError, match="Invalid release"):
             oci_cloud.daily_image("invalid-release")
+
+    def test_daily_image_not_found(self, oci_cloud):
+        """Test daily_image raises ImageNotFoundError when no matching image is found."""
+        oci_cloud.compute_client.list_images.return_value = mock.Mock(data=[])
+        with pytest.raises(ImageNotFoundError):
+            oci_cloud.daily_image("20.04")
+
+    def test_daily_image_filters_aarch64_and_gpu(self, oci_cloud):
+        """Test daily_image filters out aarch64 and GPU images and picks the first match."""
+        oci_cloud.compute_client.list_images.return_value = mock.Mock(
+            data=[
+                mock.Mock(display_name="Canonical Ubuntu 20.04 aarch64", id="aarch64-id"),
+                mock.Mock(display_name="Canonical Ubuntu 20.04 GPU", id="gpu-id"),
+                mock.Mock(display_name="Canonical Ubuntu 20.04", id="image-id"),
+            ]
+        )
+        assert oci_cloud.daily_image("20.04") == "image-id"
 
     def test_image_serial_not_implemented(self, oci_cloud):
         """Test image_serial raises NotImplementedError."""
