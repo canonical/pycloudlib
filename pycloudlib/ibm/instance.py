@@ -78,12 +78,20 @@ class _Subnet:
         return cls.from_existing(client, f"{zone}-default-subnet", vpc_id)
 
     @classmethod
-    def discover(cls, client: VpcV1, vpc_id: str) -> "_Subnet":
-        """Discover a Subnet within a VPC."""
+    def discover(
+        cls,
+        client: VpcV1,
+        vpc_id: str,
+        zone: Optional[str] = None,
+    ) -> "_Subnet":
+        """Discover a Subnet within a VPC, optionally constrained by zone."""
         subnet = _get_first(
             client.list_subnets,
             resource_name="subnets",
-            filter_fn=(lambda subnet: subnet["vpc"]["id"] == vpc_id),
+            filter_fn=(
+                lambda subnet: subnet["vpc"]["id"] == vpc_id
+                and (zone is None or subnet["zone"]["name"] == zone)
+            ),
         )
         if subnet is None:
             raise IBMException(f"No subnet associated to vpc found: {vpc_id}")
@@ -196,11 +204,13 @@ class VPC:
         name: str,
         resource_group_id: str,
         zone: str,
+        select_subnet_by_zone: bool = False,
         **kwargs,
     ) -> "VPC":
         """Find a VPC by name.
 
-        Try to discover a Subnet within it or create it if not found.
+        Select by zone when requested, otherwise select the first Subnet.
+        Create a Subnet if no candidate is found.
         """
         vpc = _get_first(
             client.list_vpcs,
@@ -211,11 +221,15 @@ class VPC:
             raise IBMException(f"VPC not found: {name}")
 
         try:
-            subnet = _Subnet.discover(client, vpc_id=vpc["id"])
+            subnet = _Subnet.discover(
+                client,
+                vpc_id=vpc["id"],
+                zone=zone if select_subnet_by_zone else None,
+            )
         except IBMException:
             subnet = _Subnet.create(
                 client,
-                name=f"{name}-subnet",
+                name=(f"{name}-{zone}-subnet" if select_subnet_by_zone else f"{name}-subnet"),
                 zone=zone,
                 resource_group_id=resource_group_id,
                 vpc_id=vpc["id"],

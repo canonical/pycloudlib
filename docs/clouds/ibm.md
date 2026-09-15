@@ -107,6 +107,11 @@ A pre-existent VPC can be set in the config file or be passed as argument to the
 ibm = IBM(vpc="my-custom-vpc", ...)
 ```
 
+When a zone is passed or configured, pycloudlib selects a matching subnet or
+creates a zone-qualified subnet there. When zone is omitted, it preserves the
+existing behavior: select the first subnet in the VPC, or create one in
+`{region}-1` if the VPC has no subnets.
+
 Another possibility is to create a custom VPC on the fly, then one can be created
 and then later used during instance creation.
 

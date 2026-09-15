@@ -63,8 +63,9 @@ class IBM(BaseCloud):
         )
         self._resource_group_id: Optional[str] = None
         self.region = str(region or self.config.get("region")).lower()
-        zone = zone or self.config.get("zone") or f"{self.region}-1"
-        self.zone = str(zone).lower()
+        configured_zone = zone or self.config.get("zone")
+        self._zone_provided = bool(configured_zone)
+        self.zone = str(configured_zone or f"{self.region}-1").lower()
 
         self._vpc_name = vpc or self.config.get("vpc")
         self._vpc: Optional[VPC] = None
@@ -108,7 +109,12 @@ class IBM(BaseCloud):
             "zone": self.zone,
         }
         if self._vpc_name is not None:
-            self._vpc = VPC.from_existing(self.key_pair, name=self._vpc_name, **kwargs)
+            self._vpc = VPC.from_existing(
+                self.key_pair,
+                name=self._vpc_name,
+                select_subnet_by_zone=self._zone_provided,
+                **kwargs,
+            )
         else:
             self._vpc = VPC.from_default(self.key_pair, **kwargs)
 
@@ -244,7 +250,11 @@ class IBM(BaseCloud):
             "zone": self.zone,
         }
         try:
-            return VPC.from_existing(*args, **kwargs)
+            return VPC.from_existing(
+                *args,
+                select_subnet_by_zone=self._zone_provided,
+                **kwargs,
+            )
         except IBMException:
             vpc = VPC.create(*args, **kwargs)
             self.created_vpcs.append(vpc)
