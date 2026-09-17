@@ -290,7 +290,10 @@ class AzureInstance(BaseInstance):
             "tags": None,
         }
         nic_name = f"{self.name}-nic-{us}"
-        nic_poller = self._network_client.network_interfaces.begin_create_or_update(
+        # The SDK types `parameters` as a `NetworkInterface` model (or raw bytes),
+        # but it also accepts the ARM-shaped dict we build above, which is what the
+        # rest of this module passes. Ignore the narrower overload, not the call.
+        nic_poller = self._network_client.network_interfaces.begin_create_or_update(  # type: ignore[call-overload]
             self._instance["rg_name"],
             nic_name,
             default_config,
