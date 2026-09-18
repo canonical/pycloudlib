@@ -27,8 +27,6 @@ from pycloudlib.util import get_timestamped_tag, update_nested
 
 # Use Azure CLI for valid images: az vm image list -p Canonical --all -o table
 UBUNTU_DAILY_IMAGES = {
-    "xenial": "Canonical:UbuntuServer:16.04-DAILY-LTS:latest",
-    "bionic": "Canonical:UbuntuServer:18.04-DAILY-LTS:latest",
     "focal": "Canonical:0001-com-ubuntu-server-focal-daily:20_04-daily-lts:latest",  # noqa: E501
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
