@@ -18,7 +18,7 @@ from pycloudlib.ibm._util import get_first as _get_first
 from pycloudlib.ibm._util import iter_resources as _iter_resources
 from pycloudlib.ibm._util import wait_until as _wait_until
 from pycloudlib.ibm.errors import IBMException
-from pycloudlib.ibm.instance import VPC, IBMInstance
+from pycloudlib.ibm.instance import VPC, IBMInstance, _Subnet
 from pycloudlib.instance import BaseInstance
 from pycloudlib.util import UBUNTU_RELEASE_VERSION_MAP
 
@@ -56,6 +56,7 @@ class IBM(BaseCloud):
             required_values=[resource_group, api_key, region],
         )
         self.created_vpcs: List[VPC] = []
+        self.created_subnets: List[_Subnet] = []
         self.created_keys: List[str] = []
 
         self._resource_group = (
@@ -108,7 +109,13 @@ class IBM(BaseCloud):
             "zone": self.zone,
         }
         if self._vpc_name is not None:
-            self._vpc = VPC.from_existing(self.key_pair, name=self._vpc_name, **kwargs)
+            self._vpc = VPC.from_existing(
+                self.key_pair,
+                name=self._vpc_name,
+                **kwargs,
+            )
+            if self._vpc.created_subnet is not None:
+                self.created_subnets.append(self._vpc.created_subnet)
         else:
             self._vpc = VPC.from_default(self.key_pair, **kwargs)
 
@@ -244,11 +251,14 @@ class IBM(BaseCloud):
             "zone": self.zone,
         }
         try:
-            return VPC.from_existing(*args, **kwargs)
+            vpc = VPC.from_existing(*args, **kwargs)
         except IBMException:
             vpc = VPC.create(*args, **kwargs)
             self.created_vpcs.append(vpc)
             return vpc
+        if vpc.created_subnet is not None:
+            self.created_subnets.append(vpc.created_subnet)
+        return vpc
 
     def launch(
         self,
@@ -409,6 +419,11 @@ class IBM(BaseCloud):
         # Not cleaning up floating ips here because they're 1:1
         # with an instance and get cleaned up by the instance
         exceptions = super().clean()
+        for subnet in self.created_subnets:
+            try:
+                subnet.delete()
+            except Exception as error:
+                exceptions.append(error)
         for vpc in self.created_vpcs:
             try:
                 vpc.delete()

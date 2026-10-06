@@ -135,6 +135,7 @@ class VPC:
         vpc: dict,
         resource_group_id: str,
         subnet: Optional[_Subnet] = None,
+        created_subnet: Optional[_Subnet] = None,
         **_kwargs,
     ):
         """Init a `VPC`."""
@@ -142,6 +143,7 @@ class VPC:
         self._client = client
         self._vpc = vpc
         self._subnet = subnet
+        self._created_subnet = created_subnet
         self._resource_group_id = resource_group_id
 
     @classmethod
@@ -212,6 +214,7 @@ class VPC:
         if vpc is None:
             raise IBMException(f"VPC not found: {name}")
 
+        created_subnet = None
         try:
             subnet = _Subnet.discover(client, vpc_id=vpc["id"], zone=zone)
         except IBMException:
@@ -222,6 +225,7 @@ class VPC:
                 resource_group_id=resource_group_id,
                 vpc_id=vpc["id"],
             )
+            created_subnet = subnet
 
         return cls(
             *args,
@@ -229,6 +233,7 @@ class VPC:
             vpc=vpc,
             resource_group_id=resource_group_id,
             subnet=subnet,
+            created_subnet=created_subnet,
             **kwargs,
         )
 
@@ -278,6 +283,11 @@ class VPC:
         if self._subnet is None:
             raise IBMException("No subnet available")
         return self._subnet.id
+
+    @property
+    def created_subnet(self) -> Optional[_Subnet]:
+        """Subnet created in an existing VPC, or None if one was reused."""
+        return self._created_subnet
 
     def delete(self) -> None:
         """Delete VPC.
