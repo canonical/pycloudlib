@@ -22,4 +22,4 @@ Read the top-level `.kb/agents.md` file before continuing below.
 # Architecture
 
 - `IAMAuthenticator(api_key)` authenticates both `VpcV1` and `ResourceManagerV2`. The `VPC` helper (in `ibm/instance.py`) pairs the IBM VPC resource with the resolved resource-group id, region, and zone; floating IPs are selected by `floating_ip_substring` when provided.
-- `clean()` extends `BaseCloud.clean()` to tear down `created_vpcs`/`created_keys`.
+- `clean()` extends `BaseCloud.clean()` to tear down `created_subnets`/`created_vpcs`/`created_keys`.
