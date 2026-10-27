@@ -10,7 +10,7 @@ It is assumed you have a [GitHub](https://github.com/) account. Fork the reposit
 https://github.com/canonical/pycloudlib and replace `GH_USER` below with your GitHub username.
 
 ```shell
-git clone https://github.com/GH_USER/pycloudlib
+git clone git@github.com:GH_USER/pycloudlib.git
 cd pycloudlib
 git remote add upstream https://github.com/canonical/pycloudlib
 git checkout -b YOUR_BRANCH
@@ -62,7 +62,7 @@ topic: short description
 Detailed paragraph with change information goes here. Describe why the
 changes are getting made, not what as that is obvious.
 
-Fixes: #1234
+Fixes GH-1234
 ```
 
 A developer from the [pycloudlib-devs](https://github.com/orgs/canonical/teams/pycloudlib-devs) team will review your pull request.
