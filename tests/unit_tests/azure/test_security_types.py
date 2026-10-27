@@ -28,10 +28,12 @@ class TestSecurityType:
         (
             {},
             {
-                "security_profile": {
-                    "security_type": "Dummy",
-                    "random_key": "random_value",
-                }
+                "properties": {
+                    "securityProfile": {
+                        "securityType": "Dummy",
+                        "randomKey": "random-value",
+                    }
+                },
             },
         ),
     )
@@ -40,11 +42,17 @@ class TestSecurityType:
         orig_vm_params = deepcopy(vm_params)
         configure_security_types_vm_params(AzureSecurityType.TRUSTED_LAUNCH, vm_params)
         assert (
-            vm_params["security_profile"]["security_type"] == AzureSecurityType.TRUSTED_LAUNCH.value
+            vm_params["properties"]["securityProfile"]["securityType"]
+            == AzureSecurityType.TRUSTED_LAUNCH.value
         )
-        assert vm_params.get("security_profile", {}).get("random_key", {}) == orig_vm_params.get(
-            "security_profile", {}
-        ).get("random_key", {})
+        assert (
+            vm_params.get("properties", {})
+            .get("securityProfile", {})
+            .get("randomKey", {})
+            == orig_vm_params.get("properties", {})
+            .get("securityProfile", {})
+            .get("randomKey", {})
+        )
 
     @pytest.mark.parametrize(
         "vm_params,sec_type_params,disk_enc",
@@ -60,14 +68,14 @@ class TestSecurityType:
                 DiskEncryption.VM_GUEST_STATE_ONLY,
             ),
             (
-                {"security_profile": {"security_type": "Dummy"}},
+                {"properties": {"securityProfile": {"securityType": "Dummy"}}},
                 {},
                 DiskEncryption.DISK_WITH_VM_GUEST_STATE,
             ),
             (
                 {
-                    "security_profile": {"security_type": "Dummy"},
-                    "random_key": "random_value",
+                    "properties": {"securityProfile": {"securityType": "Dummy"}},
+                    "randomKey": "random-value",
                 },
                 {"os_disk_encryption": DiskEncryption.VM_GUEST_STATE_ONLY},
                 DiskEncryption.VM_GUEST_STATE_ONLY,
@@ -83,13 +91,13 @@ class TestSecurityType:
             sec_type_params.get("os_disk_encryption", None),
         )
         assert (
-            vm_params["security_profile"]["security_type"]
+            vm_params["properties"]["securityProfile"]["securityType"]
             == AzureSecurityType.CONFIDENTIAL_VM.value
         )
-        assert vm_params.get("random_key", {}) == orig_vm_params.get("random_key", {})
+        assert vm_params.get("randomKey", {}) == orig_vm_params.get("randomKey", {})
         assert (
-            vm_params["storage_profile"]["os_disk"]["managed_disk"]["security_profile"][
-                "security_encryption_type"
-            ]
+            vm_params["properties"]["storageProfile"]["osDisk"]["managedDisk"][
+                "securityProfile"
+            ]["securityEncryptionType"]
             == disk_enc.value
         )

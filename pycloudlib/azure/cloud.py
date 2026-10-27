@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from azure.core.exceptions import HttpResponseError, ResourceNotFoundError
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
-from azure.mgmt.resource import ResourceManagementClient
+from azure.mgmt.resource.resources import ResourceManagementClient
 
 from pycloudlib.azure import security_types, util
 from pycloudlib.azure.instance import AzureInstance, VMInstanceStatus
@@ -33,8 +33,8 @@ UBUNTU_DAILY_IMAGES = {
     "jammy": "Canonical:0001-com-ubuntu-server-jammy-daily:22_04-daily-lts:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
-    "questing": "Canonical:ubuntu-25_10-daily:server:latest",
     "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
+    "stonking": "Canonical:ubuntu-26_10-daily:server:latest",
 }
 
 UBUNTU_MINIMAL_DAILY_IMAGES = {
@@ -43,8 +43,8 @@ UBUNTU_MINIMAL_DAILY_IMAGES = {
     "mantic": "Canonical:0001-com-ubuntu-minimal-mantic-daily:minimal-23_10-daily:latest",  # noqa: E501
     "noble": "Canonical:ubuntu-24_04-lts-daily:minimal:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:minimal:latest",
-    "questing": "Canonical:ubuntu-25_04-daily:minimal:latest",
     "resolute": "Canonical:ubuntu-26_04-lts-daily:minimal:latest",
+    "stonking": "Canonical:ubuntu-26_10-daily:minimal:latest",
 }
 
 UBUNTU_DAILY_PRO_IMAGES = {
@@ -53,6 +53,7 @@ UBUNTU_DAILY_PRO_IMAGES = {
     "focal": "Canonical:0001-com-ubuntu-pro-focal:pro-20_04-lts:latest",
     "jammy": "Canonical:0001-com-ubuntu-pro-jammy:pro-22_04-lts:latest",
     "noble": "Canonical:ubuntu-24_04-lts:ubuntu-pro:latest",
+    "resolute": "Canonical:ubuntu-26_04-lts:pro-server:latest",
 }
 
 UBUNTU_DAILY_PRO_FIPS_IMAGES = {
@@ -72,8 +73,6 @@ UBUNTU_RELEASE_IMAGES = {
     "jammy": "Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest",
     "noble": "Canonical:ubuntu-24_04-lts:server:latest",
     "plucky": "Canonical:ubuntu-25_04-daily:server:latest",
-    "questing": "Canonical:ubuntu-25_10-daily:server:latest",
-    # TODO(20241031: drop -daily once resolute release is published)
     "resolute": "Canonical:ubuntu-26_04-lts-daily:server:latest",
 }
 
@@ -247,21 +246,25 @@ class Azure(BaseCloud):
             security_rules.append(
                 {
                     "name": "port-{}".format(port),
-                    "priority": priority,
-                    "protocol": "TCP",
-                    "access": "Allow",
-                    "direction": "Inbound",
-                    "sourceAddressPrefix": "*",
-                    "sourcePortRange": "*",
-                    "destinationAddressPrefix": "*",
-                    "destinationPortRange": port,
+                    "properties": {
+                        "priority": priority,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": port,
+                    },
                 }
             )
             priority += 10
 
         parameters = {
             "location": self.location,
-            "security_rules": security_rules,
+            "properties": {
+                "securityRules": security_rules,
+            },
         }
 
         if network_security_group_params and network_security_group_params.parameters:
@@ -271,6 +274,7 @@ class Azure(BaseCloud):
             resource_group_name=resource_group_name,
             network_security_group_name=security_group_name,
             parameters=parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return nsg_poller.result()
@@ -341,7 +345,9 @@ class Azure(BaseCloud):
         )
         parameters = {
             "location": self.location,
-            "address_space": {"address_prefixes": address_prefixes},
+            "properties": {
+                "addressSpace": {"addressPrefixes": address_prefixes},
+            },
             "tags": {"name": self.tag},
         }
         if virtual_network_params and virtual_network_params.parameters:
@@ -352,6 +358,7 @@ class Azure(BaseCloud):
             resource_group_name,
             virtual_network_name,
             parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return network_poller.result()
@@ -383,8 +390,9 @@ class Azure(BaseCloud):
         )
 
         parameters = {
-            "address_prefix": address_prefix,
-            "tags": {"name": self.tag},
+            "properties": {
+                "addressPrefix": address_prefix,
+            },
         }
         if subnet_params and subnet_params.parameters:
             update_nested(parameters, subnet_params.parameters)
@@ -395,6 +403,7 @@ class Azure(BaseCloud):
             vnet_name,
             subnet_name,
             parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return subnet_poller.result()
@@ -421,8 +430,10 @@ class Azure(BaseCloud):
         parameters = {
             "location": self.location,
             "sku": {"name": "Standard"},
-            "public_ip_allocation_method": "Static",
-            "rpublic_ip_address_version": "IPV4",
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+            },
             "tags": {"name": self.tag},
         }
 
@@ -434,6 +445,7 @@ class Azure(BaseCloud):
             resource_group_name,
             ip_name,
             parameters,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return ip_poller.result()
@@ -470,14 +482,18 @@ class Azure(BaseCloud):
 
         nic_config = {
             "location": self.location,
-            "ip_configurations": [
-                {
-                    "name": ip_config_name,
-                    "subnet": {"id": subnet_id},
-                    "public_ip_address": {"id": ip_address_id},
-                }
-            ],
-            "network_security_group": {"id": nsg_id},
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": ip_config_name,
+                        "properties": {
+                            "subnet": {"id": subnet_id},
+                            "publicIPAddress": {"id": ip_address_id},
+                        },
+                    }
+                ],
+                "networkSecurityGroup": {"id": nsg_id},
+            },
             "tags": {"name": self.tag},
         }
 
@@ -486,7 +502,10 @@ class Azure(BaseCloud):
 
         self._log.debug("Creating Azure network interface")
         nic_poller = self.network_client.network_interfaces.begin_create_or_update(
-            resource_group_name, nic_name, nic_config
+            resource_group_name,
+            nic_name,
+            nic_config,
+            api_version=util.NETWORK_API_VERSION,
         )
 
         return nic_poller.result()
@@ -497,6 +516,12 @@ class Azure(BaseCloud):
         Composes the dict that will be used to provision an Azure virtual
         machine. We check if the user has passed user_data and the type of
         image_id we are receiving, which can be snapshots ids or not.
+
+        The returned dict follows the Azure REST API shape: resource-specific
+        properties are nested under ``properties`` and use camelCase keys, so
+        the body is accepted verbatim by azure-mgmt-compute >= 36 (hybrid
+        models) which no longer translate snake_case dicts to the REST
+        representation.
 
         Args:
             name: string, The name of the virtual machine.
@@ -517,42 +542,40 @@ class Azure(BaseCloud):
             }
             for i, nic_id in enumerate(nic_ids)
         ]
-        vm_parameters = {
-            "location": self.location,
-            "hardware_profile": {"vm_size": instance_type},
-            "storage_profile": {"image_reference": {}},
-            "os_profile": {
-                "computer_name": name,
-                "admin_username": self.username,
-                "linux_configuration": {
-                    "ssh": {
-                        "public_keys": [
-                            {
-                                "path": "/home/{}/.ssh/authorized_keys".format(self.username),
-                                "key_data": self.key_pair.public_key_content,
-                            }
-                        ]
-                    },
-                    "disable_password_authentication": True,
+        os_profile = {
+            "computerName": name,
+            "adminUsername": self.username,
+            "linuxConfiguration": {
+                "ssh": {
+                    "publicKeys": [
+                        {
+                            "path": "/home/{}/.ssh/authorized_keys".format(self.username),
+                            "keyData": self.key_pair.public_key_content,
+                        }
+                    ]
                 },
+                "disablePasswordAuthentication": True,
             },
-            "diagnostics_profile": {"boot_diagnostics": {"enabled": self._enable_boot_diagnostics}},
-            "network_profile": {
-                "network_interfaces": nics,
-            },
-            "tags": {"name": self.tag},
         }
 
         if user_data:
             # We need to encode the user_data into base64 before sending
             # it to the virtual machine.
-            vm_parameters["os_profile"]["custom_data"] = base64.b64encode(
-                user_data.encode()
-            ).decode()
+            os_profile["customData"] = base64.b64encode(user_data.encode()).decode()
 
-        vm_parameters["storage_profile"]["image_reference"] = util.get_image_reference_params(
-            image_id
-        )
+        vm_parameters = {
+            "location": self.location,
+            "properties": {
+                "hardwareProfile": {"vmSize": instance_type},
+                "storageProfile": {"imageReference": util.get_image_reference_params(image_id)},
+                "osProfile": os_profile,
+                "networkProfile": {"networkInterfaces": nics},
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {"enabled": self._enable_boot_diagnostics}
+                },
+            },
+            "tags": {"name": self.tag},
+        }
 
         # We can have pro images from two different sources; marketplaces
         # and snapshots. A snapshot image does not have the necessary metadata
@@ -609,6 +632,7 @@ class Azure(BaseCloud):
                 self.resource_group.name,
                 name,
                 params,
+                api_version=util.COMPUTE_API_VERSION,
             )
             vm_poller.wait(provisioning_timeout)
             if not vm_poller.done():
@@ -1133,9 +1157,12 @@ class Azure(BaseCloud):
             image_name="%s-%s" % (self.tag, "image"),
             parameters={
                 "location": self.location,
-                "source_virtual_machine": {"id": instance.id},
+                "properties": {
+                    "sourceVirtualMachine": {"id": instance.id},
+                },
                 "tags": {"name": self.tag, "src-image-id": instance.image_id},
             },
+            api_version=util.COMPUTE_API_VERSION,
         )
 
         image = image_poller.result()

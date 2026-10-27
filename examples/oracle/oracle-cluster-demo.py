@@ -4,14 +4,15 @@
 
 import logging
 import sys
+from typing import Optional
 
 import pycloudlib
 
 
 def demo_cluster(
-    availability_domain: str = None,
-    compartment_id: str = None,
-    vcn_name: str = None,
+    availability_domain: Optional[str] = None,
+    compartment_id: Optional[str] = None,
+    vcn_name: Optional[str] = None,
 ):
     """Show example of using the OCI library to launch a cluster instance and ping between them."""
     with pycloudlib.OCI(

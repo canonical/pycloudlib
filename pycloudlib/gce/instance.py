@@ -174,7 +174,7 @@ class GceInstance(BaseInstance):
         self._wait_for_status("RUNNING")
         self._ip = self._get_ip()
 
-    def wait_for_delete(self, sleep_seconds=30, raise_on_fail=False):
+    def wait_for_delete(self, sleep_seconds=30, raise_on_fail=False):  # type: ignore[override]
         """Wait for instance to be deleted."""
         get_instance_request = compute_v1.GetInstanceRequest(
             project=self.project,

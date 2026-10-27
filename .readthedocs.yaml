@@ -9,8 +9,10 @@ formats: all
 
 python:
   install:
-    - path: .
-    - requirements: docs/requirements.txt
+    - method: uv
+      path: .
+      extra-requirements:
+        - docs
 
 sphinx:
   configuration: docs/conf.py
