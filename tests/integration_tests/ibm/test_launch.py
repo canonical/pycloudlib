@@ -5,6 +5,8 @@ from pycloudlib.ibm.instance import IBMInstance
 from google.cloud import compute_v1
 import time
 
+from pycloudlib.ibm._util import iter_resources
+
 
 @pytest.fixture
 def ibm_cloud():
@@ -35,6 +37,50 @@ def manage_ssh_key(ibm: IBM, key_name):
         private_key_path=priv_key_path,
         name=key_name,
     )
+
+
+def configured_vpc_subnets(ibm_cloud: IBM):
+    """Return subnets for the configured custom VPC."""
+    vpc_name = ibm_cloud.config.get("vpc")
+    if not vpc_name:
+        pytest.skip("requires a custom VPC in the IBM test config")
+
+    vpc = next(
+        (
+            candidate
+            for candidate in iter_resources(
+                ibm_cloud._client.list_vpcs,
+                resource_name="vpcs",
+            )
+            if candidate["name"] == vpc_name
+        ),
+        None,
+    )
+    assert vpc is not None, f"Configured VPC not found: {vpc_name}"
+    return list(
+        iter_resources(
+            ibm_cloud._client.list_subnets,
+            resource_name="subnets",
+            filter_fn=lambda subnet: subnet["vpc"]["id"] == vpc["id"],
+        )
+    )
+
+
+def test_ibm_custom_vpc_selects_subnet_in_zone(ibm_cloud: IBM):
+    """Select a subnet in the cloud's zone, not the first subnet listed."""
+    subnets = configured_vpc_subnets(ibm_cloud)
+    matching_subnet = next(
+        (subnet for subnet in subnets if subnet["zone"]["name"] == ibm_cloud.zone),
+        None,
+    )
+    if matching_subnet is None:
+        pytest.skip("requires an existing matching subnet to avoid creating resources")
+    if subnets[0]["id"] == matching_subnet["id"]:
+        pytest.skip("first listed subnet must be in another zone to reproduce the bug")
+
+    selected_subnet = ibm_cloud._client.get_subnet(ibm_cloud.vpc.subnet_id).get_result()
+
+    assert selected_subnet["id"] == matching_subnet["id"]
 
 
 def test_ibm_launch(ibm_cloud: IBM):
