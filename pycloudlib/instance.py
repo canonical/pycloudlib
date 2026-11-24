@@ -421,8 +421,8 @@ class BaseInstance(ABC):
         err = fp_err.read()
         return_code = channel.recv_exit_status()
 
-        out = "" if not out else out.rstrip().decode("utf-8")
-        err = "" if not err else err.rstrip().decode("utf-8")
+        out = "" if not out else out.rstrip().decode("utf-8", errors="replace")
+        err = "" if not err else err.rstrip().decode("utf-8", errors="replace")
 
         return Result(out, err, return_code)
 

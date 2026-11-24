@@ -248,3 +248,33 @@ class TestWaitForCloudinit:
             ),
         ]
         assert expected == m_execute.call_args_list
+
+
+class TestSsh:
+    """Tests covering pycloudlib.instance.BaseInstance._ssh."""
+
+    @pytest.mark.parametrize(
+        "raw_out,raw_err,expected_out,expected_err",
+        [
+            pytest.param(b"caf\xc3\xa9\n", b"", "café", "", id="valid-utf8"),
+            pytest.param(b"abc\xff\xfe\n", b"warn\xff\n", "abc��", "warn�", id="invalid-utf8"),
+        ],
+    )
+    def test_output_is_decoded_without_raising(
+        self, raw_out, raw_err, expected_out, expected_err, concrete_instance_cls
+    ):
+        """Non-UTF-8 command output must not make _ssh raise."""
+        instance = concrete_instance_cls(key_pair=None)
+        fp_in = mock.Mock()
+        fp_in.channel.recv_exit_status.return_value = 0
+        fp_out = mock.Mock()
+        fp_out.read.return_value = raw_out
+        fp_err = mock.Mock()
+        fp_err.read.return_value = raw_err
+        client = mock.Mock()
+        client.exec_command.return_value = (fp_in, fp_out, fp_err)
+
+        with mock.patch.object(instance, "_ssh_connect", return_value=client):
+            result = instance._ssh(["true"])  # pylint: disable=protected-access
+
+        assert result == Result(expected_out, expected_err, 0)
